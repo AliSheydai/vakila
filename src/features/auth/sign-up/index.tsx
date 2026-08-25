@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import Link from 'next/link'
 import {
   Card,
   CardContent,
@@ -16,16 +16,16 @@ export function SignUp() {
       <Card className='max-w-sm gap-4'>
         <CardHeader>
           <CardTitle className='text-lg tracking-tight'>
-            Create an account
+            ایجاد حساب کاربری
           </CardTitle>
           <CardDescription>
-            Enter your email and password to create an account. <br />
-            Already have an account?{' '}
+            برای ایجاد حساب، ایمیل و رمز عبور خود را وارد کنید. <br />
+            قبلاً ثبت‌نام کرده‌اید؟{' '}
             <Link
-              to='/sign-in'
+              href='/sign-in'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Sign In
+              ورود
             </Link>
           </CardDescription>
         </CardHeader>
@@ -34,21 +34,21 @@ export function SignUp() {
         </CardContent>
         <CardFooter>
           <p className='px-8 text-center text-sm text-muted-foreground'>
-            By creating an account, you agree to our{' '}
+            با ایجاد حساب، با{' '}
             <a
               href='/terms'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Terms of Service
+              شرایط استفاده
             </a>{' '}
-            and{' '}
+            و{' '}
             <a
               href='/privacy'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Privacy Policy
-            </a>
-            .
+              حریم خصوصی
+            </a>{' '}
+            موافقت می‌کنید.
           </p>
         </CardFooter>
       </Card>

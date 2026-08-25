@@ -61,6 +61,8 @@
 }
 
 @theme inline {
+  --font-sans: var(--font-vazirmatn), 'Vazirmatn', system-ui, sans-serif;
+  --font-vazirmatn: var(--font-vazirmatn), 'Vazirmatn', sans-serif;
   --font-inter: 'Inter', 'sans-serif';
   --font-manrope: 'Manrope', 'sans-serif';
 

@@ -1,5 +1,7 @@
-import { type ChangeEvent, useState } from 'react'
-import { getRouteApi } from '@tanstack/react-router'
+'use client'
+
+import { type ChangeEvent, useState, useCallback } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { SlidersHorizontal, ArrowUpAZ, ArrowDownAZ } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,15 +13,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { apps } from './data/apps'
-
-const route = getRouteApi('/_authenticated/apps/')
 
 type AppType = 'all' | 'connected' | 'notConnected'
 
@@ -30,16 +28,34 @@ const appText = new Map<AppType, string>([
 ])
 
 export function Apps() {
-  const {
-    filter = '',
-    type = 'all',
-    sort: initSort = 'asc',
-  } = route.useSearch()
-  const navigate = route.useNavigate()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const filter = searchParams.get('filter') || ''
+  const type = (searchParams.get('type') as AppType) || 'all'
+  const initSort = (searchParams.get('sort') as 'asc' | 'desc') || 'asc'
 
   const [sort, setSort] = useState(initSort)
   const [appType, setAppType] = useState(type)
   const [searchTerm, setSearchTerm] = useState(filter)
+
+  const updateQueryParams = useCallback(
+    (paramsToUpdate: Record<string, string | undefined>) => {
+      const current = new URLSearchParams(Array.from(searchParams.entries()))
+      Object.entries(paramsToUpdate).forEach(([key, value]) => {
+        if (!value || value === 'all') {
+          current.delete(key)
+        } else {
+          current.set(key, value)
+        }
+      })
+      const search = current.toString()
+      const query = search ? `?${search}` : ''
+      router.push(`${pathname}${query}`)
+    },
+    [router, pathname, searchParams]
+  )
 
   const filteredApps = apps
     .sort((a, b) =>
@@ -57,28 +73,19 @@ export function Apps() {
     .filter((app) => app.name.toLowerCase().includes(searchTerm.toLowerCase()))
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        filter: e.target.value || undefined,
-      }),
-    })
+    const val = e.target.value
+    setSearchTerm(val)
+    updateQueryParams({ filter: val || undefined })
   }
 
   const handleTypeChange = (value: AppType) => {
     setAppType(value)
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        type: value === 'all' ? undefined : value,
-      }),
-    })
+    updateQueryParams({ type: value })
   }
 
   const handleSortChange = (sort: 'asc' | 'desc') => {
     setSort(sort)
-    navigate({ search: (prev) => ({ ...prev, sort }) })
+    updateQueryParams({ sort })
   }
 
   return (
@@ -87,8 +94,6 @@ export function Apps() {
       <Header>
         <Search className='me-auto' />
         <ThemeSwitch />
-        <ConfigDrawer />
-        <ProfileDropdown />
       </Header>
 
       {/* ===== Content ===== */}

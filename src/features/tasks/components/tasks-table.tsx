@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { getRouteApi } from '@tanstack/react-router'
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import {
   type SortingState,
   type VisibilityState,
@@ -13,7 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
-import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
 import {
   Table,
   TableBody,
@@ -28,22 +28,70 @@ import { type Task } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { tasksColumns as columns } from './tasks-columns'
 
-const route = getRouteApi('/_authenticated/tasks/')
-
 type DataTableProps = {
   data: Task[]
+  search?: Record<string, unknown>
+  navigate?: NavigateFn
 }
 
-export function TasksTable({ data }: DataTableProps) {
+export function TasksTable({ data, search: propSearch, navigate: propNavigate }: DataTableProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const defaultSearch = useMemo(() => {
+    const obj: Record<string, unknown> = {}
+    searchParams.forEach((val, key) => {
+      if (val.includes(',')) {
+        obj[key] = val.split(',')
+      } else if (!isNaN(Number(val)) && val.trim() !== '') {
+        obj[key] = Number(val)
+      } else {
+        obj[key] = val
+      }
+    })
+    return obj
+  }, [searchParams])
+
+  const defaultNavigate: NavigateFn = useCallback(
+    ({ search: newSearch, replace }) => {
+      const currentSearch = propSearch || defaultSearch
+      const nextSearchObj =
+        typeof newSearch === 'function'
+          ? newSearch(currentSearch)
+          : newSearch === true
+            ? currentSearch
+            : newSearch
+
+      const params = new URLSearchParams()
+      Object.entries(nextSearchObj || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          if (Array.isArray(v)) {
+            if (v.length > 0) params.set(k, v.join(','))
+          } else {
+            params.set(k, String(v))
+          }
+        }
+      })
+
+      const queryStr = params.toString()
+      const url = queryStr ? `${pathname}?${queryStr}` : pathname
+      if (replace) {
+        router.replace(url)
+      } else {
+        router.push(url)
+      }
+    },
+    [router, pathname, propSearch, defaultSearch]
+  )
+
+  const activeSearch = propSearch || defaultSearch
+  const activeNavigate = propNavigate || defaultNavigate
+
   // Local UI-only states
   const [rowSelection, setRowSelection] = useState({})
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-
-  // Local state management for table (uncomment to use local-only state, not synced with URL)
-  // const [globalFilter, onGlobalFilterChange] = useState('')
-  // const [columnFilters, onColumnFiltersChange] = useState<ColumnFiltersState>([])
-  // const [pagination, onPaginationChange] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
 
   // Synced with URL states (updated to match route search schema defaults)
   const {
@@ -55,8 +103,8 @@ export function TasksTable({ data }: DataTableProps) {
     onPaginationChange,
     ensurePageInRange,
   } = useTableUrlState({
-    search: route.useSearch(),
-    navigate: route.useNavigate(),
+    search: activeSearch,
+    navigate: activeNavigate,
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     globalFilter: { enabled: true, key: 'filter' },
     columnFilters: [
@@ -65,7 +113,6 @@ export function TasksTable({ data }: DataTableProps) {
     ],
   })
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

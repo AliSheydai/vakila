@@ -5,10 +5,12 @@ import { ForgotPasswordForm } from './forgot-password-form'
 
 const navigateMock = vi.fn()
 
-vi.mock('@tanstack/react-router', async (orig) => {
-  const actual = await orig<typeof import('@tanstack/react-router')>()
-  return { ...actual, useNavigate: () => navigateMock }
-})
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: navigateMock,
+    replace: navigateMock,
+  }),
+}))
 
 vi.mock('@/lib/utils', async (orig) => ({
   ...(await orig()),

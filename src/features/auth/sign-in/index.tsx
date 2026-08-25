@@ -1,4 +1,7 @@
-import { Link, useSearch } from '@tanstack/react-router'
+'use client'
+
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   Card,
   CardContent,
@@ -11,22 +14,22 @@ import { AuthLayout } from '../auth-layout'
 import { UserAuthForm } from './components/user-auth-form'
 
 export function SignIn() {
-  const { redirect } = useSearch({ from: '/(auth)/sign-in' })
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') || undefined
 
   return (
     <AuthLayout>
       <Card className='max-w-sm gap-4'>
         <CardHeader>
-          <CardTitle className='text-lg tracking-tight'>Sign in</CardTitle>
+          <CardTitle className='text-lg tracking-tight'>ورود به حساب</CardTitle>
           <CardDescription>
-            Enter your email and password below to log into{' '}
-            <br className='max-sm:hidden' /> your account. Don't have an
-            account?{' '}
+            برای ورود، ایمیل و رمز عبور خود را وارد کنید.{' '}
+            <br className='max-sm:hidden' /> حساب کاربری ندارید؟{' '}
             <Link
-              to='/sign-up'
+              href='/sign-up'
               className='text-nowrap underline underline-offset-4 hover:text-primary'
             >
-              Sign Up
+              ثبت‌نام
             </Link>
           </CardDescription>
         </CardHeader>
@@ -35,21 +38,21 @@ export function SignIn() {
         </CardContent>
         <CardFooter>
           <p className='px-8 text-center text-sm text-muted-foreground'>
-            By clicking sign in, you agree to our{' '}
+            با کلیک روی ورود، با{' '}
             <a
               href='/terms'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Terms of Service
+              شرایط استفاده
             </a>{' '}
-            and{' '}
+            و{' '}
             <a
               href='/privacy'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Privacy Policy
-            </a>
-            .
+              حریم خصوصی
+            </a>{' '}
+            موافقت می‌کنید.
           </p>
         </CardFooter>
       </Card>

@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -21,12 +21,12 @@ export function AppTitle() {
         >
           <div>
             <Link
-              to='/'
+              href='/'
               onClick={() => setOpenMobile(false)}
               className='grid flex-1 text-start text-sm leading-tight'
             >
               <span className='truncate font-bold'>Shadcn-Admin</span>
-              <span className='truncate text-xs'>Vite + ShadcnUI</span>
+              <span className='truncate text-xs'>Next.js + ShadcnUI</span>
             </Link>
             <ToggleSidebar />
           </div>

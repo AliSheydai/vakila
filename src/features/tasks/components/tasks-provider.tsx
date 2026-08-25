@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 import { type Task } from '../data/schema'
@@ -24,7 +26,6 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useTasks = () => {
   const tasksContext = React.useContext(TasksContext)
 

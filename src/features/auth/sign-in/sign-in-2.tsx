@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import Link from 'next/link'
 import { Logo } from '@/assets/logo'
 import { cn } from '@/lib/utils'
 import dashboardDark from './assets/dashboard-dark.png'
@@ -12,45 +12,43 @@ export function SignIn2() {
         <div className='mx-auto flex w-full flex-col justify-center space-y-2 py-8 sm:w-120 sm:p-8'>
           <div className='mb-4 flex items-center justify-center'>
             <Logo className='me-2' />
-            <h1 className='text-xl font-medium'>Shadcn Admin</h1>
+            <h1 className='text-xl font-medium'>پنل مدیریت</h1>
           </div>
         </div>
         <div className='mx-auto flex w-full max-w-sm flex-col justify-center space-y-2'>
           <div className='flex flex-col space-y-2 text-start'>
-            <h2 className='text-lg font-semibold tracking-tight'>Sign in</h2>
+            <h2 className='text-lg font-semibold tracking-tight'>ورود به حساب</h2>
             <p className='text-sm text-muted-foreground'>
-              Enter your email and password below to log into{' '}
-              <br className='max-sm:hidden' /> your account. Don't have an
-              account?{' '}
+              برای ورود به حساب کاربری، ایمیل و رمز عبور خود را وارد کنید.{' '}
+              <br className='max-sm:hidden' /> حساب کاربری ندارید؟{' '}
               <Link
-                to='/sign-up'
+                href='/sign-up'
                 className='text-nowrap underline underline-offset-4 hover:text-primary'
               >
-                Sign Up
+                ثبت‌نام
               </Link>
             </p>
           </div>
           <UserAuthForm />
           <p className='px-8 text-center text-sm text-muted-foreground'>
-            By clicking sign in, you agree to our{' '}
+            با کلیک روی ورود، با{' '}
             <a
               href='/terms'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Terms of Service
+              شرایط استفاده
             </a>{' '}
-            and{' '}
+            و{' '}
             <a
               href='/privacy'
               className='underline underline-offset-4 hover:text-primary'
             >
-              Privacy Policy
-            </a>
-            .
+              حریم خصوصی
+            </a>{' '}
+            موافقت می‌کنید.
           </p>
         </div>
       </div>
-
       <div
         className={cn(
           'relative h-full overflow-hidden bg-muted max-lg:hidden',
@@ -58,18 +56,18 @@ export function SignIn2() {
         )}
       >
         <img
-          src={dashboardLight}
+          src={dashboardLight.src}
           className='dark:hidden'
           width={1024}
           height={1151}
-          alt='Shadcn-Admin'
+          alt='پنل مدیریت'
         />
         <img
-          src={dashboardDark}
+          src={dashboardDark.src}
           className='hidden dark:block'
           width={1024}
           height={1138}
-          alt='Shadcn-Admin'
+          alt='پنل مدیریت'
         />
       </div>
     </div>

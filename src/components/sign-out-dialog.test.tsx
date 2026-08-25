@@ -6,7 +6,7 @@ import { SignOutDialog } from './sign-out-dialog'
 const navigate = vi.fn()
 const reset = vi.fn()
 
-const MOCK_HREF = 'https://app.test/dashboard?tab=1'
+const MOCK_PATH = '/dashboard?tab=1'
 
 vi.mock('@/stores/auth-store', () => ({
   useAuthStore: () => ({
@@ -14,14 +14,13 @@ vi.mock('@/stores/auth-store', () => ({
   }),
 }))
 
-vi.mock('@tanstack/react-router', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@tanstack/react-router')>()
-  return {
-    ...actual,
-    useNavigate: () => navigate,
-    useLocation: () => ({ href: MOCK_HREF }),
-  }
-})
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: navigate,
+    push: navigate,
+  }),
+  usePathname: () => MOCK_PATH,
+}))
 
 describe('SignOutDialog', () => {
   beforeEach(() => {
@@ -36,11 +35,9 @@ describe('SignOutDialog', () => {
     await userEvent.click(getByRole('button', { name: /^Sign out$/i }))
 
     expect(reset).toHaveBeenCalledOnce()
-    expect(navigate).toHaveBeenCalledWith({
-      to: '/sign-in',
-      search: { redirect: MOCK_HREF },
-      replace: true,
-    })
+    expect(navigate).toHaveBeenCalledWith(
+      `/sign-in?redirect=${encodeURIComponent(MOCK_PATH)}`
+    )
   })
 
   it('does not call reset or navigate when Cancel is clicked', async () => {

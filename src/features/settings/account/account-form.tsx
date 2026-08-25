@@ -1,3 +1,5 @@
+'use client'
+
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
@@ -48,8 +50,10 @@ const accountFormSchema = z.object({
     .min(1, 'Please enter your name.')
     .min(2, 'Name must be at least 2 characters.')
     .max(30, 'Name must not be longer than 30 characters.'),
-  dob: z.date('Please select your date of birth.'),
-  language: z.string('Please select a language.'),
+  dob: z.date({
+    errorMap: () => ({ message: 'Please select your date of birth.' }),
+  }),
+  language: z.string().min(1, 'Please select a language.'),
 })
 
 type AccountFormValues = z.infer<typeof accountFormSchema>

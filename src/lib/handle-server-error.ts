@@ -2,7 +2,7 @@ import { AxiosError } from 'axios'
 import { toast } from 'sonner'
 
 export function handleServerError(error: unknown) {
-  if (import.meta.env.DEV) {
+  if (process.env.NODE_ENV === 'development') {
     // eslint-disable-next-line no-console
     console.log(error)
   }

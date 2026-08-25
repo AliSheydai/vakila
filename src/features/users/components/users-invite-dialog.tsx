@@ -1,3 +1,5 @@
+'use client'
+
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -27,10 +29,10 @@ import { SelectDropdown } from '@/components/select-dropdown'
 import { roles } from '../data/data'
 
 const formSchema = z.object({
-  email: z.email({
-    error: (iss) =>
-      iss.input === '' ? 'Please enter an email to invite.' : undefined,
-  }),
+  email: z
+    .string()
+    .min(1, 'Please enter an email to invite.')
+    .email('Please enter a valid email.'),
   role: z.string().min(1, 'Role is required.'),
   desc: z.string().optional(),
 })

@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, useContext, useEffect, useState } from 'react'
 import { fonts } from '@/config/fonts'
 import { getCookie, setCookie, removeCookie } from '@/lib/cookies'
@@ -17,11 +19,13 @@ const FontContext = createContext<FontContextType | null>(null)
 
 export function FontProvider({ children }: { children: React.ReactNode }) {
   const [font, _setFont] = useState<Font>(() => {
+    if (typeof window === 'undefined') return fonts[0]
     const savedFont = getCookie(FONT_COOKIE_NAME)
     return fonts.includes(savedFont as Font) ? (savedFont as Font) : fonts[0]
   })
 
   useEffect(() => {
+    if (typeof document === 'undefined') return
     const applyFont = (font: string) => {
       const root = document.documentElement
       root.classList.forEach((cls) => {
@@ -48,8 +52,7 @@ export function FontProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const useFont = () => {
+export function useFont() {
   const context = useContext(FontContext)
   if (!context) {
     throw new Error('useFont must be used within a FontProvider')

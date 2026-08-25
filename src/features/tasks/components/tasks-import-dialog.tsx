@@ -1,3 +1,5 @@
+'use client'
+
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,12 +26,15 @@ import { Input } from '@/components/ui/input'
 
 const formSchema = z.object({
   file: z
-    .instanceof(FileList)
-    .refine((files) => files.length > 0, {
+    .custom<FileList | undefined>(
+      (files) => typeof window !== 'undefined' && files instanceof FileList,
+      'Please upload a file.'
+    )
+    .refine((files) => files && files.length > 0, {
       message: 'Please upload a file.',
     })
     .refine(
-      (files) => ['text/csv'].includes(files?.[0]?.type),
+      (files) => ['text/csv'].includes(files?.[0]?.type || ''),
       'Please upload csv format.'
     ),
 })
@@ -59,7 +64,7 @@ export function TasksImportDialog({
         size: file[0].size,
         type: file[0].type,
       }
-      showSubmittedData(fileDetails, 'You have imported the following file:')
+      showSubmittedData(fileDetails)
     }
     onOpenChange(false)
   }
@@ -88,12 +93,7 @@ export function TasksImportDialog({
                 <FormItem className='my-2'>
                   <FormLabel>File</FormLabel>
                   <FormControl>
-                    <Input
-                      type='file'
-                      accept='text/csv'
-                      {...fileRef}
-                      className='h-8 py-0'
-                    />
+                    <Input type='file' {...fileRef} className='h-8 py-0' />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

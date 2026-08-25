@@ -22,27 +22,29 @@ vi.mock('@/stores/auth-store', () => ({
   }),
 }))
 
-vi.mock('@tanstack/react-router', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@tanstack/react-router')>()
-  return {
-    ...actual,
-    useNavigate: () => navigate,
-    Link: ({
-      children,
-      to,
-      className,
-      ...rest
-    }: {
-      children?: React.ReactNode
-      to: string
-      className?: string
-    }) => (
-      <a href={to} className={className} {...rest}>
-        {children}
-      </a>
-    ),
-  }
-})
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: navigate,
+    replace: navigate,
+  }),
+}))
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    className,
+    ...rest
+  }: {
+    children?: React.ReactNode
+    href: string
+    className?: string
+  }) => (
+    <a href={href} className={className} {...rest}>
+      {children}
+    </a>
+  ),
+}))
 
 vi.mock('@/lib/utils', async (orig) => ({
   ...(await orig()),

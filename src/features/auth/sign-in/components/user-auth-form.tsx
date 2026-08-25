@@ -1,8 +1,11 @@
+'use client'
+
 import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate } from '@tanstack/react-router'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Loader2, LogIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { IconFacebook, IconGithub } from '@/assets/brand-icons'
@@ -21,13 +24,14 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
 
 const formSchema = z.object({
-  email: z.email({
-    error: (iss) => (iss.input === '' ? 'Please enter your email.' : undefined),
-  }),
+  email: z
+    .string()
+    .min(1, 'لطفاً ایمیل خود را وارد کنید.')
+    .email('لطفاً یک ایمیل معتبر وارد کنید.'),
   password: z
     .string()
-    .min(1, 'Please enter your password.')
-    .min(7, 'Password must be at least 7 characters long.'),
+    .min(1, 'لطفاً رمز عبور خود را وارد کنید.')
+    .min(7, 'رمز عبور باید حداقل ۷ کاراکتر باشد.'),
 })
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLFormElement> {
@@ -40,7 +44,7 @@ export function UserAuthForm({
   ...props
 }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const navigate = useNavigate()
+  const router = useRouter()
   const { auth } = useAuthStore()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -55,29 +59,26 @@ export function UserAuthForm({
     setIsLoading(true)
 
     toast.promise(sleep(2000), {
-      loading: 'Signing in...',
+      loading: 'در حال ورود...',
       success: () => {
         setIsLoading(false)
 
-        // Mock successful authentication with expiry computed at success time
         const mockUser = {
           accountNo: 'ACC001',
           email: data.email,
           role: ['user'],
-          exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
+          exp: Date.now() + 24 * 60 * 60 * 1000,
         }
 
-        // Set user and access token
         auth.setUser(mockUser)
         auth.setAccessToken('mock-access-token')
 
-        // Redirect to the stored location or default to dashboard
         const targetPath = redirectTo || '/'
-        navigate({ to: targetPath, replace: true })
+        router.replace(targetPath)
 
-        return `Welcome back, ${data.email}!`
+        return `خوش آمدید، ${data.email}!`
       },
-      error: 'Error',
+      error: 'خطا در ورود',
     })
   }
 
@@ -93,7 +94,7 @@ export function UserAuthForm({
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>ایمیل</FormLabel>
               <FormControl>
                 <Input placeholder='name@example.com' {...field} />
               </FormControl>
@@ -106,23 +107,23 @@ export function UserAuthForm({
           name='password'
           render={({ field }) => (
             <FormItem className='relative'>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>رمز عبور</FormLabel>
               <FormControl>
                 <PasswordInput placeholder='********' {...field} />
               </FormControl>
               <FormMessage />
               <Link
-                to='/forgot-password'
+                href='/forgot-password'
                 className='absolute inset-e-0 -top-0.5 text-sm font-medium text-muted-foreground hover:opacity-75'
               >
-                Forgot password?
+                فراموشی رمز عبور؟
               </Link>
             </FormItem>
           )}
         />
         <Button className='mt-2' disabled={isLoading}>
           {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
-          Sign in
+          ورود
         </Button>
 
         <div className='relative my-2'>
@@ -131,17 +132,17 @@ export function UserAuthForm({
           </div>
           <div className='relative flex justify-center text-xs uppercase'>
             <span className='bg-background px-2 text-muted-foreground'>
-              Or continue with
+              یا ادامه با
             </span>
           </div>
         </div>
 
         <div className='grid grid-cols-2 gap-2'>
           <Button variant='outline' type='button' disabled={isLoading}>
-            <IconGithub className='h-4 w-4' /> GitHub
+            <IconGithub className='h-4 w-4' /> گیت‌هاب
           </Button>
           <Button variant='outline' type='button' disabled={isLoading}>
-            <IconFacebook className='h-4 w-4' /> Facebook
+            <IconFacebook className='h-4 w-4' /> فیسبوک
           </Button>
         </div>
       </form>

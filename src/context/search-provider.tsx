@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, useContext, useEffect, useState } from 'react'
 import { CommandMenu } from '@/components/command-menu'
 
@@ -34,7 +36,6 @@ export function SearchProvider({ children }: SearchProviderProps) {
   )
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useSearch = () => {
   const searchContext = useContext(SearchContext)
 

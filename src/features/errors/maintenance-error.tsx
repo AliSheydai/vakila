@@ -4,14 +4,14 @@ export function MaintenanceError() {
   return (
     <div className='h-svh'>
       <div className='m-auto flex h-full w-full flex-col items-center justify-center gap-2'>
-        <h1 className='text-[7rem] leading-tight font-bold'>503</h1>
-        <span className='font-medium'>Website is under maintenance!</span>
+        <h1 className='text-[7rem] leading-tight font-bold'>۵۰۳</h1>
+        <span className='font-medium text-lg'>سامانه در دست تعمیر است!</span>
         <p className='text-center text-muted-foreground'>
-          The site is not available at the moment. <br />
-          We'll be back online shortly.
+          سایت در حال حاضر در دسترس نیست. <br />
+          به‌زودی بازخواهیم گشت.
         </p>
         <div className='mt-6 flex gap-4'>
-          <Button variant='outline'>Learn more</Button>
+          <Button variant='outline'>اطلاعات بیشتر</Button>
         </div>
       </div>
     </div>

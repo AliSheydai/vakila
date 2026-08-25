@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, useContext, useState } from 'react'
 import { getCookie, setCookie } from '@/lib/cookies'
 
@@ -33,11 +35,13 @@ type LayoutProviderProps = {
 
 export function LayoutProvider({ children }: LayoutProviderProps) {
   const [collapsible, _setCollapsible] = useState<Collapsible>(() => {
+    if (typeof window === 'undefined') return DEFAULT_COLLAPSIBLE
     const saved = getCookie(LAYOUT_COLLAPSIBLE_COOKIE_NAME)
     return (saved as Collapsible) || DEFAULT_COLLAPSIBLE
   })
 
   const [variant, _setVariant] = useState<Variant>(() => {
+    if (typeof window === 'undefined') return DEFAULT_VARIANT
     const saved = getCookie(LAYOUT_VARIANT_COOKIE_NAME)
     return (saved as Variant) || DEFAULT_VARIANT
   })
@@ -75,8 +79,7 @@ export function LayoutProvider({ children }: LayoutProviderProps) {
 }
 
 // Define the hook for the provider
-// eslint-disable-next-line react-refresh/only-export-components
-export function useLayout() {
+export const useLayout = () => {
   const context = useContext(LayoutContext)
   if (!context) {
     throw new Error('useLayout must be used within a LayoutProvider')

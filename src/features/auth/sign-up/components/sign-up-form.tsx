@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
@@ -20,10 +22,10 @@ import { PasswordInput } from '@/components/password-input'
 
 const formSchema = z
   .object({
-    email: z.email({
-      error: (iss) =>
-        iss.input === '' ? 'Please enter your email.' : undefined,
-    }),
+    email: z
+      .string()
+      .min(1, 'Please enter your email.')
+      .email('Please enter a valid email.'),
     password: z
       .string()
       .min(1, 'Please enter your password.')

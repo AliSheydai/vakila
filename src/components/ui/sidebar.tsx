@@ -270,8 +270,8 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <PanelLeftIcon />
-      <span className='sr-only'>Toggle Sidebar</span>
+      <PanelLeftIcon className='rtl:rotate-180' />
+      <span className='sr-only'>تغییر وضعیت نوار کناری</span>
     </Button>
   )
 }

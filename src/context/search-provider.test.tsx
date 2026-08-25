@@ -10,13 +10,12 @@ const mocks = vi.hoisted(() => ({
   setTheme: vi.fn(),
 }))
 
-vi.mock('@tanstack/react-router', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@tanstack/react-router')>()
-  return {
-    ...actual,
-    useNavigate: () => mocks.navigate,
-  }
-})
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mocks.navigate,
+    replace: mocks.navigate,
+  }),
+}))
 
 vi.mock('@/context/theme-provider', () => ({
   useTheme: () => ({ setTheme: mocks.setTheme }),
