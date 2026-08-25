@@ -180,12 +180,17 @@ function SidebarMenuCollapsedDropdown({
 }
 
 function checkIsActive(href: string, item: NavItem, mainNav = false) {
+  const path = href.split('?')[0]
+
   return (
-    href === item.url || // /endpoint?search=param
-    href.split('?')[0] === item.url || // endpoint
-    !!item?.items?.filter((i) => i.url === href).length || // if child nav is active
+    path === item.url ||
+    // زیرمسیرهای همان بخش (مثلاً /admin/cases/[id]) — به جز ریشهٔ /admin
+    (item.url !== '/' &&
+      item.url !== '/admin' &&
+      path.startsWith(`${item.url}/`)) ||
+    !!item?.items?.filter((i) => i.url === path).length ||
     (mainNav &&
-      href.split('/')[1] !== '' &&
-      href.split('/')[1] === item?.url?.split('/')[1])
+      path.split('/')[1] !== '' &&
+      path.split('/')[1] === item?.url?.split('/')[1])
   )
 }

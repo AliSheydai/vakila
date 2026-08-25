@@ -10,6 +10,7 @@ import {
   Wallet,
   Scale,
   UserRound,
+  Briefcase,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -72,7 +73,7 @@ export const sidebarData: SidebarData = {
         {
           title: 'پرونده',
           url: '/admin/cases',
-          icon: FolderOpen,
+          icon: Briefcase,
         },
         {
           title: 'موکل',
