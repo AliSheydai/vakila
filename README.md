@@ -2,7 +2,7 @@
 
 Admin Dashboard UI crafted with Shadcn and Vite. Built with responsiveness and accessibility in mind.
 
-![alt text](public/images/shadcn-admin.png)
+![alt text](services/app/public/images/shadcn-admin.png)
 
 [![Sponsored by Clerk](https://img.shields.io/badge/Sponsored%20by-Clerk-5b6ee1?logo=clerk)](https://go.clerk.com/GttUAaK)
 
@@ -74,30 +74,37 @@ If you want to update components using the Shadcn CLI (e.g., `npx shadcn@latest 
 
 **Auth (partial):** [Clerk](https://go.clerk.com/GttUAaK)
 
+## Project structure (monorepo)
+
+```
+vokala/
+├── Dockerfile              # production image for services/app
+├── docker-compose.yml      # microservices orchestration
+├── .dockerignore
+├── .gitignore
+├── run.sh                  # interactive runner (dev / prod)
+└── services/
+    └── app/                # Next.js frontend
+```
+
 ## Run Locally
 
-Clone the project
-
 ```bash
-  git clone https://github.com/satnaing/shadcn-admin.git
+# interactive menu
+./run.sh
+
+# or directly:
+./run.sh install   # install deps in services/app
+./run.sh dev       # development (hot reload)
+./run.sh prod      # production (Docker containers)
 ```
 
-Go to the project directory
+Manual (without the runner):
 
 ```bash
-  cd shadcn-admin
-```
-
-Install dependencies
-
-```bash
-  pnpm install
-```
-
-Start the server
-
-```bash
-  pnpm run dev
+cd services/app
+pnpm install
+pnpm run dev
 ```
 
 ## Sponsoring this project ❤️

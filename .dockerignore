@@ -1,0 +1,39 @@
+# Git & docs
+.git
+.github
+.gitignore
+**/*.md
+LICENSE
+
+# Dependencies & build artifacts
+**/node_modules
+**/.next
+**/out
+**/dist
+**/build
+**/*.tsbuildinfo
+**/coverage
+
+# Env & secrets (inject at runtime)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Editor / OS
+**/.vscode
+**/.idea
+**/.DS_Store
+**/Thumbs.db
+
+# Tests & tooling noise
+**/*.test.ts
+**/*.test.tsx
+**/__screenshots__
+.vitest-attachments
+
+# Locks not used in image (pnpm preferred)
+**/package-lock.json
+
+# Local scripts / compose helpers
+run.sh
+docker-data
