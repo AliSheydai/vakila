@@ -19,7 +19,7 @@ import { CaseDetailHeader } from './components/case-detail-header'
 import { CaseInfoTab } from './components/case-info-tab'
 import { CaseClientTab } from './components/case-client-tab'
 import { CaseAttachmentsTab } from './components/case-attachments-tab'
-import { CaseTabPlaceholder } from './components/case-tab-placeholder'
+import { CaseFinanceTab } from './components/case-finance-tab'
 
 type CaseDetailPageProps = {
   caseId: string
@@ -165,11 +165,7 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
           </TabsContent>
 
           <TabsContent value='finance' className='outline-none'>
-            <CaseTabPlaceholder
-              icon='finance'
-              title='تراکنش‌های مالی'
-              description='حق‌الزحمه، پرداخت‌ها و هزینه‌های پرونده اینجا نمایش داده می‌شوند.'
-            />
+            <CaseFinanceTab caseItem={caseItem} />
           </TabsContent>
 
           <TabsContent value='client' className='outline-none'>
