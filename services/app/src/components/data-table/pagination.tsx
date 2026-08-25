@@ -39,7 +39,7 @@ export function DataTablePagination<TData>({
     >
       <div className='flex w-full items-center justify-between'>
         <div className='flex w-25 items-center justify-center text-sm font-medium @2xl/content:hidden'>
-          Page {currentPage} of {totalPages}
+          صفحه {currentPage} از {totalPages}
         </div>
         <div className='flex items-center gap-2 @max-2xl/content:flex-row-reverse'>
           <Select
@@ -59,23 +59,23 @@ export function DataTablePagination<TData>({
               ))}
             </SelectContent>
           </Select>
-          <p className='hidden text-sm font-medium sm:block'>Rows per page</p>
+          <p className='hidden text-sm font-medium sm:block'>ردیف در هر صفحه</p>
         </div>
       </div>
 
-      <div className='flex items-center sm:space-x-6 lg:space-x-8'>
+      <div className='flex items-center gap-6 lg:gap-8'>
         <div className='flex w-25 items-center justify-center text-sm font-medium @max-3xl/content:hidden'>
-          Page {currentPage} of {totalPages}
+          صفحه {currentPage} از {totalPages}
         </div>
-        <div className='flex items-center space-x-2'>
+        <div className='flex items-center gap-2'>
           <Button
             variant='outline'
             className='size-8 p-0 @max-md/content:hidden'
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
           >
-            <span className='sr-only'>Go to first page</span>
-            <DoubleArrowLeftIcon className='h-4 w-4' />
+            <span className='sr-only'>رفتن به صفحه اول</span>
+            <DoubleArrowLeftIcon className='h-4 w-4 rtl:rotate-180' />
           </Button>
           <Button
             variant='outline'
@@ -83,8 +83,8 @@ export function DataTablePagination<TData>({
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <span className='sr-only'>Go to previous page</span>
-            <ChevronLeftIcon className='h-4 w-4' />
+            <span className='sr-only'>رفتن به صفحه قبل</span>
+            <ChevronLeftIcon className='h-4 w-4 rtl:rotate-180' />
           </Button>
 
           {/* Page number buttons */}
@@ -98,7 +98,7 @@ export function DataTablePagination<TData>({
                   className='h-8 min-w-8 px-2'
                   onClick={() => table.setPageIndex((pageNumber as number) - 1)}
                 >
-                  <span className='sr-only'>Go to page {pageNumber}</span>
+                  <span className='sr-only'>رفتن به صفحه {pageNumber}</span>
                   {pageNumber}
                 </Button>
               )}
@@ -111,8 +111,8 @@ export function DataTablePagination<TData>({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            <span className='sr-only'>Go to next page</span>
-            <ChevronRightIcon className='h-4 w-4' />
+            <span className='sr-only'>رفتن به صفحه بعد</span>
+            <ChevronRightIcon className='h-4 w-4 rtl:rotate-180' />
           </Button>
           <Button
             variant='outline'
@@ -120,8 +120,8 @@ export function DataTablePagination<TData>({
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
           >
-            <span className='sr-only'>Go to last page</span>
-            <DoubleArrowRightIcon className='h-4 w-4' />
+            <span className='sr-only'>رفتن به صفحه آخر</span>
+            <DoubleArrowRightIcon className='h-4 w-4 rtl:rotate-180' />
           </Button>
         </div>
       </div>

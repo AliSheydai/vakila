@@ -1,5 +1,5 @@
-import { SettingsAppearance } from '@/features/settings/appearance'
+import { redirect } from 'next/navigation'
 
-export default function SettingsAppearancePage() {
-  return <SettingsAppearance />
+export default function SettingsAppearanceRedirect() {
+  redirect('/settings')
 }

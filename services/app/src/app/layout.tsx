@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     default: 'پنل مدیریت',
     template: '%s | پنل مدیریت',
   },
-  description: 'پنل مدیریت طراحی‌شده با Shadcn UI و Next.js',
+  description: 'پنل مدیریت وکلا',
   icons: {
     icon: [
       {

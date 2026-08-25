@@ -25,8 +25,8 @@ export function AppTitle() {
               onClick={() => setOpenMobile(false)}
               className='grid flex-1 text-start text-sm leading-tight'
             >
-              <span className='truncate font-bold'>Shadcn-Admin</span>
-              <span className='truncate text-xs'>Next.js + ShadcnUI</span>
+              <span className='truncate font-bold'>پنل مدیریت</span>
+              <span className='truncate text-xs'>وکلا</span>
             </Link>
             <ToggleSidebar />
           </div>
@@ -58,7 +58,7 @@ function ToggleSidebar({
     >
       <X className='md:hidden' />
       <Menu className='max-md:hidden' />
-      <span className='sr-only'>Toggle Sidebar</span>
+      <span className='sr-only'>تغییر وضعیت نوار کناری</span>
     </Button>
   )
 }

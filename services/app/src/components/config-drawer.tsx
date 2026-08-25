@@ -150,7 +150,7 @@ function RadioGroupItem({
           className={cn(
             'size-6 fill-primary stroke-white',
             'group-data-[state=unchecked]:hidden',
-            'absolute top-0 right-0 translate-x-1/2 -translate-y-1/2'
+            'absolute top-0 inset-e-0 translate-x-1/2 -translate-y-1/2 rtl:-translate-x-1/2'
           )}
           aria-hidden='true'
         />

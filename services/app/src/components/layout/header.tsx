@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useLayout } from '@/context/layout-provider'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
-import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 
 type HeaderProps = React.HTMLAttributes<HTMLElement> & {
   fixed?: boolean
@@ -13,12 +12,6 @@ type HeaderProps = React.HTMLAttributes<HTMLElement> & {
 
 export function Header({ className, fixed, children, ...props }: HeaderProps) {
   const [offset, setOffset] = useState(0)
-  const { state } = useSidebar()
-  const { collapsible } = useLayout()
-
-  // When icon-collapsed, the toggle lives in the sidebar header (logo slot).
-  // Keep the header trigger for mobile and for offcanvas mode.
-  const hideDesktopTrigger = state === 'collapsed' && collapsible === 'icon'
 
   useEffect(() => {
     const onScroll = () => {
@@ -50,17 +43,12 @@ export function Header({ className, fixed, children, ...props }: HeaderProps) {
             'after:absolute after:inset-0 after:-z-10 after:bg-background/20 after:backdrop-blur-lg'
         )}
       >
+        {/* Desktop collapse lives in AppSidebar; header trigger is mobile-only. */}
         <SidebarTrigger
           variant='outline'
-          className={cn(
-            'max-md:scale-125',
-            hideDesktopTrigger && 'md:hidden'
-          )}
+          className='max-md:scale-125 md:hidden'
         />
-        <Separator
-          orientation='vertical'
-          className={cn('h-6', hideDesktopTrigger && 'md:hidden')}
-        />
+        <Separator orientation='vertical' className='h-6 md:hidden' />
         {children}
       </div>
     </header>
