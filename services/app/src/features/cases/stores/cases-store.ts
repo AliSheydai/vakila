@@ -13,6 +13,7 @@ import type {
   UpdateClientInput,
   UpsertFeeInput,
 } from '../types'
+import { getCasesForClient } from '../utils/clients'
 import { buildDemoCases, buildDemoClients } from '../utils/seed'
 
 type ActionResult<T = void> =
@@ -35,6 +36,17 @@ type CasesState = {
   updateClient: (clientId: string, input: UpdateClientInput) => ActionResult<Client>
   deleteClient: (clientId: string) => ActionResult
   getClient: (clientId: string) => Client | null
+  searchClients: (query: string) => Client[]
+  getClientCases: (clientId: string) => Case[]
+
+  addClientAttachment: (
+    clientId: string,
+    input: CreateAttachmentInput
+  ) => ActionResult<Client>
+  deleteClientAttachment: (
+    clientId: string,
+    attachmentId: string
+  ) => ActionResult<Client>
 
   addCase: (input: CreateCaseInput) => ActionResult<Case>
   updateCase: (caseId: string, input: UpdateCaseInput) => ActionResult<Case>
@@ -54,6 +66,19 @@ type CasesState = {
     caseId: string,
     attachmentId: string
   ) => ActionResult<Case>
+}
+
+function syncClientIntoState(
+  set: (partial: Partial<CasesState>) => void,
+  get: () => CasesState,
+  updated: Client
+) {
+  set({
+    clients: get().clients.map((item) =>
+      item.id === updated.id ? updated : item
+    ),
+    error: null,
+  })
 }
 
 function requireOwner(
@@ -225,14 +250,12 @@ export const useCasesStore = create<CasesState>((set, get) => ({
     const gate = requireOwner(get().ownerId)
     if (!gate.ok) return { ok: false, error: gate.error }
 
-    const linked = get().cases.some((item) => item.clientId === clientId)
-    if (linked) {
-      const error = 'این موکل به پرونده‌ای متصل است و قابل حذف نیست.'
-      set({ error })
-      return { ok: false, error }
-    }
-
-    const result = clientsService.deleteClient(gate.ownerId, clientId)
+    const hasLinkedCases = get().cases.some(
+      (item) => item.clientId === clientId
+    )
+    const result = clientsService.deleteClient(gate.ownerId, clientId, {
+      hasLinkedCases,
+    })
     if (!result.ok) {
       set({ error: result.error })
       return result
@@ -247,6 +270,47 @@ export const useCasesStore = create<CasesState>((set, get) => ({
 
   getClient: (clientId) =>
     get().clients.find((client) => client.id === clientId) ?? null,
+
+  searchClients: (query) =>
+    clientsService.searchClients(get().clients, query),
+
+  getClientCases: (clientId) => getCasesForClient(get().cases, clientId),
+
+  addClientAttachment: (clientId, input) => {
+    const gate = requireOwner(get().ownerId)
+    if (!gate.ok) return { ok: false, error: gate.error }
+
+    const result = clientsService.addAttachment(
+      gate.ownerId,
+      clientId,
+      input
+    )
+    if (!result.ok) {
+      set({ error: result.error })
+      return result
+    }
+
+    syncClientIntoState(set, get, result.data)
+    return result
+  },
+
+  deleteClientAttachment: (clientId, attachmentId) => {
+    const gate = requireOwner(get().ownerId)
+    if (!gate.ok) return { ok: false, error: gate.error }
+
+    const result = clientsService.deleteAttachment(
+      gate.ownerId,
+      clientId,
+      attachmentId
+    )
+    if (!result.ok) {
+      set({ error: result.error })
+      return result
+    }
+
+    syncClientIntoState(set, get, result.data)
+    return result
+  },
 
   addCase: (input) => {
     const gate = requireOwner(get().ownerId)
