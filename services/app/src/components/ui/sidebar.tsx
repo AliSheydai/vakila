@@ -426,8 +426,8 @@ function SidebarGroupLabel({
       data-slot='sidebar-group-label'
       data-sidebar='group-label'
       className={cn(
-        `flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium whitespace-nowrap text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] ${SIDEBAR_MOTION} focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0`,
-        'group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0',
+        `flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium whitespace-nowrap text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[height,margin,padding,opacity] ${SIDEBAR_MOTION} focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0`,
+        'group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:m-0 group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:opacity-0',
         className
       )}
       {...props}
@@ -504,14 +504,14 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
 
 const sidebarMenuButtonVariants = cva(
   [
-    // Fixed h-10 in both states so collapse only changes width, not row height
-    'peer/menu-button flex h-10 w-full items-center gap-3 overflow-hidden rounded-lg px-2.5 text-start text-sm outline-hidden ring-sidebar-ring',
+    // Fixed row height per size variant — collapse only shrinks width to a matching square
+    'peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-lg px-2.5 text-start text-sm outline-hidden ring-sidebar-ring',
     `transition-[width,padding,gap,background-color,color,border-radius] ${SIDEBAR_MOTION}`,
     'text-muted-foreground hover:bg-muted/60 hover:text-foreground focus-visible:ring-2 active:bg-muted active:text-foreground',
     'disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pe-8 aria-disabled:pointer-events-none aria-disabled:opacity-50',
     'data-[active=true]:bg-muted data-[active=true]:font-medium data-[active=true]:text-foreground',
     'data-[state=open]:hover:bg-muted/60 data-[state=open]:hover:text-foreground',
-    'group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-10! group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:rounded-xl! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center!',
+    'group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:rounded-xl! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center!',
     'group-data-[collapsible=icon]:hover:bg-muted/80',
     // Keep labels on one line so width shrink never wraps / jumps height
     '[&>span]:min-w-0 [&>span]:truncate [&>span]:whitespace-nowrap [&>span]:overflow-hidden [&>span]:text-ellipsis',
@@ -533,9 +533,10 @@ const sidebarMenuButtonVariants = cva(
           'bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-muted/60 hover:text-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]',
       },
       size: {
-        default: 'h-10 text-sm',
-        sm: 'h-8 text-xs',
-        lg: 'h-11 text-sm',
+        default:
+          'h-10 text-sm group-data-[collapsible=icon]:w-10!',
+        sm: 'h-8 text-xs group-data-[collapsible=icon]:w-8!',
+        lg: 'h-11 text-sm group-data-[collapsible=icon]:w-11!',
       },
     },
     defaultVariants: {

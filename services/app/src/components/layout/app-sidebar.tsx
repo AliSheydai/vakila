@@ -44,23 +44,22 @@ function AppSidebarInner({
 
   return (
     <>
-      <SidebarHeader className={cn(collapsed && 'items-center px-2')}>
+      <SidebarHeader className={cn('h-14', collapsed && 'items-center px-2')}>
         {/* Collapsed: brand / section + hover expand (hiknow pattern) */}
         <div
           className={cn(
-            'absolute inset-0 flex items-center justify-center py-2 transition-opacity duration-300',
-            collapsed ? 'px-0' : 'px-4',
+            'absolute inset-0 flex items-center justify-center transition-opacity duration-300',
             collapsed
               ? 'pointer-events-auto opacity-100'
               : 'pointer-events-none opacity-0'
           )}
         >
-          <div className='group/header relative mx-auto flex size-10 shrink-0 items-center justify-center overflow-visible'>
+          <div className='group/header relative flex size-10 shrink-0 items-center justify-center overflow-visible'>
             <div
               className={cn(
-                'flex size-10 items-center justify-center transition-all duration-200 ease-out',
+                'flex size-10 items-center justify-center transition-opacity duration-200 ease-out',
                 !isMobile &&
-                  'group-hover/header:pointer-events-none group-hover/header:scale-90 group-hover/header:opacity-0'
+                  'group-hover/header:pointer-events-none group-hover/header:opacity-0'
               )}
             >
               <TeamSwitcher teams={sidebarData.teams} collapsed />
@@ -70,7 +69,7 @@ function AppSidebarInner({
                 type='button'
                 onClick={toggleSidebar}
                 aria-label='باز کردن سایدبار'
-                className='pointer-events-none absolute inset-0 flex scale-90 items-center justify-center rounded-xl bg-muted/80 text-muted-foreground opacity-0 transition-all duration-200 ease-out hover:text-foreground group-hover/header:pointer-events-auto group-hover/header:scale-100 group-hover/header:opacity-100'
+                className='pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-muted/80 text-muted-foreground opacity-0 transition-opacity duration-200 ease-out hover:text-foreground group-hover/header:pointer-events-auto group-hover/header:opacity-100'
               >
                 <PanelLeft className='size-4' />
               </button>

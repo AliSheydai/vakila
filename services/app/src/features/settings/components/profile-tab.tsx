@@ -56,7 +56,6 @@ export function ProfileTab() {
   })
 
   const watchedName = form.watch('name')
-  const watchedPhone = form.watch('phone')
   const { isDirty, isSubmitting, isValid } = form.formState
 
   function onReset() {
@@ -88,21 +87,12 @@ export function ProfileTab() {
           onSubmit={form.handleSubmit(onSubmit)}
           className='overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm'
         >
-          <div className='flex items-center gap-4 border-b border-sidebar-border bg-sidebar-accent/60 px-5 py-5 sm:px-6'>
+          <div className='flex items-center justify-between gap-4 border-b border-sidebar-border bg-sidebar-accent/60 px-5 py-5 sm:px-6'>
             <Avatar className='size-14 border border-sidebar-border bg-sidebar shadow-sm ring-2 ring-sidebar-primary/15'>
               <AvatarFallback className='bg-sidebar-primary/10 text-base font-semibold text-sidebar-primary'>
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className='min-w-0 flex-1'>
-              <p className='truncate text-base font-semibold'>{displayName}</p>
-              <p
-                className='mt-0.5 truncate text-sm text-muted-foreground'
-                dir='ltr'
-              >
-                {watchedPhone || profile.phone}
-              </p>
-            </div>
             <span
               className={cn(
                 'hidden shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors sm:inline-flex',
