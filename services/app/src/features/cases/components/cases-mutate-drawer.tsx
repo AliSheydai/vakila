@@ -196,8 +196,8 @@ export function CasesMutateDrawer({
         if (!next) form.reset()
       }}
     >
-      <SheetContent className='flex w-full flex-col sm:max-w-lg'>
-        <SheetHeader className='text-start'>
+      <SheetContent className='flex h-full w-full flex-col gap-0 p-0 sm:max-w-lg'>
+        <SheetHeader className='border-b px-4 py-4 text-start'>
           <SheetTitle>
             {isUpdate ? 'ویرایش پرونده' : 'ایجاد پرونده'}
           </SheetTitle>
@@ -212,7 +212,7 @@ export function CasesMutateDrawer({
           <form
             id={formId}
             onSubmit={form.handleSubmit(onSubmit)}
-            className='flex-1 space-y-5 overflow-y-auto px-4'
+            className='flex-1 space-y-5 overflow-y-auto px-4 py-4'
           >
             <FormField
               control={form.control}
@@ -389,16 +389,22 @@ export function CasesMutateDrawer({
           </form>
         </Form>
 
-        <SheetFooter className='gap-2 sm:flex-row'>
+        <SheetFooter className='gap-2 border-t px-4 py-4 sm:flex-row'>
           <Button
             type='button'
             variant='outline'
+            className='w-full sm:w-auto'
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
             انصراف
           </Button>
-          <Button type='submit' form={formId} disabled={submitting}>
+          <Button
+            type='submit'
+            form={formId}
+            disabled={submitting}
+            className='w-full sm:w-auto'
+          >
             {submitting
               ? 'در حال ذخیره...'
               : isUpdate

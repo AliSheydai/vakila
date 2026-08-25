@@ -149,12 +149,22 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
         <CaseDetailHeader caseItem={caseItem} client={client} />
 
         <Tabs defaultValue='info' className='flex flex-1 flex-col gap-4'>
-          <TabsList className='h-auto w-full flex-wrap justify-start gap-1 sm:w-fit'>
-            <TabsTrigger value='info'>اطلاعات</TabsTrigger>
-            <TabsTrigger value='attachments'>مدارک</TabsTrigger>
-            <TabsTrigger value='finance'>مالی</TabsTrigger>
-            <TabsTrigger value='client'>موکل</TabsTrigger>
-          </TabsList>
+          <div className='-mx-1 overflow-x-auto px-1'>
+            <TabsList className='h-auto w-max min-w-full justify-start gap-1 sm:w-fit'>
+              <TabsTrigger value='info' className='px-3'>
+                اطلاعات
+              </TabsTrigger>
+              <TabsTrigger value='attachments' className='px-3'>
+                مدارک
+              </TabsTrigger>
+              <TabsTrigger value='finance' className='px-3'>
+                مالی
+              </TabsTrigger>
+              <TabsTrigger value='client' className='px-3'>
+                موکل
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value='info' className='flex-1 outline-none'>
             <CaseInfoTab caseItem={caseItem} />

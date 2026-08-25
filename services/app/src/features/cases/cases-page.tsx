@@ -28,10 +28,12 @@ function CasesContent() {
       </Header>
 
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
-        <div className='flex flex-wrap items-end justify-between gap-3'>
-          <div>
-            <h2 className='text-2xl font-bold tracking-tight'>پرونده‌ها</h2>
-            <p className='text-muted-foreground'>
+        <div className='flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between'>
+          <div className='min-w-0'>
+            <h2 className='text-xl font-bold tracking-tight sm:text-2xl'>
+              پرونده‌ها
+            </h2>
+            <p className='mt-1 text-sm text-muted-foreground sm:text-base'>
               مدیریت پرونده‌های حقوقی، موکل‌ها و وضعیت مالی از یک نقطه واحد.
             </p>
           </div>

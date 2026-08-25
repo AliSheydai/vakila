@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
+import { useCasesStore } from '@/features/cases/stores/cases-store'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface SignOutDialogProps {
@@ -13,9 +14,11 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { auth } = useAuthStore()
+  const resetCases = useCasesStore((state) => state.reset)
 
   const handleSignOut = () => {
     auth.reset()
+    resetCases()
     // Preserve current location for redirect after sign-in
     router.replace(`/sign-in?redirect=${encodeURIComponent(pathname)}`)
   }

@@ -34,14 +34,16 @@ const items = [
 
 export function CasesSummary({ cases }: CasesSummaryProps) {
   return (
-    <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
+    <div className='grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4'>
       {items.map((item) => (
         <div
           key={item.key}
-          className='rounded-lg border bg-background/60 px-4 py-3'
+          className='rounded-lg border bg-background/60 px-3 py-3 sm:px-4'
         >
-          <p className='text-xs text-muted-foreground'>{item.label}</p>
-          <p className='mt-1 text-2xl font-semibold tracking-tight tabular-nums'>
+          <p className='text-[11px] text-muted-foreground sm:text-xs'>
+            {item.label}
+          </p>
+          <p className='mt-1 text-xl font-semibold tracking-tight tabular-nums sm:text-2xl'>
             {item.getValue(cases).toLocaleString('fa-IR')}
           </p>
         </div>

@@ -43,6 +43,7 @@ import {
   casesColumns,
   type CaseTableRow,
 } from './cases-columns'
+import { CasesMobileList } from './cases-mobile-list'
 import type { Case, Client } from '../types'
 
 type CasesTableProps = {
@@ -183,16 +184,13 @@ export function CasesTable({ cases, clients }: CasesTableProps) {
   }, [pageCount, ensurePageInRange])
 
   return (
-    <div
-      className={cn(
-        'flex flex-1 flex-col gap-4',
-        'max-sm:has-[div[role="toolbar"]]:mb-16'
-      )}
-    >
-      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+    <div className='flex flex-1 flex-col gap-4'>
+      <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
         <DataTableToolbar
           table={table}
           searchPlaceholder='جستجو در عنوان، شماره یا موکل...'
+          resetLabel='پاک کردن'
+          showViewOptions={false}
           filters={[
             {
               columnId: 'status',
@@ -219,7 +217,10 @@ export function CasesTable({ cases, clients }: CasesTableProps) {
             setSorting(sortingFromPreset(value))
           }}
         >
-          <SelectTrigger className='h-8 w-full sm:w-48'>
+          <SelectTrigger
+            className='h-8 w-full shrink-0 lg:w-48'
+            aria-label='مرتب‌سازی پرونده‌ها'
+          >
             <SelectValue placeholder='مرتب‌سازی' />
           </SelectTrigger>
           <SelectContent>
@@ -230,7 +231,9 @@ export function CasesTable({ cases, clients }: CasesTableProps) {
         </Select>
       </div>
 
-      <div className='overflow-x-auto rounded-md border'>
+      <CasesMobileList rows={table.getRowModel().rows.map((row) => row.original)} />
+
+      <div className='hidden overflow-x-auto rounded-md border md:block'>
         <Table className='min-w-3xl'>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -258,7 +261,15 @@ export function CasesTable({ cases, clients }: CasesTableProps) {
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className='cursor-pointer'
+                  onClick={(event) => {
+                    const target = event.target as HTMLElement
+                    if (target.closest('a,button,[role="menuitem"]')) return
+                    router.push(`/admin/cases/${row.original.id}`)
+                  }}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}

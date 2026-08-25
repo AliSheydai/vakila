@@ -37,11 +37,7 @@ type CaseClientTabProps = {
 const editSchema = z.object({
   name: z.string().min(1, 'نام موکل الزامی است.'),
   phone: z.string().min(1, 'شماره موبایل الزامی است.'),
-  email: z
-    .string()
-    .email('ایمیل معتبر نیست.')
-    .optional()
-    .or(z.literal('')),
+  email: z.union([z.string().email('ایمیل معتبر نیست.'), z.literal('')]).optional(),
   notes: z.string().optional(),
 })
 

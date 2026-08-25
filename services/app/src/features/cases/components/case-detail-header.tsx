@@ -45,13 +45,13 @@ export function CaseDetailHeader({ caseItem, client }: CaseDetailHeaderProps) {
       <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
         <div className='min-w-0 space-y-3'>
           <div className='flex flex-wrap items-center gap-2'>
-            <h1 className='text-2xl font-bold tracking-tight'>
+            <h1 className='text-xl font-bold tracking-tight sm:text-2xl'>
               {caseItem.title}
             </h1>
             <CaseStatusBadge status={caseItem.status} />
           </div>
 
-          <dl className='flex flex-wrap gap-x-6 gap-y-2 text-sm'>
+          <dl className='grid grid-cols-2 gap-3 text-sm sm:flex sm:flex-wrap sm:gap-x-6 sm:gap-y-2'>
             <div>
               <dt className='text-muted-foreground'>شماره پرونده</dt>
               <dd className='mt-0.5 font-medium tabular-nums'>
@@ -77,9 +77,10 @@ export function CaseDetailHeader({ caseItem, client }: CaseDetailHeaderProps) {
           </dl>
         </div>
 
-        <div className='flex shrink-0 items-center gap-2'>
+        <div className='flex w-full shrink-0 items-center gap-2 sm:w-auto'>
           <Button
             variant='outline'
+            className='flex-1 sm:flex-none'
             onClick={() => {
               setCurrentRow(caseItem)
               setOpen('update')
