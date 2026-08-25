@@ -1,5 +1,5 @@
-import { Dashboard } from '@/features/dashboard'
+import { ClientDashboardPage } from '@/features/client-portal'
 
 export default function DashboardPage() {
-  return <Dashboard />
+  return <ClientDashboardPage />
 }
