@@ -102,7 +102,7 @@ export function ClientDetailHeader({
         <div className='flex w-full shrink-0 items-center gap-2 sm:w-auto'>
           <Button
             variant='outline'
-            className='flex-1 sm:flex-none'
+            className='min-w-0 flex-1 sm:flex-none'
             onClick={() => {
               setCurrentRow(client)
               setOpen('update')
@@ -114,7 +114,12 @@ export function ClientDetailHeader({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant='outline' size='icon' aria-label='عملیات بیشتر'>
+              <Button
+                variant='outline'
+                size='icon'
+                className='shrink-0'
+                aria-label={`عملیات بیشتر برای ${client.name}`}
+              >
                 <MoreHorizontal className='size-4' />
               </Button>
             </DropdownMenuTrigger>

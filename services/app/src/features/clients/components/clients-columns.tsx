@@ -26,8 +26,12 @@ export type ClientTableRow = Client & {
 export function getClientInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase()
+  if (parts.length === 1) {
+    const value = parts[0].slice(0, 2)
+    return /[A-Za-z]/.test(value) ? value.toUpperCase() : value
+  }
+  const initials = `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`
+  return /[A-Za-z]/.test(initials) ? initials.toUpperCase() : initials
 }
 
 export function buildClientTableRows(
@@ -54,6 +58,8 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='موکل' />
     ),
+    sortingFn: (rowA, rowB) =>
+      rowA.original.name.localeCompare(rowB.original.name, 'fa'),
     cell: ({ row }) => {
       const client = row.original
       return (
@@ -77,7 +83,7 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
       <DataTableColumnHeader column={column} title='موبایل' />
     ),
     cell: ({ row }) => (
-      <span className='tabular-nums text-sm' dir='ltr'>
+      <span className='inline-block tabular-nums text-sm' dir='ltr'>
         {row.original.phone}
       </span>
     ),
@@ -89,7 +95,11 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
       <DataTableColumnHeader column={column} title='ایمیل' />
     ),
     cell: ({ row }) => (
-      <span className='text-sm text-muted-foreground'>
+      <span
+        className='block max-w-40 truncate text-sm text-muted-foreground'
+        dir='ltr'
+        title={row.original.email || undefined}
+      >
         {row.original.email || '—'}
       </span>
     ),

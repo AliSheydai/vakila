@@ -77,7 +77,7 @@ export function ClientsMobileList({
                 </p>
               </div>
             </Link>
-            <div className='flex shrink-0 items-center gap-1'>
+            <div className='flex shrink-0 items-center gap-2'>
               {client.hasActiveCase ? (
                 <Badge variant='secondary' className='text-[10px]'>
                   فعال
@@ -89,7 +89,7 @@ export function ClientsMobileList({
                     variant='ghost'
                     size='icon'
                     className='size-8'
-                    aria-label='عملیات موکل'
+                    aria-label={`عملیات موکل ${client.name}`}
                   >
                     <MoreHorizontal className='size-4' />
                   </Button>
@@ -126,10 +126,14 @@ export function ClientsMobileList({
             </div>
           </div>
 
-          <dl className='mt-3 grid grid-cols-2 gap-2 text-xs'>
+            <dl className='mt-3 grid grid-cols-2 gap-2 text-xs'>
             <div>
               <dt className='text-muted-foreground'>ایمیل</dt>
-              <dd className='mt-0.5 truncate font-medium'>
+              <dd
+                className='mt-0.5 truncate font-medium'
+                dir='ltr'
+                title={client.email || undefined}
+              >
                 {client.email || '—'}
               </dd>
             </div>

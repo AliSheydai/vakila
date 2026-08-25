@@ -190,26 +190,28 @@ export function ClientsTable({ clients, cases }: ClientsTableProps) {
   return (
     <div className='flex flex-1 flex-col gap-4'>
       <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
-        <DataTableToolbar
-          table={table}
-          searchPlaceholder='جستجو نام، موبایل یا ایمیل...'
-          filters={[
-            {
-              columnId: 'activity',
-              title: 'وضعیت پرونده',
-              options: [
-                {
-                  label: 'دارای پرونده فعال',
-                  value: 'with_active_case',
-                },
-                {
-                  label: 'بدون پرونده فعال',
-                  value: 'without_active_case',
-                },
-              ],
-            },
-          ]}
-        />
+        <div className='min-w-0 flex-1'>
+          <DataTableToolbar
+            table={table}
+            searchPlaceholder='جستجو نام، موبایل یا ایمیل...'
+            filters={[
+              {
+                columnId: 'activity',
+                title: 'وضعیت پرونده',
+                options: [
+                  {
+                    label: 'دارای پرونده فعال',
+                    value: 'with_active_case',
+                  },
+                  {
+                    label: 'بدون پرونده فعال',
+                    value: 'without_active_case',
+                  },
+                ],
+              },
+            ]}
+          />
+        </div>
         <Select
           value={sortPreset}
           onValueChange={(value: SortPreset) => {

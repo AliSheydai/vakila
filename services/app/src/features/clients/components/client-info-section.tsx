@@ -7,11 +7,24 @@ type ClientInfoSectionProps = {
   client: Client
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({
+  label,
+  value,
+  dir,
+}: {
+  label: string
+  value: string
+  dir?: 'ltr' | 'rtl'
+}) {
   return (
     <div className='grid gap-1 sm:grid-cols-[10rem_1fr] sm:items-baseline sm:gap-4'>
       <dt className='text-sm text-muted-foreground'>{label}</dt>
-      <dd className='text-sm font-medium whitespace-pre-wrap'>{value || '—'}</dd>
+      <dd
+        className='text-sm font-medium whitespace-pre-wrap break-words'
+        dir={dir}
+      >
+        {value || '—'}
+      </dd>
     </div>
   )
 }
@@ -28,9 +41,9 @@ export function ClientInfoSection({ client }: ClientInfoSectionProps) {
 
       <dl className='space-y-3 rounded-lg border p-4 sm:p-5'>
         <InfoRow label='نام' value={client.name} />
-        <InfoRow label='شماره موبایل' value={client.phone} />
-        <InfoRow label='ایمیل' value={client.email ?? ''} />
-        <InfoRow label='کد ملی' value={client.nationalId ?? ''} />
+        <InfoRow label='شماره موبایل' value={client.phone} dir='ltr' />
+        <InfoRow label='ایمیل' value={client.email ?? ''} dir='ltr' />
+        <InfoRow label='کد ملی' value={client.nationalId ?? ''} dir='ltr' />
         <InfoRow label='توضیحات' value={client.notes ?? ''} />
         <InfoRow label='تاریخ ثبت' value={formatDate(client.createdAt)} />
         <InfoRow

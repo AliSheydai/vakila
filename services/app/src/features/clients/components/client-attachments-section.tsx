@@ -217,6 +217,7 @@ export function ClientAttachmentsSection({
       <div
         role='button'
         tabIndex={0}
+        aria-label='بارگذاری فایل ضمیمه موکل'
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
@@ -234,7 +235,9 @@ export function ClientAttachmentsSection({
         }}
         onDragLeave={(event) => {
           event.preventDefault()
-          setDragging(false)
+          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+            setDragging(false)
+          }
         }}
         onDrop={onDrop}
         className={cn(

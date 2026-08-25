@@ -288,16 +288,22 @@ export function ClientsMutateDrawer({
           </form>
         </Form>
 
-        <SheetFooter className='border-t px-4 py-4'>
+        <SheetFooter className='gap-2 border-t px-4 py-4 sm:flex-row'>
           <Button
             type='button'
             variant='outline'
+            className='w-full sm:w-auto'
             disabled={submitting}
             onClick={() => onOpenChange(false)}
           >
             انصراف
           </Button>
-          <Button type='submit' form={formId} disabled={submitting}>
+          <Button
+            type='submit'
+            form={formId}
+            className='w-full sm:w-auto'
+            disabled={submitting}
+          >
             {submitting
               ? 'در حال ذخیره...'
               : isUpdate
