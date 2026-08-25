@@ -1,4 +1,17 @@
-import { LayoutDashboard, Command, ShieldCheck } from 'lucide-react'
+import {
+  LayoutDashboard,
+  FolderOpen,
+  Calendar,
+  CreditCard,
+  LifeBuoy,
+  Bot,
+  Users,
+  CalendarDays,
+  BarChart3,
+  Wallet,
+  Scale,
+  UserRound,
+} from 'lucide-react'
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -9,24 +22,83 @@ export const sidebarData: SidebarData = {
   },
   teams: [
     {
-      name: 'پنل کاربری',
-      logo: Command,
-      plan: 'کاربر',
+      name: 'پنل وکیل',
+      logo: Scale,
+      plan: 'مدیریت',
+      url: '/admin',
     },
     {
-      name: 'پنل ادمین',
-      logo: ShieldCheck,
-      plan: 'مدیریت',
+      name: 'پنل موکل',
+      logo: UserRound,
+      plan: 'کاربر',
+      url: '/dashboard',
     },
   ],
-  navGroups: [
+  userNavGroups: [
     {
       title: '',
       items: [
         {
           title: 'داشبورد',
-          url: '/',
+          url: '/dashboard',
           icon: LayoutDashboard,
+        },
+        {
+          title: 'پرونده‌ها',
+          url: '/cases',
+          icon: FolderOpen,
+        },
+        {
+          title: 'جلسات',
+          url: '/sessions',
+          icon: Calendar,
+        },
+        {
+          title: 'پرداخت‌ها',
+          url: '/payments',
+          icon: CreditCard,
+        },
+        {
+          title: 'پشتیبانی',
+          url: '/support',
+          icon: LifeBuoy,
+        },
+      ],
+    },
+  ],
+  adminNavGroups: [
+    {
+      title: '',
+      items: [
+        {
+          title: 'دستیار',
+          url: '/admin',
+          icon: Bot,
+        },
+        {
+          title: 'پرونده',
+          url: '/admin/cases',
+          icon: FolderOpen,
+        },
+        {
+          title: 'موکل',
+          url: '/admin/clients',
+          icon: Users,
+        },
+        {
+          title: 'رویداد',
+          url: '/admin/events',
+          icon: CalendarDays,
+        },
+        {
+          title: 'آمار ها',
+          url: '/admin/stats',
+          icon: BarChart3,
+        },
+        {
+          title: 'مالی',
+          url: '/admin/financial',
+          icon: Wallet,
         },
       ],
     },

@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { ChevronsUpDown, Check } from 'lucide-react'
 import {
   DropdownMenu,
@@ -14,18 +14,22 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { type Team } from './types'
 
 type TeamSwitcherProps = {
-  teams: {
-    name: string
-    logo: React.ElementType
-    plan: string
-  }[]
+  teams: Team[]
 }
 
 export function TeamSwitcher({ teams }: TeamSwitcherProps) {
   const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  const activeTeam =
+    teams.find((team) =>
+      isAdmin ? team.url.startsWith('/admin') : !team.url.startsWith('/admin')
+    ) ?? teams[0]
 
   return (
     <SidebarMenu>
@@ -59,7 +63,11 @@ export function TeamSwitcher({ teams }: TeamSwitcherProps) {
             {teams.map((team) => (
               <DropdownMenuItem
                 key={team.name}
-                onClick={() => setActiveTeam(team)}
+                onClick={() => {
+                  if (team.url !== pathname) {
+                    router.push(team.url)
+                  }
+                }}
                 className='flex items-center gap-2 p-2'
               >
                 <div className='flex size-6 items-center justify-center rounded-sm border'>

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronLeft, Laptop, Moon, Sun } from 'lucide-react'
 import { useSearch } from '@/context/search-provider'
 import { useTheme } from '@/context/theme-provider'
@@ -19,8 +19,14 @@ import { ScrollArea } from './ui/scroll-area'
 
 export function CommandMenu() {
   const router = useRouter()
+  const pathname = usePathname()
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
+
+  const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  const navGroups = isAdmin
+    ? sidebarData.adminNavGroups
+    : sidebarData.userNavGroups
 
   const runCommand = React.useCallback(
     (command: () => unknown) => {
@@ -36,7 +42,7 @@ export function CommandMenu() {
       <CommandList>
         <ScrollArea type='hover' className='h-72 pe-1'>
           <CommandEmpty>نتیجه‌ای یافت نشد.</CommandEmpty>
-          {sidebarData.navGroups.map((group) => (
+          {navGroups.map((group) => (
             <CommandGroup key={group.title} heading={group.title}>
               {group.items.map((navItem, i) => {
                 if (navItem.url)

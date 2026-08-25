@@ -1,3 +1,6 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
 import { useLayout } from '@/context/layout-provider'
 import {
   Sidebar,
@@ -15,6 +18,12 @@ import { TeamSwitcher } from './team-switcher'
 
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
+  const pathname = usePathname()
+  const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  const navGroups = isAdmin
+    ? sidebarData.adminNavGroups
+    : sidebarData.userNavGroups
+
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
       <SidebarHeader>
@@ -28,8 +37,8 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {sidebarData.navGroups.map((props) => (
-          <NavGroup key={props.title} {...props} />
+        {navGroups.map((props) => (
+          <NavGroup key={props.title || (isAdmin ? 'admin' : 'user')} {...props} />
         ))}
       </SidebarContent>
       <SidebarFooter>
