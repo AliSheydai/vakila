@@ -1,0 +1,198 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { toast } from 'sonner'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { Search } from '@/components/search'
+import { ThemeSwitch } from '@/components/theme-switch'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useCasesStore } from './stores/cases-store'
+import { useCasesHydration } from './hooks/use-cases-hydration'
+import { CasesProvider, useCasesDialogs } from './components/cases-provider'
+import { CasesMutateDrawer } from './components/cases-mutate-drawer'
+import { CaseDetailHeader } from './components/case-detail-header'
+import { CaseInfoTab } from './components/case-info-tab'
+import { CaseTabPlaceholder } from './components/case-tab-placeholder'
+
+type CaseDetailPageProps = {
+  caseId: string
+}
+
+function CaseDetailDialogs({ caseId }: { caseId: string }) {
+  const router = useRouter()
+  const { open, setOpen, currentRow, setCurrentRow } = useCasesDialogs()
+  const deleteCase = useCasesStore((state) => state.deleteCase)
+  const getCase = useCasesStore((state) => state.getCase)
+
+  // همگام‌سازی currentRow با آخرین نسخه پرونده در store
+  const liveCase = currentRow ? getCase(currentRow.id) : null
+  const activeCase = liveCase ?? currentRow
+
+  return (
+    <>
+      {activeCase && (
+        <CasesMutateDrawer
+          key={`case-update-${activeCase.id}`}
+          open={open === 'update'}
+          onOpenChange={() => {
+            setOpen('update')
+            setTimeout(() => setCurrentRow(null), 500)
+          }}
+          currentRow={activeCase}
+        />
+      )}
+
+      {activeCase && (
+        <ConfirmDialog
+          destructive
+          open={open === 'delete'}
+          onOpenChange={() => {
+            setOpen('delete')
+            setTimeout(() => setCurrentRow(null), 500)
+          }}
+          handleConfirm={() => {
+            const result = deleteCase(activeCase.id)
+            if (!result.ok) {
+              toast.error(result.error)
+              return
+            }
+            toast.success('پرونده حذف شد.')
+            setOpen(null)
+            setCurrentRow(null)
+            if (activeCase.id === caseId) {
+              router.push('/admin/cases')
+            }
+          }}
+          className='max-w-md'
+          title='حذف پرونده'
+          desc={
+            <>
+              پرونده «<strong>{activeCase.title}</strong>» با شماره{' '}
+              <strong>{activeCase.caseNumber}</strong> حذف خواهد شد. این عمل قابل
+              بازگشت نیست.
+            </>
+          }
+          confirmText='حذف پرونده'
+        />
+      )}
+    </>
+  )
+}
+
+function CaseDetailContent({ caseId }: CaseDetailPageProps) {
+  const { hydrated } = useCasesHydration()
+  const caseItem = useCasesStore((state) =>
+    state.cases.find((item) => item.id === caseId)
+  )
+  const client = useCasesStore((state) =>
+    caseItem?.clientId
+      ? (state.clients.find((item) => item.id === caseItem.clientId) ?? null)
+      : null
+  )
+
+  if (!hydrated) {
+    return (
+      <>
+        <Header fixed>
+          <Search className='me-auto' />
+          <ThemeSwitch />
+        </Header>
+        <Main className='flex flex-1 flex-col gap-6'>
+          <Skeleton className='h-8 w-48' />
+          <Skeleton className='h-24 w-full' />
+          <Skeleton className='h-10 w-80' />
+          <Skeleton className='h-64 w-full' />
+        </Main>
+      </>
+    )
+  }
+
+  if (!caseItem) {
+    return (
+      <>
+        <Header fixed>
+          <Search className='me-auto' />
+          <ThemeSwitch />
+        </Header>
+        <Main className='flex flex-1 flex-col items-center justify-center gap-4 text-center'>
+          <div>
+            <h2 className='text-xl font-semibold tracking-tight'>
+              پرونده یافت نشد
+            </h2>
+            <p className='mt-2 text-sm text-muted-foreground'>
+              این پرونده وجود ندارد یا به حساب شما تعلق ندارد.
+            </p>
+          </div>
+          <Button asChild variant='outline'>
+            <Link href='/admin/cases'>بازگشت به فهرست پرونده‌ها</Link>
+          </Button>
+        </Main>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Header fixed>
+        <Search className='me-auto' />
+        <ThemeSwitch />
+      </Header>
+
+      <Main className='flex flex-1 flex-col gap-6'>
+        <CaseDetailHeader caseItem={caseItem} client={client} />
+
+        <Tabs defaultValue='info' className='flex flex-1 flex-col gap-4'>
+          <TabsList className='h-auto w-full flex-wrap justify-start gap-1 sm:w-fit'>
+            <TabsTrigger value='info'>اطلاعات</TabsTrigger>
+            <TabsTrigger value='attachments'>مدارک</TabsTrigger>
+            <TabsTrigger value='finance'>مالی</TabsTrigger>
+            <TabsTrigger value='client'>موکل</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value='info' className='flex-1 outline-none'>
+            <CaseInfoTab caseItem={caseItem} />
+          </TabsContent>
+
+          <TabsContent value='attachments' className='outline-none'>
+            <CaseTabPlaceholder
+              icon='attachments'
+              title='مدارک و ضمیمه‌ها'
+              description='در این بخش می‌توانید فایل‌ها و مدارک مرتبط با پرونده را مدیریت کنید.'
+            />
+          </TabsContent>
+
+          <TabsContent value='finance' className='outline-none'>
+            <CaseTabPlaceholder
+              icon='finance'
+              title='تراکنش‌های مالی'
+              description='حق‌الزحمه، پرداخت‌ها و هزینه‌های پرونده اینجا نمایش داده می‌شوند.'
+            />
+          </TabsContent>
+
+          <TabsContent value='client' className='outline-none'>
+            <CaseTabPlaceholder
+              icon='client'
+              title='اطلاعات موکل'
+              description='جزئیات موکل پرونده و امکان ویرایش یا تغییر موکل در این تب قرار می‌گیرد.'
+            />
+          </TabsContent>
+        </Tabs>
+      </Main>
+
+      <CaseDetailDialogs caseId={caseId} />
+    </>
+  )
+}
+
+export function CaseDetailPage({ caseId }: CaseDetailPageProps) {
+  return (
+    <CasesProvider>
+      <CaseDetailContent caseId={caseId} />
+    </CasesProvider>
+  )
+}

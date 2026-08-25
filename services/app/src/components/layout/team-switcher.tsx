@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronsUpDown, Check } from 'lucide-react'
 import {
   DropdownMenu,
@@ -23,9 +24,17 @@ type TeamSwitcherProps = {
   }[]
 }
 
+const TEAM_ROUTES: Record<string, string> = {
+  'پنل کاربری': '/',
+  'پنل ادمین': '/admin',
+}
+
 export function TeamSwitcher({ teams }: TeamSwitcherProps) {
   const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
+  const router = useRouter()
+  const [activeTeam, setActiveTeam] = React.useState(
+    () => teams.find((team) => team.name === 'پنل ادمین') ?? teams[0]
+  )
 
   return (
     <SidebarMenu>
@@ -59,7 +68,11 @@ export function TeamSwitcher({ teams }: TeamSwitcherProps) {
             {teams.map((team) => (
               <DropdownMenuItem
                 key={team.name}
-                onClick={() => setActiveTeam(team)}
+                onClick={() => {
+                  setActiveTeam(team)
+                  const route = TEAM_ROUTES[team.name]
+                  if (route) router.push(route)
+                }}
                 className='flex items-center gap-2 p-2'
               >
                 <div className='flex size-6 items-center justify-center rounded-sm border'>

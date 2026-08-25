@@ -49,7 +49,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
 
     setTimeout(() => {
       setIsLoading(false)
-      router.push('/')
+      router.push('/admin')
     }, 1000)
   }
 

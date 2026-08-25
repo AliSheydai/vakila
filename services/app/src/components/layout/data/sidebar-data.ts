@@ -1,4 +1,4 @@
-import { LayoutDashboard, Command, ShieldCheck } from 'lucide-react'
+import { Briefcase, LayoutDashboard, Command, ShieldCheck } from 'lucide-react'
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -25,8 +25,13 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: 'داشبورد',
-          url: '/',
+          url: '/admin',
           icon: LayoutDashboard,
+        },
+        {
+          title: 'پرونده‌ها',
+          url: '/admin/cases',
+          icon: Briefcase,
         },
       ],
     },

@@ -73,7 +73,7 @@ export function UserAuthForm({
         auth.setUser(mockUser)
         auth.setAccessToken('mock-access-token')
 
-        const targetPath = redirectTo || '/'
+        const targetPath = redirectTo || '/admin'
         router.replace(targetPath)
 
         return `خوش آمدید، ${data.email}!`
