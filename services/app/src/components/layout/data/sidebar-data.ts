@@ -76,7 +76,7 @@ export const sidebarData: SidebarData = {
           icon: Briefcase,
         },
         {
-          title: 'موکل',
+          title: 'موکل‌ها',
           url: '/admin/clients',
           icon: Users,
         },
