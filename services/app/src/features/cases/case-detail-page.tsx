@@ -17,6 +17,8 @@ import { CasesProvider, useCasesDialogs } from './components/cases-provider'
 import { CasesMutateDrawer } from './components/cases-mutate-drawer'
 import { CaseDetailHeader } from './components/case-detail-header'
 import { CaseInfoTab } from './components/case-info-tab'
+import { CaseClientTab } from './components/case-client-tab'
+import { CaseAttachmentsTab } from './components/case-attachments-tab'
 import { CaseTabPlaceholder } from './components/case-tab-placeholder'
 
 type CaseDetailPageProps = {
@@ -159,11 +161,7 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
           </TabsContent>
 
           <TabsContent value='attachments' className='outline-none'>
-            <CaseTabPlaceholder
-              icon='attachments'
-              title='مدارک و ضمیمه‌ها'
-              description='در این بخش می‌توانید فایل‌ها و مدارک مرتبط با پرونده را مدیریت کنید.'
-            />
+            <CaseAttachmentsTab caseItem={caseItem} />
           </TabsContent>
 
           <TabsContent value='finance' className='outline-none'>
@@ -175,11 +173,7 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
           </TabsContent>
 
           <TabsContent value='client' className='outline-none'>
-            <CaseTabPlaceholder
-              icon='client'
-              title='اطلاعات موکل'
-              description='جزئیات موکل پرونده و امکان ویرایش یا تغییر موکل در این تب قرار می‌گیرد.'
-            />
+            <CaseClientTab caseItem={caseItem} client={client} />
           </TabsContent>
         </Tabs>
       </Main>
