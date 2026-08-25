@@ -1,14 +1,16 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   Download,
   FileText,
   Loader2,
-  Plus,
   Trash2,
+  UploadCloud,
+  XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { Attachment, Client } from '@/features/cases/types'
@@ -20,11 +22,12 @@ import {
 } from '@/features/cases/utils/format'
 import {
   getAttachmentSessionUrl,
+  hasAttachmentSessionUrl,
   revokeAttachmentSessionUrl,
   setAttachmentSessionUrl,
 } from '@/features/cases/utils/attachment-session'
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB — فقط برای UX prototype
 
 const ACCEPTED_EXTENSIONS = [
   '.pdf',
@@ -39,14 +42,31 @@ const ACCEPTED_EXTENSIONS = [
   '.txt',
 ]
 
+type PendingUpload = {
+  id: string
+  name: string
+  size: number
+  mimeType: string
+  status: 'uploading' | 'failed'
+  error?: string
+}
+
 type ClientAttachmentsSectionProps = {
   client: Client
 }
 
-/**
- * نمایش و مدیریت پایه ضمائم موکل.
- * Drag & Drop و UX کامل آپلود در Phase 3.6 تکمیل می‌شود.
- */
+function validateFile(file: File): string | null {
+  if (file.size > MAX_FILE_SIZE) {
+    return `حجم فایل «${file.name}» بیشتر از ۱۰ مگابایت است.`
+  }
+  const lower = file.name.toLowerCase()
+  const okExt = ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))
+  if (!okExt && file.type === '') {
+    return `نوع فایل «${file.name}» پشتیبانی نمی‌شود.`
+  }
+  return null
+}
+
 export function ClientAttachmentsSection({
   client,
 }: ClientAttachmentsSectionProps) {
@@ -59,31 +79,50 @@ export function ClientAttachmentsSection({
   const ownerId = useCasesStore((state) => state.ownerId)
 
   const inputRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [pending, setPending] = useState<PendingUpload[]>([])
   const [toDelete, setToDelete] = useState<Attachment | null>(null)
 
   const attachments = client.attachments ?? []
 
-  async function processFiles(fileList: FileList | File[]) {
-    const files = Array.from(fileList)
-    if (files.length === 0) return
+  const processFiles = useCallback(
+    async (fileList: FileList | File[]) => {
+      const files = Array.from(fileList)
+      if (files.length === 0) return
 
-    setUploading(true)
-    try {
       for (const file of files) {
-        if (file.size > MAX_FILE_SIZE) {
-          toast.error(`حجم فایل «${file.name}» بیشتر از ۱۰ مگابایت است.`)
+        const validationError = validateFile(file)
+        const tempId = `pending_${crypto.randomUUID()}`
+
+        if (validationError) {
+          setPending((prev) => [
+            ...prev,
+            {
+              id: tempId,
+              name: file.name,
+              size: file.size,
+              mimeType: file.type || 'application/octet-stream',
+              status: 'failed',
+              error: validationError,
+            },
+          ])
+          toast.error(validationError)
           continue
         }
 
-        const lower = file.name.toLowerCase()
-        const okExt = ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))
-        if (!okExt && file.type === '') {
-          toast.error(`نوع فایل «${file.name}» پشتیبانی نمی‌شود.`)
-          continue
-        }
+        setPending((prev) => [
+          ...prev,
+          {
+            id: tempId,
+            name: file.name,
+            size: file.size,
+            mimeType: file.type || 'application/octet-stream',
+            status: 'uploading',
+          },
+        ])
 
-        await new Promise((resolve) => setTimeout(resolve, 350))
+        // شبیه‌سازی آپلود برای UX prototype
+        await new Promise((resolve) => setTimeout(resolve, 450))
 
         const beforeIds = new Set(
           (
@@ -99,6 +138,13 @@ export function ClientAttachmentsSection({
         })
 
         if (!result.ok) {
+          setPending((prev) =>
+            prev.map((item) =>
+              item.id === tempId
+                ? { ...item, status: 'failed', error: result.error }
+                : item
+            )
+          )
           toast.error(result.error)
           continue
         }
@@ -110,10 +156,18 @@ export function ClientAttachmentsSection({
           setAttachmentSessionUrl(created.id, file)
         }
 
+        setPending((prev) => prev.filter((item) => item.id !== tempId))
         toast.success(`«${file.name}» اضافه شد.`)
       }
-    } finally {
-      setUploading(false)
+    },
+    [addClientAttachment, client.id, ownerId]
+  )
+
+  function onDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setDragging(false)
+    if (event.dataTransfer.files?.length) {
+      void processFiles(event.dataTransfer.files)
     }
   }
 
@@ -147,29 +201,58 @@ export function ClientAttachmentsSection({
     setToDelete(null)
   }
 
+  const isEmpty = attachments.length === 0 && pending.length === 0
+
   return (
-    <section className='space-y-4'>
-      <div className='flex flex-wrap items-end justify-between gap-3'>
-        <div>
-          <h3 className='text-base font-semibold tracking-tight'>
-            ضمائم موکل
-          </h3>
-          <p className='text-sm text-muted-foreground'>
-            مدارک مربوط به خود شخص (مثل کارت ملی)، جدا از مدارک پرونده.
-          </p>
+    <section className='space-y-6'>
+      <div>
+        <h3 className='text-base font-semibold tracking-tight'>ضمائم موکل</h3>
+        <p className='text-sm text-muted-foreground'>
+          مدارک مربوط به خود شخص (مثل کارت ملی)، جدا از مدارک پرونده. فقط
+          مشخصات در حافظه ذخیره می‌شود؛ محتوای فایل برای همین جلسه نگه داشته
+          می‌شود.
+        </p>
+      </div>
+
+      <div
+        role='button'
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            inputRef.current?.click()
+          }
+        }}
+        onClick={() => inputRef.current?.click()}
+        onDragEnter={(event) => {
+          event.preventDefault()
+          setDragging(true)
+        }}
+        onDragOver={(event) => {
+          event.preventDefault()
+          setDragging(true)
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault()
+          setDragging(false)
+        }}
+        onDrop={onDrop}
+        className={cn(
+          'flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center transition-colors',
+          dragging
+            ? 'border-primary bg-primary/5'
+            : 'border-muted-foreground/25 hover:border-muted-foreground/40 hover:bg-muted/30'
+        )}
+      >
+        <div className='mb-3 flex size-11 items-center justify-center rounded-full bg-muted'>
+          <UploadCloud className='size-5 text-muted-foreground' />
         </div>
-        <Button
-          size='sm'
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading ? (
-            <Loader2 className='size-4 animate-spin' />
-          ) : (
-            <Plus className='size-4' />
-          )}
-          افزودن فایل
-        </Button>
+        <p className='text-sm font-medium'>
+          فایل را اینجا رها کنید یا برای انتخاب کلیک کنید
+        </p>
+        <p className='mt-1 text-xs text-muted-foreground'>
+          حداکثر ۱۰ مگابایت — PDF، Word، Excel، تصویر و متن
+        </p>
         <input
           ref={inputRef}
           type='file'
@@ -185,54 +268,104 @@ export function ClientAttachmentsSection({
         />
       </div>
 
-      {attachments.length === 0 ? (
-        <div className='rounded-xl border border-dashed px-6 py-12 text-center'>
+      {isEmpty ? (
+        <div className='rounded-lg border border-dashed px-4 py-10 text-center'>
           <FileText className='mx-auto size-8 text-muted-foreground/60' />
           <p className='mt-3 text-sm font-medium'>هنوز ضمیمه‌ای ثبت نشده</p>
           <p className='mt-1 text-xs text-muted-foreground'>
-            فقط مشخصات فایل ذخیره می‌شود؛ محتوای فایل برای همین جلسه نگه داشته
-            می‌شود.
+            اولین فایل را با کشیدن یا انتخاب اضافه کنید.
           </p>
         </div>
       ) : (
         <ul className='divide-y rounded-lg border'>
-          {attachments.map((attachment) => (
+          {pending.map((item) => (
             <li
-              key={attachment.id}
-              className='flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+              key={item.id}
+              className='flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
             >
-              <div className='min-w-0 space-y-1'>
-                <p className='truncate text-sm font-medium'>{attachment.name}</p>
+              <div className='min-w-0'>
+                <p className='truncate text-sm font-medium'>{item.name}</p>
                 <p className='text-xs text-muted-foreground'>
-                  {formatMimeTypeLabel(attachment.mimeType)}
-                  {' · '}
-                  {formatFileSize(attachment.size)}
-                  {' · '}
-                  {formatDate(attachment.uploadedAt)}
+                  {formatMimeTypeLabel(item.mimeType)} ·{' '}
+                  {formatFileSize(item.size)}
                 </p>
+                {item.status === 'failed' && item.error ? (
+                  <p className='mt-1 text-xs text-destructive'>{item.error}</p>
+                ) : null}
               </div>
-              <div className='flex shrink-0 items-center gap-1'>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='size-8'
-                  aria-label='دانلود'
-                  onClick={() => handleDownload(attachment)}
-                >
-                  <Download className='size-4' />
-                </Button>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='size-8 text-destructive hover:text-destructive'
-                  aria-label='حذف'
-                  onClick={() => setToDelete(attachment)}
-                >
-                  <Trash2 className='size-4' />
-                </Button>
+              <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                {item.status === 'uploading' ? (
+                  <>
+                    <Loader2 className='size-4 animate-spin' />
+                    در حال بارگذاری
+                  </>
+                ) : (
+                  <>
+                    <XCircle className='size-4 text-destructive' />
+                    ناموفق
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-7'
+                      onClick={() =>
+                        setPending((prev) =>
+                          prev.filter((row) => row.id !== item.id)
+                        )
+                      }
+                    >
+                      بستن
+                    </Button>
+                  </>
+                )}
               </div>
             </li>
           ))}
+
+          {attachments.map((attachment) => {
+            const canDownload = hasAttachmentSessionUrl(attachment.id)
+            return (
+              <li
+                key={attachment.id}
+                className='flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+              >
+                <div className='min-w-0'>
+                  <p className='truncate text-sm font-medium'>
+                    {attachment.name}
+                  </p>
+                  <p className='text-xs text-muted-foreground'>
+                    {formatMimeTypeLabel(attachment.mimeType)} ·{' '}
+                    {formatFileSize(attachment.size)} ·{' '}
+                    {formatDate(attachment.uploadedAt)}
+                  </p>
+                </div>
+                <div className='flex items-center gap-1'>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-8'
+                    onClick={() => handleDownload(attachment)}
+                    title={
+                      canDownload
+                        ? 'دانلود'
+                        : 'فقط در جلسه فعلی قابل دانلود است'
+                    }
+                  >
+                    <Download className='size-4' />
+                    دانلود
+                  </Button>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-8 text-destructive hover:text-destructive'
+                    onClick={() => setToDelete(attachment)}
+                  >
+                    <Trash2 className='size-4' />
+                    حذف
+                  </Button>
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
 
@@ -246,9 +379,13 @@ export function ClientAttachmentsSection({
         className='max-w-md'
         title='حذف ضمیمه'
         desc={
-          <>
-            فایل «<strong>{toDelete?.name}</strong>» حذف خواهد شد.
-          </>
+          toDelete ? (
+            <>
+              فایل «<strong>{toDelete.name}</strong>» حذف خواهد شد.
+            </>
+          ) : (
+            ''
+          )
         }
         confirmText='حذف فایل'
       />
