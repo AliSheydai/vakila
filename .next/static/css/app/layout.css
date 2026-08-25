@@ -428,6 +428,9 @@
   .pointer-events-none {
     pointer-events: none;
   }
+  .collapse {
+    visibility: collapse;
+  }
   .invisible {
     visibility: hidden;
   }
@@ -1081,6 +1084,9 @@
   }
   .flex-none {
     flex: none;
+  }
+  .shrink {
+    flex-shrink: 1;
   }
   .shrink-0 {
     flex-shrink: 0;
@@ -2212,6 +2218,16 @@
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
+  .transition-\[margin\] {
+    transition-property: margin;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .transition-\[width\,height\,padding\,gap\] {
+    transition-property: width,height,padding,gap;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
   .transition-\[width\,height\,padding\] {
     transition-property: width,height,padding;
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
@@ -2264,6 +2280,10 @@
   .duration-1000 {
     --tw-duration: 1000ms;
     transition-duration: 1000ms;
+  }
+  .ease-\[cubic-bezier\(0\.32\,0\.72\,0\,1\)\] {
+    --tw-ease: cubic-bezier(0.32,0.72,0,1);
+    transition-timing-function: cubic-bezier(0.32,0.72,0,1);
   }
   .ease-in {
     --tw-ease: var(--ease-in);
@@ -2356,6 +2376,9 @@
   }
   .group-data-\[collapsible\=icon\]\:w-\[calc\(var\(--sidebar-width-icon\)\+\(--spacing\(4\)\)\+2px\)\]:is(:where(.group)[data-collapsible="icon"] *) {
     width: calc(var(--sidebar-width-icon) + (calc(var(--spacing) * 4)) + 2px);
+  }
+  .group-data-\[collapsible\=icon\]\:gap-0\!:is(:where(.group)[data-collapsible="icon"] *) {
+    gap: 0px !important;
   }
   .group-data-\[collapsible\=icon\]\:overflow-hidden:is(:where(.group)[data-collapsible="icon"] *) {
     overflow: hidden;
@@ -3887,6 +3910,28 @@
   .\[\&\>div\]\:h-full > div {
     height: 100%;
   }
+  .\[\&\>div\]\:min-w-0 > div {
+    min-width: 0px;
+  }
+  .\[\&\>div\]\:overflow-hidden > div {
+    overflow: hidden;
+  }
+  .\[\&\>div\:not\(\:has\(svg\)\)\]\:transition-opacity > div:not(:has(svg)) {
+    transition-property: opacity;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .\[\&\>div\:not\(\:has\(svg\)\)\]\:duration-200 > div:not(:has(svg)) {
+    --tw-duration: 200ms;
+    transition-duration: 200ms;
+  }
+  .\[\&\>div\:not\(\:has\(svg\)\)\]\:ease-out > div:not(:has(svg)) {
+    --tw-ease: var(--ease-out);
+    transition-timing-function: var(--ease-out);
+  }
+  .group-data-\[collapsible\=icon\]\:\[\&\>div\:not\(\:has\(svg\)\)\]\:opacity-0:is(:where(.group)[data-collapsible="icon"] *) > div:not(:has(svg)) {
+    opacity: 0%;
+  }
   .\[\&\>img\]\:absolute > img {
     position: absolute;
   }
@@ -3918,12 +3963,39 @@
   .\[\&\>path\]\:stroke-current > path {
     stroke: currentcolor;
   }
+  .\[\&\>span\]\:min-w-0 > span {
+    min-width: 0px;
+  }
+  .\[\&\>span\]\:truncate > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .\[\&\>span\]\:text-xs > span {
     font-size: var(--text-xs);
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
+  .\[\&\>span\]\:whitespace-nowrap > span {
+    white-space: nowrap;
+  }
   .\[\&\>span\]\:opacity-70 > span {
     opacity: 70%;
+  }
+  .\[\&\>span\]\:transition-opacity > span {
+    transition-property: opacity;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .\[\&\>span\]\:duration-200 > span {
+    --tw-duration: 200ms;
+    transition-duration: 200ms;
+  }
+  .\[\&\>span\]\:ease-out > span {
+    --tw-ease: var(--ease-out);
+    transition-timing-function: var(--ease-out);
+  }
+  .group-data-\[collapsible\=icon\]\:\[\&\>span\]\:opacity-0:is(:where(.group)[data-collapsible="icon"] *) > span {
+    opacity: 0%;
   }
   .\[\&\>span\:last-child\]\:truncate > span:last-child {
     overflow: hidden;

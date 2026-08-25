@@ -77,7 +77,7 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
       >
         <Link href={item.url} onClick={() => setOpenMobile(false)}>
           {item.icon && <item.icon />}
-          <span>{item.title}</span>
+          <span className='truncate whitespace-nowrap'>{item.title}</span>
           {item.badge && <NavBadge>{item.badge}</NavBadge>}
         </Link>
       </SidebarMenuButton>
@@ -103,9 +103,9 @@ function SidebarMenuCollapsible({
         <CollapsibleTrigger asChild>
           <SidebarMenuButton tooltip={item.title}>
             {item.icon && <item.icon />}
-            <span>{item.title}</span>
+            <span className='truncate whitespace-nowrap'>{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            <ChevronRight className='ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 rtl:rotate-180' />
+            <ChevronRight className='ms-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 rtl:rotate-180' />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent className='CollapsibleContent'>
@@ -118,7 +118,9 @@ function SidebarMenuCollapsible({
                 >
                   <Link href={subItem.url} onClick={() => setOpenMobile(false)}>
                     {subItem.icon && <subItem.icon />}
-                    <span>{subItem.title}</span>
+                    <span className='truncate whitespace-nowrap'>
+                      {subItem.title}
+                    </span>
                     {subItem.badge && <NavBadge>{subItem.badge}</NavBadge>}
                   </Link>
                 </SidebarMenuSubButton>
@@ -147,9 +149,9 @@ function SidebarMenuCollapsedDropdown({
             isActive={checkIsActive(href, item)}
           >
             {item.icon && <item.icon />}
-            <span>{item.title}</span>
+            <span className='truncate whitespace-nowrap'>{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            <ChevronRight className='ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
+            <ChevronRight className='ms-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent side='right' align='start' sideOffset={4}>

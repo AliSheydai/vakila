@@ -28,6 +28,9 @@ const SIDEBAR_WIDTH = '16rem'
 const SIDEBAR_WIDTH_MOBILE = '18rem'
 const SIDEBAR_WIDTH_ICON = '3rem'
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
+/** App-like collapse easing (iOS-style decelerate) */
+const SIDEBAR_MOTION =
+  'duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]'
 
 type SidebarContextProps = {
   state: 'expanded' | 'collapsed'
@@ -215,7 +218,7 @@ function Sidebar({
       <div
         data-slot='sidebar-gap'
         className={cn(
-          'relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear',
+          `relative w-(--sidebar-width) bg-transparent transition-[width] ${SIDEBAR_MOTION}`,
           'group-data-[collapsible=offcanvas]:w-0',
           'group-data-[side=right]:rotate-180',
           variant === 'floating' || variant === 'inset'
@@ -226,7 +229,7 @@ function Sidebar({
       <div
         data-slot='sidebar-container'
         className={cn(
-          'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[inset-inline,width] duration-200 ease-linear md:flex',
+          `fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[inset-inline,width] ${SIDEBAR_MOTION} md:flex`,
           side === 'left'
             ? 'inset-s-0 group-data-[collapsible=offcanvas]:-inset-s-[calc(var(--sidebar-width))]'
             : 'inset-e-0 group-data-[collapsible=offcanvas]:-inset-e-[calc(var(--sidebar-width))]',
@@ -312,6 +315,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'div'>) {
       data-slot='sidebar-inset'
       className={cn(
         'relative flex w-full flex-1 flex-col bg-background',
+        `transition-[margin] ${SIDEBAR_MOTION}`,
         'md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ms-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ms-2',
         className
       )}
@@ -407,7 +411,7 @@ function SidebarGroupLabel({
       data-slot='sidebar-group-label'
       data-sidebar='group-label'
       className={cn(
-        'flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
+        `flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium whitespace-nowrap text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] ${SIDEBAR_MOTION} focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0`,
         'group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0',
         className
       )}
@@ -476,7 +480,22 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-start text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pe-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
+  [
+    'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-start text-sm outline-hidden ring-sidebar-ring',
+    `transition-[width,height,padding,gap] ${SIDEBAR_MOTION}`,
+    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground',
+    'disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pe-8 aria-disabled:pointer-events-none aria-disabled:opacity-50',
+    'data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground',
+    'data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground',
+    'group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:p-2!',
+    // Keep labels on one line so width shrink never wraps / jumps height
+    '[&>span]:min-w-0 [&>span]:truncate [&>span]:whitespace-nowrap',
+    '[&>div]:min-w-0 [&>div]:overflow-hidden',
+    '[&>span]:transition-opacity [&>span]:duration-200 [&>span]:ease-out',
+    '[&>div:not(:has(svg))]:transition-opacity [&>div:not(:has(svg))]:duration-200 [&>div:not(:has(svg))]:ease-out',
+    'group-data-[collapsible=icon]:[&>span]:opacity-0 group-data-[collapsible=icon]:[&>div:not(:has(svg))]:opacity-0',
+    '[&>svg]:size-4 [&>svg]:shrink-0',
+  ].join(' '),
   {
     variants: {
       variant: {
@@ -688,7 +707,7 @@ function SidebarMenuSubButton({
       data-size={size}
       data-active={isActive}
       className={cn(
-        'flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-inherit',
+        'flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span]:min-w-0 [&>span]:truncate [&>span]:whitespace-nowrap [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-inherit',
         'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground',
         size === 'sm' && 'text-xs',
         size === 'md' && 'text-sm',

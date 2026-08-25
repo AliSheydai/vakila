@@ -39,15 +39,15 @@ export function TeamSwitcher({ teams }: TeamSwitcherProps) {
               <div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground'>
                 <activeTeam.logo className='size-4' />
               </div>
-              <div className='grid flex-1 text-start text-sm leading-tight'>
-                <span className='truncate font-semibold'>
+              <div className='grid min-w-0 flex-1 text-start text-sm leading-tight'>
+                <span className='truncate whitespace-nowrap font-semibold'>
                   {activeTeam.name}
                 </span>
-                <span className='truncate text-xs text-muted-foreground'>
+                <span className='truncate whitespace-nowrap text-xs text-muted-foreground'>
                   {activeTeam.plan}
                 </span>
               </div>
-              <ChevronsUpDown className='ms-auto size-4' />
+              <ChevronsUpDown className='ms-auto size-4 shrink-0 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0' />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -65,9 +65,13 @@ export function TeamSwitcher({ teams }: TeamSwitcherProps) {
                 <div className='flex size-6 items-center justify-center rounded-sm border'>
                   <team.logo className='size-4 shrink-0' />
                 </div>
-                <div className='grid flex-1 text-start text-sm leading-tight'>
-                  <span className='font-medium'>{team.name}</span>
-                  <span className='text-xs text-muted-foreground'>{team.plan}</span>
+                <div className='grid min-w-0 flex-1 text-start text-sm leading-tight'>
+                  <span className='truncate whitespace-nowrap font-medium'>
+                    {team.name}
+                  </span>
+                  <span className='truncate whitespace-nowrap text-xs text-muted-foreground'>
+                    {team.plan}
+                  </span>
                 </div>
                 {activeTeam.name === team.name && (
                   <Check className='ms-auto size-4 text-primary' />
