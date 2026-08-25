@@ -189,8 +189,6 @@ export function CasesTable({ cases, clients }: CasesTableProps) {
         <DataTableToolbar
           table={table}
           searchPlaceholder='جستجو در عنوان، شماره یا موکل...'
-          resetLabel='پاک کردن'
-          showViewOptions={false}
           filters={[
             {
               columnId: 'status',
