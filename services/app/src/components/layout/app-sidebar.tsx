@@ -44,18 +44,18 @@ function AppSidebarInner({
 
   return (
     <>
-      <SidebarHeader className={cn(collapsed && 'px-2')}>
+      <SidebarHeader className={cn(collapsed && 'items-center px-2')}>
         {/* Collapsed: brand / section + hover expand (hiknow pattern) */}
         <div
           className={cn(
-            'absolute inset-0 flex items-center py-2 transition-opacity duration-300',
-            collapsed ? 'px-2' : 'px-4',
+            'absolute inset-0 flex items-center justify-center py-2 transition-opacity duration-300',
+            collapsed ? 'px-0' : 'px-4',
             collapsed
               ? 'pointer-events-auto opacity-100'
               : 'pointer-events-none opacity-0'
           )}
         >
-          <div className='group/header relative flex size-10 shrink-0 items-center justify-center overflow-visible'>
+          <div className='group/header relative mx-auto flex size-10 shrink-0 items-center justify-center overflow-visible'>
             <div
               className={cn(
                 'flex size-10 items-center justify-center transition-all duration-200 ease-out',

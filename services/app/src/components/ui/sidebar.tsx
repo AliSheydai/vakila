@@ -492,7 +492,11 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
     <li
       data-slot='sidebar-menu-item'
       data-sidebar='menu-item'
-      className={cn('group/menu-item relative', className)}
+      className={cn(
+        'group/menu-item relative',
+        'group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center',
+        className
+      )}
       {...props}
     />
   )
@@ -500,21 +504,26 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
 
 const sidebarMenuButtonVariants = cva(
   [
-    'peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-lg px-2.5 py-2 text-start text-sm outline-hidden ring-sidebar-ring',
-    `transition-[width,height,padding,gap,background-color,color,transform] ${SIDEBAR_MOTION}`,
+    // Fixed h-10 in both states so collapse only changes width, not row height
+    'peer/menu-button flex h-10 w-full items-center gap-3 overflow-hidden rounded-lg px-2.5 text-start text-sm outline-hidden ring-sidebar-ring',
+    `transition-[width,padding,gap,background-color,color,border-radius] ${SIDEBAR_MOTION}`,
     'text-muted-foreground hover:bg-muted/60 hover:text-foreground focus-visible:ring-2 active:bg-muted active:text-foreground',
     'disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pe-8 aria-disabled:pointer-events-none aria-disabled:opacity-50',
     'data-[active=true]:bg-muted data-[active=true]:font-medium data-[active=true]:text-foreground',
     'data-[state=open]:hover:bg-muted/60 data-[state=open]:hover:text-foreground',
-    'group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:rounded-xl! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center',
-    'group-data-[collapsible=icon]:hover:scale-110 group-data-[collapsible=icon]:hover:bg-muted/80',
+    'group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-10! group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:rounded-xl! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center!',
+    'group-data-[collapsible=icon]:hover:bg-muted/80',
     // Keep labels on one line so width shrink never wraps / jumps height
     '[&>span]:min-w-0 [&>span]:truncate [&>span]:whitespace-nowrap [&>span]:overflow-hidden [&>span]:text-ellipsis',
     '[&>div]:min-w-0 [&>div]:overflow-hidden',
     '[&>span]:transition-opacity [&>span]:duration-200 [&>span]:ease-out',
     '[&>div:not(:has(svg))]:transition-opacity [&>div:not(:has(svg))]:duration-200 [&>div:not(:has(svg))]:ease-out',
-    'group-data-[collapsible=icon]:[&>span]:opacity-0 group-data-[collapsible=icon]:[&>div:not(:has(svg))]:opacity-0',
-    '[&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:[&>svg]:size-5',
+    // Collapsed: pull labels/badges out of flow so the icon stays centered
+    'group-data-[collapsible=icon]:[&>span:not([data-slot=avatar])]:pointer-events-none group-data-[collapsible=icon]:[&>span:not([data-slot=avatar])]:absolute group-data-[collapsible=icon]:[&>span:not([data-slot=avatar])]:opacity-0',
+    'group-data-[collapsible=icon]:[&>div:not(:has(svg))]:pointer-events-none group-data-[collapsible=icon]:[&>div:not(:has(svg))]:absolute group-data-[collapsible=icon]:[&>div:not(:has(svg))]:opacity-0',
+    'group-data-[collapsible=icon]:[&>svg.ms-auto]:hidden',
+    // Keep icon size stable across expand/collapse
+    '[&>svg]:size-4 [&>svg]:shrink-0',
   ].join(' '),
   {
     variants: {
@@ -524,9 +533,9 @@ const sidebarMenuButtonVariants = cva(
           'bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-muted/60 hover:text-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]',
       },
       size: {
-        default: 'h-auto text-sm',
-        sm: 'h-7 text-xs',
-        lg: 'h-12 text-sm group-data-[collapsible=icon]:p-0!',
+        default: 'h-10 text-sm',
+        sm: 'h-8 text-xs',
+        lg: 'h-11 text-sm',
       },
     },
     defaultVariants: {

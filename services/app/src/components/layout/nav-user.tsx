@@ -41,10 +41,10 @@ export function NavUser({ user }: NavUserProps) {
               className={cn(
                 'h-auto gap-2.5 rounded-xl px-2 py-1.5 text-muted-foreground hover:bg-muted/80 hover:text-foreground',
                 'data-[state=open]:bg-muted/80 data-[state=open]:text-foreground',
-                'group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:rounded-xl! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:hover:scale-100'
+                'group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:rounded-xl! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:hover:scale-100'
               )}
             >
-              <Avatar className='size-9 shrink-0 rounded-full ring-2 ring-background transition-shadow duration-200 group-hover/menu-item:ring-primary/20'>
+              <Avatar className='size-9 shrink-0 rounded-full ring-2 ring-background transition-shadow duration-200 group-hover/menu-item:ring-primary/20 group-data-[collapsible=icon]:size-9'>
                 {user.avatar ? (
                   <AvatarImage src={user.avatar} alt={user.name} />
                 ) : null}

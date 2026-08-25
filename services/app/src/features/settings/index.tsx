@@ -21,7 +21,7 @@ export function Settings() {
       <Main>
         <div className='mx-auto w-full max-w-2xl space-y-8'>
           <div className='space-y-1'>
-            <h1 className='text-2xl font-bold tracking-tight md:text-3xl'>
+            <h1 className='text-2xl font-bold tracking-tight text-sidebar-foreground md:text-3xl'>
               حساب کاربری
             </h1>
             <p className='text-sm text-muted-foreground md:text-base'>
@@ -30,24 +30,24 @@ export function Settings() {
           </div>
 
           <Tabs defaultValue='profile' className='gap-6'>
-            <TabsList className='grid h-auto w-full grid-cols-3 gap-1 rounded-xl p-1'>
+            <TabsList className='grid h-auto w-full grid-cols-3 gap-1 rounded-xl border border-sidebar-border bg-sidebar p-1 text-sidebar-foreground'>
               <TabsTrigger
                 value='profile'
-                className='gap-1.5 rounded-lg px-2 py-2.5 text-xs sm:text-sm'
+                className='gap-1.5 rounded-lg px-2 py-2.5 text-xs text-muted-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-accent-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-sidebar-accent sm:text-sm'
               >
                 <UserRound className='size-4 shrink-0' />
                 <span>پروفایل</span>
               </TabsTrigger>
               <TabsTrigger
                 value='sessions'
-                className='gap-1.5 rounded-lg px-2 py-2.5 text-xs sm:text-sm'
+                className='gap-1.5 rounded-lg px-2 py-2.5 text-xs text-muted-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-accent-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-sidebar-accent sm:text-sm'
               >
                 <MonitorSmartphone className='size-4 shrink-0' />
                 <span>نشست‌ها</span>
               </TabsTrigger>
               <TabsTrigger
                 value='security'
-                className='gap-1.5 rounded-lg px-2 py-2.5 text-xs sm:text-sm'
+                className='gap-1.5 rounded-lg px-2 py-2.5 text-xs text-muted-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-accent-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-sidebar-accent sm:text-sm'
               >
                 <Shield className='size-4 shrink-0' />
                 <span>تنظیمات</span>

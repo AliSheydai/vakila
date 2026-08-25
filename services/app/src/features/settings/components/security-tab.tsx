@@ -82,13 +82,15 @@ export function SecurityTab() {
   return (
     <div className='space-y-8'>
       <div>
-        <h2 className='text-base font-semibold tracking-tight'>تنظیمات</h2>
+        <h2 className='text-base font-semibold tracking-tight text-sidebar-foreground'>
+          تنظیمات
+        </h2>
         <p className='mt-1 text-sm text-muted-foreground'>
           امنیت حساب با تأیید دو مرحله‌ای گوگل
         </p>
       </div>
 
-      <div className='overflow-hidden rounded-2xl border bg-card'>
+      <div className='overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm'>
         <div className='flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6'>
           <div className='flex items-start gap-4'>
             <div
@@ -96,7 +98,7 @@ export function SecurityTab() {
                 'flex size-11 shrink-0 items-center justify-center rounded-xl',
                 enabled
                   ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-muted text-muted-foreground'
+                  : 'bg-sidebar-accent text-muted-foreground'
               )}
             >
               {enabled ? (
@@ -147,10 +149,10 @@ export function SecurityTab() {
         </div>
 
         {setupOpen ? (
-          <div className='space-y-6 border-t bg-muted/20 px-5 py-6 sm:px-6'>
+          <div className='space-y-6 border-t border-sidebar-border bg-sidebar-accent/40 px-5 py-6 sm:px-6'>
             <ol className='space-y-5'>
               <li className='flex gap-3'>
-                <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground'>
+                <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[11px] font-semibold text-sidebar-primary-foreground'>
                   ۱
                 </span>
                 <div className='space-y-1 pt-0.5'>
@@ -164,7 +166,7 @@ export function SecurityTab() {
               </li>
 
               <li className='flex gap-3'>
-                <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground'>
+                <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[11px] font-semibold text-sidebar-primary-foreground'>
                   ۲
                 </span>
                 <div className='min-w-0 flex-1 space-y-3 pt-0.5'>
@@ -229,7 +231,7 @@ export function SecurityTab() {
               </li>
 
               <li className='flex gap-3'>
-                <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground'>
+                <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[11px] font-semibold text-sidebar-primary-foreground'>
                   ۳
                 </span>
                 <div className='min-w-0 flex-1 space-y-3 pt-0.5'>

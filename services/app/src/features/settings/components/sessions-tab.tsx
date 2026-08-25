@@ -79,7 +79,9 @@ export function SessionsTab() {
     <div className='space-y-8'>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
         <div>
-          <h2 className='text-base font-semibold tracking-tight'>نشست‌ها</h2>
+          <h2 className='text-base font-semibold tracking-tight text-sidebar-foreground'>
+            نشست‌ها
+          </h2>
           <p className='mt-1 text-sm text-muted-foreground'>
             دستگاه‌هایی که به حساب شما وارد شده‌اند
           </p>
@@ -89,7 +91,7 @@ export function SessionsTab() {
             type='button'
             variant='outline'
             size='sm'
-            className='shrink-0 gap-1.5 text-destructive hover:bg-destructive/5 hover:text-destructive'
+            className='shrink-0 gap-1.5 border-sidebar-border bg-sidebar text-destructive hover:bg-destructive/5 hover:text-destructive'
             onClick={revokeOthers}
           >
             <LogOut className='size-3.5' />
@@ -98,21 +100,21 @@ export function SessionsTab() {
         ) : null}
       </div>
 
-      <ul className='overflow-hidden rounded-2xl border bg-card'>
+      <ul className='overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm'>
         {sessions.map((session, index) => (
           <li
             key={session.id}
             className={cn(
               'flex items-start gap-4 px-5 py-4 sm:items-center sm:px-6',
-              index > 0 && 'border-t'
+              index > 0 && 'border-t border-sidebar-border'
             )}
           >
             <div
               className={cn(
                 'flex size-11 shrink-0 items-center justify-center rounded-xl',
                 session.current
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-muted text-muted-foreground'
+                  ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                  : 'bg-sidebar-accent text-muted-foreground'
               )}
             >
               <DeviceIcon kind={session.kind} />
