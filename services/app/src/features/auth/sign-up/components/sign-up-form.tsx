@@ -24,16 +24,16 @@ const formSchema = z
   .object({
     email: z
       .string()
-      .min(1, 'Please enter your email.')
-      .email('Please enter a valid email.'),
+      .min(1, 'لطفاً ایمیل خود را وارد کنید.')
+      .email('لطفاً یک ایمیل معتبر وارد کنید.'),
     password: z
       .string()
-      .min(1, 'Please enter your password.')
-      .min(7, 'Password must be at least 7 characters long.'),
-    confirmPassword: z.string().min(1, 'Please confirm your password.'),
+      .min(1, 'لطفاً رمز عبور خود را وارد کنید.')
+      .min(7, 'رمز عبور باید حداقل ۷ کاراکتر باشد.'),
+    confirmPassword: z.string().min(1, 'لطفاً رمز عبور را تأیید کنید.'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match.",
+    message: 'رمزهای عبور یکسان نیستند.',
     path: ['confirmPassword'],
   })
 
@@ -56,12 +56,12 @@ export function SignUpForm({
     setIsLoading(true)
 
     toast.promise(sleep(2000), {
-      loading: 'Creating account...',
+      loading: 'در حال ایجاد حساب...',
       success: () => {
         setIsLoading(false)
-        return `Account created for ${data.email}.`
+        return `حساب برای ${data.email} ایجاد شد.`
       },
-      error: 'Error',
+      error: 'خطا',
     })
   }
 
@@ -77,7 +77,7 @@ export function SignUpForm({
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>ایمیل</FormLabel>
               <FormControl>
                 <Input placeholder='name@example.com' {...field} />
               </FormControl>
@@ -90,7 +90,7 @@ export function SignUpForm({
           name='password'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>رمز عبور</FormLabel>
               <FormControl>
                 <PasswordInput placeholder='********' {...field} />
               </FormControl>
@@ -103,7 +103,7 @@ export function SignUpForm({
           name='confirmPassword'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
+              <FormLabel>تأیید رمز عبور</FormLabel>
               <FormControl>
                 <PasswordInput placeholder='********' {...field} />
               </FormControl>
@@ -113,16 +113,16 @@ export function SignUpForm({
         />
         <Button className='mt-2' disabled={isLoading}>
           {isLoading ? <Loader2 className='animate-spin' /> : <UserPlus />}
-          Create Account
+          ایجاد حساب
         </Button>
 
         <div className='relative my-2'>
           <div className='absolute inset-0 flex items-center'>
             <span className='w-full border-t' />
           </div>
-          <div className='relative flex justify-center text-xs uppercase'>
+          <div className='relative flex justify-center text-xs'>
             <span className='bg-background px-2 text-muted-foreground'>
-              Or continue with
+              یا ادامه با
             </span>
           </div>
         </div>

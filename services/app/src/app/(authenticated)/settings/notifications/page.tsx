@@ -1,5 +1,5 @@
-import { SettingsNotifications } from '@/features/settings/notifications'
+import { redirect } from 'next/navigation'
 
-export default function SettingsNotificationsPage() {
-  return <SettingsNotifications />
+export default function SettingsNotificationsRedirect() {
+  redirect('/settings')
 }

@@ -32,15 +32,18 @@ export function ProfileDropdown() {
           <DropdownMenuLabel className='font-normal'>
             <div className='flex flex-col gap-1.5'>
               <p className='text-sm leading-none font-medium'>علی</p>
-              <p className='text-xs leading-none text-muted-foreground'>
-                ali@example.com
+              <p
+                className='text-xs leading-none text-muted-foreground'
+                dir='ltr'
+              >
+                09123456789
               </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link href='/settings/account'>حساب کاربری</Link>
+              <Link href='/settings'>حساب کاربری</Link>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

@@ -55,7 +55,7 @@ export function CommandMenu() {
                       }}
                     >
                       <div className='flex size-4 items-center justify-center'>
-                        <ArrowLeft className='size-2 text-muted-foreground/80' />
+                        <ArrowLeft className='size-2 text-muted-foreground/80 rtl:rotate-180' />
                       </div>
                       {navItem.title}
                     </CommandItem>
@@ -70,9 +70,9 @@ export function CommandMenu() {
                     }}
                   >
                     <div className='flex size-4 items-center justify-center'>
-                      <ArrowLeft className='size-2 text-muted-foreground/80' />
+                      <ArrowLeft className='size-2 text-muted-foreground/80 rtl:rotate-180' />
                     </div>
-                    {navItem.title} <ChevronLeft className='size-3' /> {subItem.title}
+                    {navItem.title} <ChevronLeft className='size-3 rtl:rotate-180' /> {subItem.title}
                   </CommandItem>
                 ))
               })}

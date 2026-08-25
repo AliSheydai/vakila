@@ -3,7 +3,6 @@ import {
   FolderOpen,
   Calendar,
   CreditCard,
-  LifeBuoy,
   Bot,
   Users,
   CalendarDays,
@@ -17,7 +16,7 @@ import { type SidebarData } from '../types'
 export const sidebarData: SidebarData = {
   user: {
     name: 'علی',
-    email: 'ali@example.com',
+    phone: '09123456789',
     avatar: '',
   },
   teams: [
@@ -57,11 +56,6 @@ export const sidebarData: SidebarData = {
           title: 'پرداخت‌ها',
           url: '/payments',
           icon: CreditCard,
-        },
-        {
-          title: 'پشتیبانی',
-          url: '/support',
-          icon: LifeBuoy,
         },
       ],
     },

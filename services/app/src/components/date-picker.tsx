@@ -19,7 +19,7 @@ type DatePickerProps = {
 export function DatePicker({
   selected,
   onSelect,
-  placeholder = 'Pick a date',
+  placeholder = 'انتخاب تاریخ',
 }: DatePickerProps) {
   return (
     <Popover>
@@ -30,7 +30,7 @@ export function DatePicker({
           className='w-60 justify-start text-start font-normal data-[empty=true]:text-muted-foreground'
         >
           {selected ? (
-            format(selected, 'MMM d, yyyy')
+            format(selected, 'yyyy/MM/dd')
           ) : (
             <span>{placeholder}</span>
           )}

@@ -1,5 +1,5 @@
-import { SettingsDisplay } from '@/features/settings/display'
+import { redirect } from 'next/navigation'
 
-export default function SettingsDisplayPage() {
-  return <SettingsDisplay />
+export default function SettingsDisplayRedirect() {
+  redirect('/settings')
 }
