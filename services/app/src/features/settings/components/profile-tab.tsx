@@ -4,17 +4,19 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Pencil, Check, X } from 'lucide-react'
+import { Check, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   formatIranianMobileLocal,
   isValidIranianMobile,
 } from '@/lib/iranian-phone'
+import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -46,150 +48,153 @@ const INITIAL: ProfileValues = {
 
 export function ProfileTab() {
   const [profile, setProfile] = useState(INITIAL)
-  const [editing, setEditing] = useState(false)
 
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: profile,
+    mode: 'onChange',
   })
 
-  function startEdit() {
-    form.reset(profile)
-    setEditing(true)
-  }
+  const watchedName = form.watch('name')
+  const { isDirty, isSubmitting, isValid } = form.formState
 
-  function cancelEdit() {
+  function onReset() {
     form.reset(profile)
-    setEditing(false)
   }
 
   function onSubmit(data: ProfileValues) {
     setProfile(data)
-    setEditing(false)
+    form.reset(data)
     toast.success('اطلاعات پروفایل ذخیره شد.')
   }
 
-  const initials = profile.name.slice(0, 2)
+  const displayName = watchedName.trim() || profile.name
+  const initials = displayName.slice(0, 2)
 
   return (
-    <div className='space-y-8'>
+    <div className='space-y-6'>
       <div>
-        <h2 className='text-base font-semibold tracking-tight'>پروفایل</h2>
+        <h2 className='text-base font-semibold tracking-tight text-sidebar-foreground'>
+          پروفایل
+        </h2>
         <p className='mt-1 text-sm text-muted-foreground'>
-          مشاهده و ویرایش نام و شماره موبایل
+          اطلاعات شخصی خود را مستقیم ویرایش کنید؛ ذخیره فقط پس از تغییر لازم است.
         </p>
       </div>
 
-      <div className='overflow-hidden rounded-2xl border bg-card'>
-        <div className='flex items-center gap-4 border-b bg-muted/30 px-5 py-5 sm:px-6'>
-          <Avatar className='size-14 border bg-background shadow-sm'>
-            <AvatarFallback className='text-base font-medium'>
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className='min-w-0 flex-1'>
-            <p className='truncate text-base font-semibold'>{profile.name}</p>
-            <p className='mt-0.5 truncate text-sm text-muted-foreground' dir='ltr'>
-              {profile.phone}
-            </p>
-          </div>
-          {!editing ? (
-            <Button
-              type='button'
-              variant='outline'
-              size='sm'
-              className='shrink-0 gap-1.5'
-              onClick={startEdit}
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className='overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm'
+        >
+          <div className='flex items-center justify-between gap-4 border-b border-sidebar-border bg-sidebar-accent/60 px-5 py-5 sm:px-6'>
+            <Avatar className='size-14 border border-sidebar-border bg-sidebar shadow-sm ring-2 ring-sidebar-primary/15'>
+              <AvatarFallback className='bg-sidebar-primary/10 text-base font-semibold text-sidebar-primary'>
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <span
+              className={cn(
+                'hidden shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors sm:inline-flex',
+                isDirty
+                  ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                  : 'bg-sidebar text-muted-foreground'
+              )}
             >
-              <Pencil className='size-3.5' />
-              ویرایش
-            </Button>
-          ) : null}
-        </div>
+              {isDirty ? 'تغییرات ذخیره‌نشده' : 'به‌روز'}
+            </span>
+          </div>
 
-        <div className='px-5 py-5 sm:px-6'>
-          {editing ? (
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className='space-y-5'
-              >
-                <FormField
-                  control={form.control}
-                  name='name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>نام</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='نام شما'
-                          autoFocus
-                          className='h-11'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='phone'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>شماره موبایل</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='tel'
-                          inputMode='tel'
-                          autoComplete='tel'
-                          placeholder='09123456789'
-                          dir='ltr'
-                          className='h-11 text-left'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className='flex flex-wrap items-center gap-2 pt-1'>
-                  <Button type='submit' className='gap-1.5'>
-                    <Check className='size-4' />
-                    ذخیره تغییرات
-                  </Button>
+          <div className='space-y-5 px-5 py-6 sm:px-6'>
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className='text-sidebar-foreground'>نام</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='نام شما'
+                      className='h-11 border-sidebar-border bg-background/80 transition-[box-shadow,border-color] focus-visible:border-sidebar-ring focus-visible:ring-sidebar-ring/40'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    نامی که در سایدبار و حساب کاربری نمایش داده می‌شود.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='phone'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className='text-sidebar-foreground'>
+                    شماره موبایل
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='tel'
+                      inputMode='tel'
+                      autoComplete='tel'
+                      placeholder='09123456789'
+                      dir='ltr'
+                      className='h-11 border-sidebar-border bg-background/80 text-left transition-[box-shadow,border-color] focus-visible:border-sidebar-ring focus-visible:ring-sidebar-ring/40'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    برای ورود و ارتباط با حساب استفاده می‌شود.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div
+            className={cn(
+              'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+              isDirty
+                ? 'grid-rows-[1fr] opacity-100'
+                : 'grid-rows-[0fr] opacity-0'
+            )}
+          >
+            <div className='overflow-hidden'>
+              <div className='flex flex-wrap items-center justify-between gap-3 border-t border-sidebar-border bg-sidebar-accent/40 px-5 py-4 sm:px-6'>
+                <p className='text-xs text-muted-foreground sm:text-sm'>
+                  تغییرات هنوز ذخیره نشده‌اند.
+                </p>
+                <div className='flex flex-wrap items-center gap-2'>
                   <Button
                     type='button'
                     variant='ghost'
-                    className='gap-1.5'
-                    onClick={cancelEdit}
+                    size='sm'
+                    className='gap-1.5 text-muted-foreground hover:bg-sidebar hover:text-sidebar-foreground'
+                    onClick={onReset}
+                    disabled={isSubmitting}
                   >
-                    <X className='size-4' />
-                    انصراف
+                    <RotateCcw className='size-3.5' />
+                    بازگردانی
+                  </Button>
+                  <Button
+                    type='submit'
+                    size='sm'
+                    className='gap-1.5 bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90'
+                    disabled={isSubmitting || !isValid}
+                  >
+                    <Check className='size-4' />
+                    ذخیره تغییرات
                   </Button>
                 </div>
-              </form>
-            </Form>
-          ) : (
-            <dl className='grid gap-4 sm:grid-cols-2'>
-              <div className='space-y-1'>
-                <dt className='text-xs font-medium text-muted-foreground'>
-                  نام
-                </dt>
-                <dd className='text-sm font-medium'>{profile.name}</dd>
               </div>
-              <div className='space-y-1'>
-                <dt className='text-xs font-medium text-muted-foreground'>
-                  شماره موبایل
-                </dt>
-                <dd className='text-sm font-medium' dir='ltr'>
-                  {profile.phone}
-                </dd>
-              </div>
-            </dl>
-          )}
-        </div>
-      </div>
+            </div>
+          </div>
+        </form>
+      </Form>
     </div>
   )
 }

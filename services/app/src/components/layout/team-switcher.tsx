@@ -41,15 +41,13 @@ export function TeamSwitcher({ teams, collapsed }: TeamSwitcherProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              size='lg'
               className={cn(
-                'h-auto gap-2.5 rounded-xl px-1 py-1 text-muted-foreground hover:bg-muted/80 hover:text-foreground',
+                'gap-2.5 rounded-xl px-1 text-muted-foreground hover:bg-muted/80 hover:text-foreground',
                 'data-[state=open]:bg-muted/80 data-[state=open]:text-foreground',
-                'group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:hover:scale-100',
-                collapsed && 'size-10 justify-center p-0 hover:scale-100'
+                collapsed && 'justify-center p-0'
               )}
             >
-              <div className='flex aspect-square size-8 items-center justify-center rounded-xl bg-primary/10 text-primary'>
+              <div className='flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary'>
                 <Scale className='size-4' />
               </div>
               {!collapsed && (
