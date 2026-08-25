@@ -1,5 +1,10 @@
-import { ComingSoon } from '@/components/coming-soon'
+import { Suspense } from 'react'
+import { ClientPaymentsPage } from '@/features/client-portal'
 
 export default function PaymentsPage() {
-  return <ComingSoon />
+  return (
+    <Suspense fallback={null}>
+      <ClientPaymentsPage />
+    </Suspense>
+  )
 }

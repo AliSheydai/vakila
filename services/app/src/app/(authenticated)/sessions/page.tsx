@@ -1,5 +1,5 @@
-import { ComingSoon } from '@/components/coming-soon'
+import { ClientSessionsPage } from '@/features/client-portal'
 
 export default function SessionsPage() {
-  return <ComingSoon />
+  return <ClientSessionsPage />
 }
