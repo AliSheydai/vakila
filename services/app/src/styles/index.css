@@ -12,14 +12,17 @@
   }
   html {
     @apply overflow-x-hidden;
+    scrollbar-gutter: stable;
   }
   body {
     @apply min-h-svh w-full bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar;
   }
 
-  /* Override Radix scroll locking for sticky headers */
+  /* Override Radix scroll locking for sticky headers — avoid layout jump */
   body[data-scroll-locked] {
     overflow: unset !important;
+    margin-right: 0 !important;
+    padding-right: 0 !important;
   }
 
   /* Cursor pointer for buttons */

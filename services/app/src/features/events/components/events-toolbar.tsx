@@ -10,6 +10,7 @@ import {
   formatEventDate,
   formatMonthTitle,
   formatWeekRangeLabel,
+  startOfLocalDay,
   startOfWeekSaturday,
   toDateKey,
 } from '../utils/datetime'
@@ -44,6 +45,25 @@ export function EventsToolbar() {
     setSelectedDate,
   } = useEventsUi()
 
+  const today = startOfLocalDay(new Date())
+  const todayKey = toDateKey(today)
+
+  const isViewingToday = (() => {
+    if (surface === 'list' || calendarMode === 'month') {
+      return (
+        anchorDate.getFullYear() === today.getFullYear() &&
+        anchorDate.getMonth() === today.getMonth()
+      )
+    }
+    if (calendarMode === 'week') {
+      return (
+        toDateKey(startOfWeekSaturday(anchorDate)) ===
+        toDateKey(startOfWeekSaturday(today))
+      )
+    }
+    return selectedDate === todayKey
+  })()
+
   const shift = (direction: -1 | 1) => {
     if (surface === 'list' || calendarMode === 'month') {
       const next = addMonths(anchorDate, direction)
@@ -63,10 +83,16 @@ export function EventsToolbar() {
   }
 
   const goToday = () => {
-    const today = new Date()
     setAnchorDate(today)
-    setSelectedDate(toDateKey(today))
+    setSelectedDate(todayKey)
   }
+
+  const navLabel = getNavLabel(
+    surface,
+    calendarMode,
+    anchorDate,
+    selectedDate
+  )
 
   return (
     <div className='flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
@@ -75,7 +101,10 @@ export function EventsToolbar() {
           value={surface}
           onValueChange={(value) => setSurface(value as EventsSurface)}
         >
-          <TabsList className='grid h-9 w-full grid-cols-2 sm:w-fit' aria-label='نمای رویدادها'>
+          <TabsList
+            className='grid h-9 w-full grid-cols-2 sm:w-fit'
+            aria-label='نمای رویدادها'
+          >
             <TabsTrigger value='calendar' className='gap-1.5 px-3'>
               <CalendarDays className='size-3.5' />
               تقویم
@@ -94,7 +123,10 @@ export function EventsToolbar() {
               setCalendarMode(value as EventsCalendarMode)
             }
           >
-            <TabsList className='grid h-9 w-full grid-cols-3 sm:w-fit' aria-label='بازه تقویم'>
+            <TabsList
+              className='grid h-9 w-full grid-cols-3 sm:w-fit'
+              aria-label='بازه تقویم'
+            >
               <TabsTrigger value='day'>روزانه</TabsTrigger>
               <TabsTrigger value='week'>هفتگی</TabsTrigger>
               <TabsTrigger value='month'>ماهانه</TabsTrigger>
@@ -103,8 +135,8 @@ export function EventsToolbar() {
         )}
       </div>
 
-      <div className='flex min-w-0 items-center gap-2'>
-        <div className='flex min-w-0 flex-1 items-center gap-1'>
+      <div className='flex w-full items-center gap-2 lg:w-auto lg:justify-end'>
+        <div className='grid min-w-0 flex-1 grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-1 sm:flex-none sm:w-[22rem]'>
           <Button
             type='button'
             variant='outline'
@@ -115,8 +147,11 @@ export function EventsToolbar() {
           >
             <ChevronRight className='size-4' />
           </Button>
-          <p className='min-w-0 flex-1 truncate text-center text-sm font-medium tabular-nums'>
-            {getNavLabel(surface, calendarMode, anchorDate, selectedDate)}
+          <p
+            className='truncate text-center text-sm font-medium tabular-nums'
+            title={navLabel}
+          >
+            {navLabel}
           </p>
           <Button
             type='button'
@@ -129,7 +164,14 @@ export function EventsToolbar() {
             <ChevronLeft className='size-4' />
           </Button>
         </div>
-        <Button type='button' variant='secondary' size='sm' className='shrink-0' onClick={goToday}>
+        <Button
+          type='button'
+          variant={isViewingToday ? 'default' : 'secondary'}
+          size='sm'
+          className='h-9 w-16 shrink-0'
+          onClick={goToday}
+          aria-current={isViewingToday ? 'date' : undefined}
+        >
           امروز
         </Button>
       </div>

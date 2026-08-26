@@ -35,18 +35,31 @@ import {
   type Event,
 } from '../types'
 import { useEventsStore } from '../stores/events-store'
+import { formatEventDate, toDateKey } from '../utils/datetime'
 import type { EventCreateDefaults } from './events-provider'
 
 const NONE = '__none__'
 
+/** HH:mm یا HH:mm:ss از input type=time */
 const timeSchema = z
   .string()
   .min(1, 'ساعت الزامی است.')
-  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'ساعت را به‌صورت HH:mm وارد کنید.')
+  .refine(
+    (value) => /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value),
+    'ساعت را به‌صورت HH:mm وارد کنید.'
+  )
+
+function normalizeTime(value: string): string {
+  return value.slice(0, 5)
+}
 
 const formSchema = z
   .object({
-    title: z.string().trim().min(1, 'عنوان رویداد الزامی است.'),
+    title: z
+      .string()
+      .trim()
+      .min(1, 'عنوان رویداد الزامی است.')
+      .max(120, 'عنوان نباید بیشتر از ۱۲۰ کاراکتر باشد.'),
     type: z.enum(EVENT_TYPES, {
       required_error: 'نوع رویداد را انتخاب کنید.',
     }),
@@ -56,17 +69,25 @@ const formSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'تاریخ نامعتبر است.'),
     startTime: timeSchema,
     endTime: timeSchema,
-    location: z.string().optional(),
-    description: z.string().optional(),
+    location: z
+      .string()
+      .max(200, 'مکان نباید بیشتر از ۲۰۰ کاراکتر باشد.')
+      .optional(),
+    description: z
+      .string()
+      .max(2000, 'توضیحات نباید بیشتر از ۲۰۰۰ کاراکتر باشد.')
+      .optional(),
     clientId: z.string(),
     caseId: z.string(),
     status: z.enum(EVENT_STATUSES),
   })
   .superRefine((data, ctx) => {
-    if (data.endTime < data.startTime) {
+    const start = normalizeTime(data.startTime)
+    const end = normalizeTime(data.endTime)
+    if (end <= start) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'ساعت پایان نمی‌تواند قبل از ساعت شروع باشد.',
+        message: 'ساعت پایان باید بعد از ساعت شروع باشد.',
         path: ['endTime'],
       })
     }
@@ -103,7 +124,7 @@ function getDefaultValues(
   return {
     title: '',
     type: 'client_meeting',
-    date: createDefaults?.date ?? new Date().toISOString().slice(0, 10),
+    date: createDefaults?.date ?? toDateKey(new Date()),
     startTime: createDefaults?.startTime ?? '10:00',
     endTime: createDefaults?.endTime ?? '11:00',
     location: '',
@@ -198,9 +219,12 @@ export function EventsMutateDrawer({
       const payload = {
         title: values.title,
         type: values.type,
-        date: values.date,
-        startTime: values.startTime,
-        endTime: values.endTime,
+        date:
+          isDateLocked && createDefaults?.date
+            ? createDefaults.date
+            : values.date,
+        startTime: normalizeTime(values.startTime),
+        endTime: normalizeTime(values.endTime),
         location: values.location,
         description: values.description,
         clientId: values.clientId === NONE ? null : values.clientId,
@@ -228,6 +252,7 @@ export function EventsMutateDrawer({
   }
 
   const formId = isUpdate ? 'update-event-form' : 'create-event-form'
+  const isDateLocked = !isUpdate && Boolean(createDefaults?.lockDate)
 
   return (
     <Sheet
@@ -320,8 +345,29 @@ export function EventsMutateDrawer({
                   <FormItem>
                     <FormLabel>تاریخ *</FormLabel>
                     <FormControl>
-                      <Input type='date' dir='ltr' className='text-start' {...field} />
+                      <Input
+                        type='date'
+                        dir='ltr'
+                        className={
+                          isDateLocked
+                            ? 'pointer-events-none cursor-not-allowed bg-muted text-start opacity-90'
+                            : 'text-start'
+                        }
+                        readOnly={isDateLocked}
+                        tabIndex={isDateLocked ? -1 : undefined}
+                        aria-readonly={isDateLocked}
+                        {...field}
+                      />
                     </FormControl>
+                    {isDateLocked ? (
+                      <FormDescription>
+                        تاریخ این رویداد روی{' '}
+                        <span className='font-medium text-foreground'>
+                          {formatEventDate(field.value)}
+                        </span>{' '}
+                        قفل شده است چون از تقویم/روز مشخص ایجاد شده.
+                      </FormDescription>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}

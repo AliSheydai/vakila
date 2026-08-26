@@ -20,6 +20,8 @@ export type EventCreateDefaults = {
   endTime?: string
   caseId?: string | null
   clientId?: string | null
+  /** وقتی true، فیلد تاریخ در فرم ایجاد قفل است (مثلاً افزودن از روز تقویم) */
+  lockDate?: boolean
 }
 
 export type EventsUiFilters = {
@@ -121,14 +123,24 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
 
   const openCreate = useCallback(
     (defaults?: EventCreateDefaults) => {
-      setCurrentRow(null)
-      setCreateDefaults(
-        defaults ?? {
+      const nextDefaults =
+        defaults ??
+        ({
           date: selectedDate,
           startTime: '10:00',
           endTime: '11:00',
+        } satisfies EventCreateDefaults)
+
+      if (nextDefaults.date) {
+        const [year, month, day] = nextDefaults.date.split('-').map(Number)
+        if (year && month && day) {
+          setSelectedDate(nextDefaults.date)
+          setAnchorDate(new Date(year, month - 1, day))
         }
-      )
+      }
+
+      setCurrentRow(null)
+      setCreateDefaults(nextDefaults)
       setOpen('create')
     },
     [selectedDate, setOpen]

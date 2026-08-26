@@ -42,10 +42,10 @@ function validateTimeRange(
     return { ok: false, error: 'تاریخ یا ساعت نامعتبر است.' }
   }
 
-  if (end.getTime() < start.getTime()) {
+  if (end.getTime() <= start.getTime()) {
     return {
       ok: false,
-      error: 'ساعت پایان نمی‌تواند قبل از ساعت شروع باشد.',
+      error: 'ساعت پایان باید بعد از ساعت شروع باشد.',
     }
   }
 
