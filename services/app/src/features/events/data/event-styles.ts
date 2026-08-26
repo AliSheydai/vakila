@@ -1,10 +1,10 @@
 import type { EventType } from '../types'
 
-/** رنگ‌های محدود برای نوع رویداد — فقط تمایز ضروری */
+/** رنگ‌های محدود برای نوع رویداد — پالت ink/mist/brass */
 export const eventTypeStyles = new Map<EventType, string>([
   [
     'client_meeting',
-    'border-transparent bg-sky-100/70 text-sky-900 dark:bg-sky-900/40 dark:text-sky-100',
+    'border-transparent bg-[#1a4654]/12 text-[#0e2c38] dark:bg-[#143642]/45 dark:text-[#a8c0c6]',
   ],
   [
     'court_hearing',
@@ -20,7 +20,7 @@ export const eventTypeStyles = new Map<EventType, string>([
   ],
   [
     'reminder',
-    'border-transparent bg-neutral-200/70 text-neutral-800 dark:bg-neutral-800/60 dark:text-neutral-100',
+    'border-transparent bg-[#c9a25a]/18 text-[#102028] dark:bg-[#d4b06a]/25 dark:text-[#e8c87a]',
   ],
   [
     'other',
@@ -32,7 +32,7 @@ export const eventTypeStyles = new Map<EventType, string>([
 export const eventBlockStyles = new Map<EventType, string>([
   [
     'client_meeting',
-    'bg-sky-500/15 text-sky-950 ring-sky-500/20 dark:text-sky-50',
+    'bg-[#1a4654]/15 text-[#06141c] ring-[#1a4654]/25 dark:text-[#a8c0c6]',
   ],
   [
     'court_hearing',
@@ -48,7 +48,7 @@ export const eventBlockStyles = new Map<EventType, string>([
   ],
   [
     'reminder',
-    'bg-neutral-500/15 text-neutral-900 ring-neutral-500/20 dark:text-neutral-50',
+    'bg-[#c9a25a]/20 text-[#102028] ring-[#c9a25a]/30 dark:text-[#e8c87a]',
   ],
   [
     'other',

@@ -143,9 +143,9 @@ function MonthView({
                       'size-1.5 rounded-full',
                       event.type === 'legal_deadline' && 'bg-rose-500',
                       event.type === 'court_hearing' && 'bg-amber-500',
-                      event.type === 'client_meeting' && 'bg-sky-500',
+                      event.type === 'client_meeting' && 'bg-[#1a4654]',
                       event.type === 'online_meeting' && 'bg-teal-500',
-                      event.type === 'reminder' && 'bg-neutral-400',
+                      event.type === 'reminder' && 'bg-[#c9a25a]',
                       event.type === 'other' && 'bg-muted-foreground/50',
                       getTemporalStatus(event, now) === 'past' && 'opacity-40'
                     )}

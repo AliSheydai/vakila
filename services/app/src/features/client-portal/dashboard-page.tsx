@@ -71,7 +71,7 @@ export function ClientDashboardPage() {
       ) : (
         <div className='space-y-6 sm:space-y-8'>
           <section className='space-y-2'>
-            <h1 className='text-xl font-bold tracking-tight sm:text-2xl'>
+            <h1 className='font-display text-xl font-bold tracking-tight sm:text-2xl'>
               سلام، {profile?.name ?? 'موکل'} عزیز
             </h1>
             <p className='max-w-2xl text-sm text-muted-foreground sm:text-base'>

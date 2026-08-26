@@ -1,10 +1,10 @@
 import type { CaseStatus } from '../types'
 
-/** کلاس‌های Badge وضعیت پرونده */
+/** کلاس‌های Badge وضعیت پرونده — پالت ink/mist/brass */
 export const caseStatusStyles = new Map<CaseStatus, string>([
   [
     'new',
-    'bg-sky-100/40 text-sky-900 border-sky-200 dark:bg-sky-900/30 dark:text-sky-100 dark:border-sky-800',
+    'bg-[#1a4654]/10 text-[#0e2c38] border-[#1a4654]/25 dark:bg-[#143642]/40 dark:text-[#a8c0c6] dark:border-[#143642]',
   ],
   [
     'under_review',
@@ -16,7 +16,7 @@ export const caseStatusStyles = new Map<CaseStatus, string>([
   ],
   [
     'awaiting_action',
-    'bg-orange-100/40 text-orange-900 border-orange-200 dark:bg-orange-900/30 dark:text-orange-100 dark:border-orange-800',
+    'bg-[#c9a25a]/15 text-[#102028] border-[#c9a25a]/35 dark:bg-[#d4b06a]/20 dark:text-[#e8c87a] dark:border-[#d4b06a]/40',
   ],
   [
     'closed',
@@ -24,6 +24,6 @@ export const caseStatusStyles = new Map<CaseStatus, string>([
   ],
   [
     'archived',
-    'bg-violet-100/40 text-violet-900 border-violet-200 dark:bg-violet-900/30 dark:text-violet-100 dark:border-violet-800',
+    'bg-[#06141c]/08 text-[#06141c]/80 border-[#06141c]/15 dark:bg-[#e8efe8]/08 dark:text-[#a8c0c6] dark:border-[#e8efe8]/15',
   ],
 ])

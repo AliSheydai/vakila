@@ -119,7 +119,7 @@ export function ClientCaseDetailPage({ caseId }: ClientCaseDetailPageProps) {
 
         <div className='space-y-3'>
           <div className='flex flex-wrap items-center gap-2'>
-            <h1 className='text-xl font-bold tracking-tight sm:text-2xl'>
+            <h1 className='font-display text-xl font-bold tracking-tight sm:text-2xl'>
               {caseItem.title}
             </h1>
             <CaseStatusBadge status={caseItem.status} />

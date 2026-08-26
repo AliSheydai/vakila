@@ -16,7 +16,7 @@ export function Dashboard() {
       </Header>
 
       <Main fixed className='flex flex-1 items-center justify-center'>
-        <h1 className='text-2xl font-medium tracking-tight text-muted-foreground'>
+        <h1 className='font-display text-2xl font-medium tracking-tight text-muted-foreground'>
           خوش آمدید
         </h1>
       </Main>

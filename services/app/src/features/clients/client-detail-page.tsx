@@ -159,7 +159,7 @@ function ClientDetailContent({ clientId }: ClientDetailPageProps) {
         </Header>
         <Main className='flex flex-1 flex-col items-center justify-center gap-4 text-center'>
           <div>
-            <h2 className='text-xl font-semibold tracking-tight'>
+            <h2 className='font-display text-xl font-semibold tracking-tight'>
               موکل یافت نشد
             </h2>
             <p className='mt-2 text-sm text-muted-foreground'>

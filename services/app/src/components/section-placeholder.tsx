@@ -53,7 +53,7 @@ export function SectionPlaceholder({
                 <span className='flex size-9 items-center justify-center rounded-xl border border-sidebar-border bg-sidebar text-sidebar-primary shadow-sm'>
                   <Icon className='size-4' strokeWidth={2} />
                 </span>
-                <h2 className='text-2xl font-bold tracking-tight text-sidebar-foreground'>
+                <h2 className='font-display text-2xl font-bold tracking-tight text-sidebar-foreground'>
                   {title}
                 </h2>
               </div>

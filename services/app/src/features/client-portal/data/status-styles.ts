@@ -27,7 +27,7 @@ export const caseStatusStyles = new Map<ClientCaseStatus, string>([
 export const sessionStatusStyles = new Map<SessionStatus, string>([
   [
     'scheduled',
-    'bg-sky-100/40 text-sky-900 border-sky-200 dark:bg-sky-900/30 dark:text-sky-100 dark:border-sky-800',
+    'bg-[#1a4654]/10 text-[#0e2c38] border-[#1a4654]/25 dark:bg-[#143642]/40 dark:text-[#a8c0c6] dark:border-[#143642]',
   ],
   [
     'confirmed',
@@ -66,7 +66,7 @@ export const paymentStatusStyles = new Map<PaymentStatus, string>([
   ],
   [
     'refunded',
-    'bg-violet-100/40 text-violet-900 border-violet-200 dark:bg-violet-900/30 dark:text-violet-100 dark:border-violet-800',
+    'bg-[#c9a25a]/15 text-[#102028] border-[#c9a25a]/35 dark:bg-[#d4b06a]/20 dark:text-[#e8c87a] dark:border-[#d4b06a]/40',
   ],
 ])
 

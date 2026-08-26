@@ -52,7 +52,7 @@ export function TeamSwitcher({ teams, collapsed }: TeamSwitcherProps) {
               </div>
               {!collapsed && (
                 <>
-                  <span className='truncate whitespace-nowrap text-sm font-bold tracking-tight text-foreground'>
+                  <span className='truncate whitespace-nowrap font-display text-sm font-bold tracking-tight text-foreground'>
                     وکلا
                   </span>
                   <ChevronDown className='ms-auto size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/menu-item:rotate-180' />

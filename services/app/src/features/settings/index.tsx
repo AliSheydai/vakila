@@ -21,7 +21,7 @@ export function Settings() {
       <Main>
         <div className='mx-auto w-full max-w-2xl space-y-8'>
           <div className='space-y-1'>
-            <h1 className='text-2xl font-bold tracking-tight text-sidebar-foreground md:text-3xl'>
+            <h1 className='font-display text-2xl font-bold tracking-tight text-sidebar-foreground md:text-3xl'>
               حساب کاربری
             </h1>
             <p className='text-sm text-muted-foreground md:text-base'>
