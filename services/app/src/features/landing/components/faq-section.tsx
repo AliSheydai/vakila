@@ -20,7 +20,7 @@ function FaqRow({ item }: { item: FaqItem }) {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className='border-b border-[rgba(16,32,40,0.1)]'>
+      <div className='border-b border-[color:var(--lp-line-soft)]'>
         <CollapsibleTrigger asChild>
           <button
             type='button'
@@ -66,7 +66,7 @@ export function FaqSection({ faq }: FaqSectionProps) {
           </p>
         </div>
 
-        <div className='lp-reveal mx-auto max-w-3xl border-t border-[rgba(16,32,40,0.1)]'>
+        <div className='lp-reveal mx-auto max-w-3xl border-t border-[color:var(--lp-line-soft)]'>
           {faq.map((item) => (
             <FaqRow key={item.id} item={item} />
           ))}

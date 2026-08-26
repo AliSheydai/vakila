@@ -28,7 +28,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
             </p>
           </div>
 
-          <div className='lp-reveal border-t border-[rgba(201,162,90,0.35)] pt-8'>
+          <div className='lp-reveal border-t border-[color:var(--lp-line)] pt-8'>
             {pricing.consultationFeeLabel ? (
               <p className='lp-display text-2xl font-bold text-[var(--lp-ink-text)]'>
                 هزینه مشاوره: {pricing.consultationFeeLabel}

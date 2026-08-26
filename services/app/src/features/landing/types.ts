@@ -73,6 +73,26 @@ export type AvailabilityInfo = {
   workingHours: string
 }
 
+export type ContactMethod = {
+  id: string
+  label: string
+  value: string
+  href: string
+  hint?: string
+  socialLinks?: {
+    id: string
+    label: string
+    href: string
+    path: string
+  }[]
+}
+
+export type ContactInfo = {
+  title: string
+  subtitle: string
+  methods: ContactMethod[]
+}
+
 export type FaqItem = {
   id: string
   question: string
@@ -102,5 +122,6 @@ export type LawyerProfile = {
   pricing: PricingInfo
   locations: LocationInfo
   availability: AvailabilityInfo
+  contact: ContactInfo
   faq: FaqItem[]
 }

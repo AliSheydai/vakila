@@ -18,8 +18,7 @@ export function CaseStudies({ caseStudies }: CaseStudiesProps) {
       ref={rootRef}
       className='lp-section py-16 sm:py-20'
       style={{
-        background:
-          'linear-gradient(180deg, rgba(6,20,28,0.04), transparent)',
+        background: 'linear-gradient(180deg, var(--lp-surface-tint), transparent)',
       }}
     >
       <div className='lp-container'>
@@ -34,7 +33,7 @@ export function CaseStudies({ caseStudies }: CaseStudiesProps) {
         </div>
 
         {caseStudies.length === 0 ? (
-          <div className='lp-reveal flex flex-col items-center justify-center border border-dashed border-[rgba(201,162,90,0.35)] px-6 py-16 text-center'>
+          <div className='lp-reveal flex flex-col items-center justify-center border border-dashed border-[color:var(--lp-line)] px-6 py-16 text-center'>
             <FolderOpen
               className='size-6 text-[var(--lp-brass)]'
               strokeWidth={1.5}
@@ -52,7 +51,7 @@ export function CaseStudies({ caseStudies }: CaseStudiesProps) {
             {caseStudies.map((item) => (
               <article
                 key={item.id}
-                className='lp-reveal border-t border-[rgba(201,162,90,0.35)] pt-5'
+                className='lp-reveal border-t border-[color:var(--lp-line)] pt-5'
               >
                 <p className='text-xs tracking-wide text-[var(--lp-brass)]'>
                   {item.domain}

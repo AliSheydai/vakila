@@ -43,7 +43,10 @@ export function LawyerLandingPage() {
           <HowItWorks steps={profile.processSteps} />
           <PricingSection pricing={profile.pricing} />
           <CoverageSection locations={profile.locations} />
-          <ContactCta availability={profile.availability} />
+          <ContactCta
+            availability={profile.availability}
+            contact={profile.contact}
+          />
           <FaqSection faq={profile.faq} />
           <FinalCta />
         </main>

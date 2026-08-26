@@ -24,7 +24,7 @@ export function CoverageSection({ locations }: CoverageSectionProps) {
           </p>
         </div>
 
-        <div className='grid gap-8 border-t border-[rgba(16,32,40,0.1)] pt-8 lg:grid-cols-3'>
+        <div className='grid gap-8 border-t border-[color:var(--lp-line-soft)] pt-8 lg:grid-cols-3'>
           <div className='lp-reveal'>
             <MapPin className='size-5 text-[var(--lp-brass)]' strokeWidth={1.5} />
             <h3 className='mt-4 text-sm font-semibold'>شهرهای تحت پوشش</h3>
@@ -32,7 +32,7 @@ export function CoverageSection({ locations }: CoverageSectionProps) {
               {locations.cities.map((city) => (
                 <span
                   key={city}
-                  className='border border-[rgba(201,162,90,0.35)] px-3 py-1 text-sm text-[var(--lp-ink-text)]'
+                  className='border border-[color:var(--lp-line)] px-3 py-1 text-sm text-[var(--lp-ink-text)]'
                 >
                   {city}
                 </span>

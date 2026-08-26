@@ -35,14 +35,18 @@ export function Specializations({ specialties }: SpecializationsProps) {
           </p>
         </div>
 
-        <ul className='divide-y divide-[rgba(16,32,40,0.08)] border-y border-[rgba(16,32,40,0.08)]'>
+        <ul className='divide-y divide-[color:var(--lp-line-soft)] border-y border-[color:var(--lp-line-soft)]'>
           {visible.map((specialty, index) => (
             <li
               key={specialty.id}
-              className='lp-reveal group grid gap-2 py-5 transition-colors sm:grid-cols-[7rem_1fr_auto] sm:items-baseline sm:gap-8'
+              className='group grid gap-2 py-5 transition-colors sm:grid-cols-[7rem_1fr_auto] sm:items-baseline sm:gap-8'
             >
               <span className='lp-display text-sm text-[var(--lp-brass)]'>
-                {(index + 1).toLocaleString('fa-IR').padStart(2, '۰')}
+                {String(index + 1)
+                  .padStart(2, '0')
+                  .replace(/\d/g, (d) =>
+                    '۰۱۲۳۴۵۶۷۸۹'[Number(d)]
+                  )}
               </span>
               <div>
                 <h3 className='text-base font-semibold text-[var(--lp-ink-text)] transition-colors group-hover:text-[var(--lp-brass)] sm:text-lg'>

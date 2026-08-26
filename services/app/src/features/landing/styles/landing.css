@@ -13,6 +13,12 @@
   --lp-muted-on-dark: #a8c0c6;
   --lp-line: rgba(201, 162, 90, 0.24);
   --lp-line-soft: rgba(16, 32, 40, 0.1);
+  --lp-surface-tint: rgba(6, 20, 28, 0.04);
+  --lp-surface-tint-strong: rgba(6, 20, 28, 0.07);
+  --lp-hero-fade: #f3efe6;
+  --lp-on-ink: #f3efe6;
+  --lp-header-bg: rgba(6, 20, 28, 0.78);
+  --lp-btn-ink-hover: rgba(16, 32, 40, 0.04);
   --font-display: var(--font-amiri), 'Amiri', 'Vazirmatn', serif;
 
   color: var(--lp-ink-text);
@@ -20,6 +26,32 @@
     radial-gradient(120% 80% at 100% 0%, rgba(201, 162, 90, 0.06), transparent 55%),
     linear-gradient(180deg, var(--lp-paper) 0%, var(--lp-paper-soft) 100%);
   font-family: var(--font-vazirmatn), 'Vazirmatn', system-ui, sans-serif;
+  transition:
+    background 0.35s ease,
+    color 0.35s ease;
+}
+
+.dark .lawyer-landing {
+  --lp-ink: #02080c;
+  --lp-ink-deep: #010507;
+  --lp-mist: #0a1f28;
+  --lp-fog: #143642;
+  --lp-brass: #d4b06a;
+  --lp-brass-bright: #edd08a;
+  --lp-brass-dim: rgba(212, 176, 106, 0.4);
+  --lp-paper: #07141b;
+  --lp-paper-soft: #050f14;
+  --lp-ink-text: #e8efe8;
+  --lp-muted: #8aa0a6;
+  --lp-muted-on-dark: #a8c0c6;
+  --lp-line: rgba(212, 176, 106, 0.28);
+  --lp-line-soft: rgba(232, 239, 232, 0.1);
+  --lp-surface-tint: rgba(255, 255, 255, 0.03);
+  --lp-surface-tint-strong: rgba(255, 255, 255, 0.055);
+  --lp-hero-fade: #07141b;
+  --lp-on-ink: #e8efe8;
+  --lp-header-bg: rgba(2, 8, 12, 0.82);
+  --lp-btn-ink-hover: rgba(255, 255, 255, 0.05);
 }
 
 .lawyer-landing .lp-display {
@@ -91,7 +123,7 @@
   gap: 0.5rem;
   min-height: 2.85rem;
   padding-inline: 1.35rem;
-  border-radius: 999px;
+  border-radius: 0.2rem;
   background: linear-gradient(135deg, var(--lp-brass-bright), var(--lp-brass));
   color: var(--lp-ink-deep);
   font-weight: 600;
@@ -116,9 +148,9 @@
   gap: 0.5rem;
   min-height: 2.85rem;
   padding-inline: 1.35rem;
-  border-radius: 999px;
+  border-radius: 0.2rem;
   border: 1px solid var(--lp-line);
-  color: var(--lp-paper);
+  color: var(--lp-on-ink);
   font-weight: 500;
   font-size: 0.925rem;
   background: rgba(243, 239, 230, 0.04);
@@ -135,6 +167,55 @@
   transform: translateY(-2px);
 }
 
+.lawyer-landing .lp-contact-card {
+  display: block;
+  border: 1px solid rgba(168, 192, 198, 0.2);
+  background: rgba(3, 16, 21, 0.52);
+  border-radius: 0.2rem;
+  padding: 0.95rem 0.9rem;
+  backdrop-filter: blur(7px);
+  transition:
+    border-color 0.3s ease,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.3s ease;
+}
+
+.lawyer-landing .lp-contact-card:hover {
+  border-color: rgba(201, 162, 90, 0.42);
+  background: rgba(6, 20, 28, 0.72);
+  transform: translateY(-2px);
+}
+
+.lawyer-landing .lp-social-chip {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(168, 192, 198, 0.24);
+  background: rgba(243, 239, 230, 0.04);
+  color: #f3efe6;
+  border-radius: 999px;
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease,
+    color 0.3s ease;
+}
+
+.lawyer-landing .lp-social-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 162, 90, 0.5);
+  background: rgba(201, 162, 90, 0.12);
+  color: var(--lp-brass-bright);
+}
+
+.lawyer-landing .lp-social-chip svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: currentColor;
+}
+
 .lawyer-landing .lp-btn-ink {
   display: inline-flex;
   align-items: center;
@@ -142,7 +223,7 @@
   gap: 0.5rem;
   min-height: 2.85rem;
   padding-inline: 1.35rem;
-  border-radius: 999px;
+  border-radius: 0.2rem;
   border: 1px solid var(--lp-line-soft);
   color: var(--lp-ink-text);
   font-weight: 500;
@@ -155,7 +236,7 @@
 }
 
 .lawyer-landing .lp-btn-ink:hover {
-  background: rgba(16, 32, 40, 0.04);
+  background: var(--lp-btn-ink-hover);
   border-color: rgba(201, 162, 90, 0.45);
   transform: translateY(-1px);
 }

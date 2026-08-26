@@ -6,7 +6,7 @@ import { brandName } from '@/features/landing/data/lawyer-profile'
 
 export function LandingFooter() {
   return (
-    <footer className='border-t border-[rgba(16,32,40,0.1)] pb-24 md:pb-10'>
+    <footer className='border-t border-[color:var(--lp-line-soft)] pb-24 md:pb-10'>
       <div className='lp-container flex flex-col gap-4 py-10 sm:flex-row sm:items-center sm:justify-between'>
         <div className='flex items-center gap-2 text-sm text-[var(--lp-muted)]'>
           <Logo className='size-4 text-[var(--lp-brass)]' />

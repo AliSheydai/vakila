@@ -22,7 +22,7 @@ export function StickyMobileCta() {
   return (
     <div
       className={cn(
-        'fixed inset-x-0 bottom-0 z-40 border-t border-[rgba(201,162,90,0.2)] bg-[#06141c]/92 p-3 backdrop-blur-xl transition-transform md:hidden',
+        'fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--lp-line)] bg-[var(--lp-header-bg)] p-3 backdrop-blur-xl transition-transform md:hidden',
         visible ? 'translate-y-0' : 'translate-y-full'
       )}
     >

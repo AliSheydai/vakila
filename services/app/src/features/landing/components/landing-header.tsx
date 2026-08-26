@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { href: '#specialties', label: 'تخصص‌ها' },
   { href: '#services', label: 'خدمات' },
   { href: '#process', label: 'نحوه همکاری' },
+  { href: '#contact', label: 'راه‌های تماس' },
   { href: '#faq', label: 'سؤالات متداول' },
 ] as const
 
@@ -43,9 +44,9 @@ export function LandingHeader() {
     <header className='fixed inset-x-0 top-0 z-50'>
       <div
         className={cn(
-          'mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 transition-all duration-500 sm:px-6',
+          'mx-auto flex h-16 max-w-6xl items-center gap-3 border border-transparent bg-transparent px-4 shadow-none transition-[margin,height,padding,box-shadow] duration-300 sm:px-6',
           scrolled &&
-            'mt-2 h-14 rounded-full border border-[rgba(201,162,90,0.22)] bg-[#06141c]/78 px-4 shadow-[0_12px_40px_rgba(3,16,21,0.35)] backdrop-blur-xl sm:px-5'
+            'mt-2 h-14 rounded-md border border-[color:var(--lp-line)] bg-[var(--lp-ink)] px-4 shadow-[0_12px_40px_rgba(3,16,21,0.35)] sm:px-5'
         )}
       >
         <Link
@@ -71,7 +72,7 @@ export function LandingHeader() {
         </nav>
 
         <div className='ms-auto flex items-center gap-2'>
-          <div className='hidden sm:block [&_button]:text-[#a8c0c6]'>
+          <div className='[&_button]:text-[#a8c0c6]'>
             <ThemeSwitch />
           </div>
           <Button
@@ -95,7 +96,7 @@ export function LandingHeader() {
               <Button
                 variant='outline'
                 size='icon'
-                className='border-[rgba(201,162,90,0.28)] bg-transparent text-[#f3efe6] hover:bg-white/5 md:hidden'
+                className='border-[color:var(--lp-line)] bg-transparent text-[#f3efe6] hover:bg-white/5 md:hidden'
                 aria-label='منو'
               >
                 <Menu className='size-4' />
@@ -103,11 +104,11 @@ export function LandingHeader() {
             </SheetTrigger>
             <SheetContent
               side='left'
-              className='w-[min(100%,20rem)] border-[#1a4654] bg-[#06141c] text-[#f3efe6]'
+              className='w-[min(100%,20rem)] border-[color:var(--lp-fog)] bg-[var(--lp-ink)] text-[var(--lp-on-ink)]'
             >
               <SheetHeader>
-                <SheetTitle className='flex items-center gap-2 text-[#f3efe6]'>
-                  <Logo className='size-5 text-[#c9a25a]' />
+                <SheetTitle className='flex items-center gap-2 text-[var(--lp-on-ink)]'>
+                  <Logo className='size-5 text-[var(--lp-brass)]' />
                   <span className='lp-display'>{brandName}</span>
                 </SheetTitle>
               </SheetHeader>
@@ -116,7 +117,7 @@ export function LandingHeader() {
                   <a
                     key={link.href}
                     href={link.href}
-                    className='rounded-md px-3 py-2.5 text-sm text-[#a8c0c6] hover:bg-white/5 hover:text-[#e8c87a]'
+                    className='rounded-md px-3 py-2.5 text-sm text-[var(--lp-muted-on-dark)] hover:bg-white/5 hover:text-[var(--lp-brass-bright)]'
                     onClick={() => setSheetOpen(false)}
                   >
                     {link.label}
@@ -126,7 +127,7 @@ export function LandingHeader() {
               <div className='mt-6 flex flex-col gap-2 px-4'>
                 <Button
                   variant='outline'
-                  className='border-[rgba(201,162,90,0.3)] bg-transparent text-[#f3efe6]'
+                  className='border-[color:var(--lp-line)] bg-transparent text-[var(--lp-on-ink)]'
                   asChild
                 >
                   <Link href='/login' onClick={() => setSheetOpen(false)}>

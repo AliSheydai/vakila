@@ -4,6 +4,7 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useLandingReveal } from '../hooks/use-landing-motion'
 import type { LawyerStatistic } from '../types'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -24,6 +25,7 @@ export function TrustStats({
   licenseLabel,
 }: TrustStatsProps) {
   const rootRef = useRef<HTMLElement>(null)
+  useLandingReveal(rootRef)
 
   useGSAP(
     () => {
@@ -47,7 +49,7 @@ export function TrustStats({
   return (
     <section ref={rootRef} className='lp-section relative -mt-6 pb-4'>
       <div className='lp-container'>
-        <div className='lp-reveal grid gap-8 border-b border-[rgba(16,32,40,0.08)] pb-10 lg:grid-cols-[1.1fr_1fr] lg:items-end'>
+        <div className='lp-reveal grid gap-8 border-b border-[color:var(--lp-line-soft)] pb-10 lg:grid-cols-[1.1fr_1fr] lg:items-end'>
           <div>
             <p className='lp-kicker'>وکیل همراه شما</p>
             <h2 className='lp-title mt-3 text-3xl sm:text-4xl'>{lawyerName}</h2>

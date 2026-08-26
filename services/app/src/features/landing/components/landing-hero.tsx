@@ -105,8 +105,7 @@ export function LandingHero({ profile }: LandingHeroProps) {
         aria-hidden
         className='pointer-events-none absolute inset-x-0 bottom-0 h-24'
         style={{
-          background:
-            'linear-gradient(180deg, transparent, #f3efe6)',
+          background: 'linear-gradient(180deg, transparent, var(--lp-hero-fade))',
         }}
       />
     </section>

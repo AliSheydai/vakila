@@ -45,7 +45,7 @@ export function ServicesSection({ services }: ServicesSectionProps) {
       className='lp-section scroll-mt-24 py-16 sm:py-20'
       style={{
         background:
-          'linear-gradient(180deg, rgba(6,20,28,0.03), rgba(6,20,28,0.07))',
+          'linear-gradient(180deg, var(--lp-surface-tint), var(--lp-surface-tint-strong))',
       }}
     >
       <div className='lp-container'>
@@ -63,7 +63,7 @@ export function ServicesSection({ services }: ServicesSectionProps) {
             return (
               <article
                 key={service.id}
-                className='lp-reveal border-t border-[rgba(16,32,40,0.1)] py-6'
+                className='lp-reveal border-t border-[color:var(--lp-line-soft)] py-6'
               >
                 <div className='mb-3 flex size-9 items-center justify-center text-[var(--lp-brass)]'>
                   <Icon className='size-5' strokeWidth={1.5} />

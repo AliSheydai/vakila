@@ -73,7 +73,7 @@ export function HowItWorks({ steps }: HowItWorksProps) {
           <ol className='grid gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-5'>
             {steps.map((step) => (
               <li key={step.id} className='lp-step relative'>
-                <span className='lp-display relative z-10 inline-flex size-10 items-center justify-center rounded-full border border-[rgba(201,162,90,0.45)] bg-[var(--lp-paper)] text-lg font-bold text-[var(--lp-brass)]'>
+                <span className='lp-display relative z-10 inline-flex size-10 items-center justify-center rounded-full border border-[color:var(--lp-line)] bg-[var(--lp-paper)] text-lg font-bold text-[var(--lp-brass)]'>
                   {step.step.toLocaleString('fa-IR')}
                 </span>
                 <h3 className='mt-4 text-sm font-semibold leading-snug text-[var(--lp-ink-text)]'>
