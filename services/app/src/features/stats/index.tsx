@@ -8,8 +8,12 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { useCasesStore } from '@/features/cases/stores/cases-store'
 import { useEventsStore } from '@/features/events/stores/events-store'
 import { StatsChartsSection } from './components/stats-charts-section'
+import { StatsComparisonSummary } from './components/stats-comparison-summary'
 import { StatsDateRange } from './components/stats-date-range'
+import { StatsDetailsSection } from './components/stats-details-section'
 import { StatsEmptyState } from './components/stats-empty-state'
+import { StatsErrorState } from './components/stats-error-state'
+import { StatsInsightsSection } from './components/stats-insights-section'
 import { StatsKpiSection } from './components/stats-kpi-section'
 import { StatsLoadingState } from './components/stats-loading-state'
 import { useStatistics } from './hooks/use-statistics'
@@ -38,13 +42,14 @@ export function StatsPage() {
   const effectivePreset =
     preset === 'custom' && !customRange ? 'this_month' : preset
 
-  const { hydrated, range, statistics } = useStatistics({
+  const { hydrated, range, statistics, retry } = useStatistics({
     preset: effectivePreset,
     customRange: preset === 'custom' ? customRange : undefined,
   })
 
   const casesError = useCasesStore((state) => state.error)
   const eventsError = useEventsStore((state) => state.error)
+  const cases = useCasesStore((state) => state.cases)
   const error = casesError ?? eventsError
 
   const handlePresetChange = (next: StatisticsPreset) => {
@@ -56,6 +61,9 @@ export function StatsPage() {
       }
     })
   }
+
+  const showContent =
+    hydrated && !error && statistics.hasAnyData && !(preset === 'custom' && !customRange)
 
   return (
     <>
@@ -74,8 +82,8 @@ export function StatsPage() {
               نمای تحلیلی عملکرد کاری شما در بازه زمانی انتخاب‌شده.
             </p>
           </div>
-          {hydrated && !error && statistics.hasAnyData ? (
-            <p className='text-xs text-muted-foreground sm:text-sm'>
+          {showContent ? (
+            <p className='text-xs text-muted-foreground sm:text-sm' aria-live='polite'>
               {formatStatRangeLabel(range.from, range.to)}
             </p>
           ) : null}
@@ -84,9 +92,7 @@ export function StatsPage() {
         {!hydrated ? (
           <StatsLoadingState />
         ) : error ? (
-          <div className='rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-6 text-sm text-destructive'>
-            {error}
-          </div>
+          <StatsErrorState message={error} onRetry={retry} />
         ) : !statistics.hasAnyData ? (
           <StatsEmptyState />
         ) : (
@@ -107,14 +113,27 @@ export function StatsPage() {
             />
 
             {preset === 'custom' && !customRange ? (
-              <div className='rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground'>
+              <div
+                role='status'
+                className='rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground'
+              >
                 برای محاسبه آمار، هر دو تاریخ «از» و «تا» را انتخاب کنید.
               </div>
             ) : (
-              <>
+              <div className='space-y-4 sm:space-y-6' aria-live='polite'>
                 <StatsKpiSection kpis={statistics.kpis} />
+                <StatsComparisonSummary
+                  previousRange={statistics.previousRange}
+                  kpis={statistics.kpis}
+                />
+                <StatsInsightsSection insights={statistics.insights} />
                 <StatsChartsSection statistics={statistics} />
-              </>
+                <StatsDetailsSection
+                  timeline={statistics.timeline}
+                  range={statistics.range}
+                  cases={cases}
+                />
+              </div>
             )}
           </>
         )}

@@ -14,7 +14,7 @@ export function StatsChartCard({
   children,
 }: StatsChartCardProps) {
   return (
-    <section className='rounded-xl border bg-background/60 p-4 sm:p-5'>
+    <section className='min-w-0 rounded-xl border bg-background/60 p-4 sm:p-5'>
       <div className='mb-4 space-y-1'>
         <h3 className='text-sm font-semibold tracking-tight sm:text-base'>
           {title}
@@ -36,8 +36,33 @@ export function StatsChartEmpty({
   message?: string
 }) {
   return (
-    <div className='flex h-48 items-center justify-center rounded-lg border border-dashed px-4 text-center text-sm text-muted-foreground'>
+    <div
+      role='status'
+      className='flex h-48 items-center justify-center rounded-lg border border-dashed px-4 text-center text-sm text-muted-foreground'
+    >
       {message}
+    </div>
+  )
+}
+
+/** ظرف نمودار: جهت LTR برای خوانایی محور عددی در صفحه RTL */
+export function StatsChartFrame({
+  children,
+  ariaLabel,
+  className = 'h-64',
+}: {
+  children: ReactNode
+  ariaLabel: string
+  className?: string
+}) {
+  return (
+    <div
+      dir='ltr'
+      role='img'
+      aria-label={ariaLabel}
+      className={`w-full min-w-0 overflow-hidden ${className}`}
+    >
+      {children}
     </div>
   )
 }

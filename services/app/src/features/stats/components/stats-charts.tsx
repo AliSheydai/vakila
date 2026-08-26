@@ -31,7 +31,7 @@ import type {
   StatisticsTimePoint,
 } from '../types'
 import { formatStatMoney, formatStatNumber } from '../utils/format'
-import { StatsChartCard, StatsChartEmpty } from './stats-chart-card'
+import { StatsChartCard, StatsChartEmpty, StatsChartFrame } from './stats-chart-card'
 
 const CHART_COLORS = [
   'var(--chart-1)',
@@ -66,7 +66,10 @@ function PersianTooltip({
   if (!active || !payload?.length) return null
 
   return (
-    <div className='rounded-lg border bg-background px-3 py-2 text-xs shadow-sm'>
+    <div
+      dir='rtl'
+      className='rounded-lg border bg-background px-3 py-2 text-xs shadow-sm'
+    >
       {label != null ? (
         <p className='mb-1 font-medium text-foreground'>{String(label)}</p>
       ) : null}
@@ -74,10 +77,14 @@ function PersianTooltip({
         const raw = item.value
         const value = typeof raw === 'number' ? raw : Number(raw ?? 0)
         return (
-          <p key={`${String(item.dataKey ?? item.name)}-${index}`} className='text-muted-foreground'>
+          <p
+            key={`${String(item.dataKey ?? item.name)}-${index}`}
+            className='text-muted-foreground'
+          >
             <span
               className='ms-1 inline-block size-2 rounded-full'
               style={{ background: item.color }}
+              aria-hidden
             />
             {metricLabel ?? item.name ?? 'مقدار'}:{' '}
             <span className='font-medium tabular-nums text-foreground'>
@@ -111,15 +118,15 @@ export function StatsRevenueChart({ timeline }: { timeline: StatisticsTimePoint[
       {!hasSeriesData(timeline, 'revenue') ? (
         <StatsChartEmpty />
       ) : (
-        <div className='h-64 w-full' role='img' aria-label='نمودار روند درآمد'>
+        <StatsChartFrame ariaLabel='نمودار روند درآمد'>
           <ResponsiveContainer width='100%' height='100%'>
-            <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <LineChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
               <CartesianGrid strokeDasharray='3 3' className='stroke-border' />
               <XAxis
                 dataKey='label'
                 tickLine={false}
                 axisLine={false}
-                minTickGap={24}
+                minTickGap={28}
                 tick={{ fontSize: 11 }}
               />
               <YAxis
@@ -148,7 +155,7 @@ export function StatsRevenueChart({ timeline }: { timeline: StatisticsTimePoint[
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </StatsChartFrame>
       )}
     </StatsChartCard>
   )
@@ -168,15 +175,15 @@ export function StatsCasesChart({ timeline }: { timeline: StatisticsTimePoint[] 
       {!hasSeriesData(timeline, 'createdCases') ? (
         <StatsChartEmpty />
       ) : (
-        <div className='h-64 w-full' role='img' aria-label='نمودار روند ایجاد پرونده'>
+        <StatsChartFrame ariaLabel='نمودار روند ایجاد پرونده'>
           <ResponsiveContainer width='100%' height='100%'>
-            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <BarChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
               <CartesianGrid strokeDasharray='3 3' className='stroke-border' />
               <XAxis
                 dataKey='label'
                 tickLine={false}
                 axisLine={false}
-                minTickGap={24}
+                minTickGap={28}
                 tick={{ fontSize: 11 }}
               />
               <YAxis
@@ -191,7 +198,7 @@ export function StatsCasesChart({ timeline }: { timeline: StatisticsTimePoint[] 
               <Bar dataKey='value' name='پرونده جدید' fill='var(--chart-2)' radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </StatsChartFrame>
       )}
     </StatsChartCard>
   )
@@ -211,15 +218,15 @@ export function StatsClientsChart({ timeline }: { timeline: StatisticsTimePoint[
       {!hasSeriesData(timeline, 'newClients') ? (
         <StatsChartEmpty />
       ) : (
-        <div className='h-64 w-full' role='img' aria-label='نمودار روند موکلین جدید'>
+        <StatsChartFrame ariaLabel='نمودار روند موکلین جدید'>
           <ResponsiveContainer width='100%' height='100%'>
-            <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <LineChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
               <CartesianGrid strokeDasharray='3 3' className='stroke-border' />
               <XAxis
                 dataKey='label'
                 tickLine={false}
                 axisLine={false}
-                minTickGap={24}
+                minTickGap={28}
                 tick={{ fontSize: 11 }}
               />
               <YAxis
@@ -242,7 +249,7 @@ export function StatsClientsChart({ timeline }: { timeline: StatisticsTimePoint[
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </StatsChartFrame>
       )}
     </StatsChartCard>
   )
@@ -262,15 +269,15 @@ export function StatsEventsChart({ timeline }: { timeline: StatisticsTimePoint[]
       {!hasSeriesData(timeline, 'events') ? (
         <StatsChartEmpty />
       ) : (
-        <div className='h-64 w-full' role='img' aria-label='نمودار روند رویدادها'>
+        <StatsChartFrame ariaLabel='نمودار روند رویدادها'>
           <ResponsiveContainer width='100%' height='100%'>
-            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <BarChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
               <CartesianGrid strokeDasharray='3 3' className='stroke-border' />
               <XAxis
                 dataKey='label'
                 tickLine={false}
                 axisLine={false}
-                minTickGap={24}
+                minTickGap={28}
                 tick={{ fontSize: 11 }}
               />
               <YAxis
@@ -285,7 +292,7 @@ export function StatsEventsChart({ timeline }: { timeline: StatisticsTimePoint[]
               <Bar dataKey='value' name='رویداد' fill='var(--chart-4)' radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </StatsChartFrame>
       )}
     </StatsChartCard>
   )
@@ -303,8 +310,8 @@ function DonutChartView({
   const total = data.reduce((sum, item) => sum + item.value, 0)
 
   return (
-    <div className='grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center'>
-      <div className='h-56 w-full' role='img' aria-label={ariaLabel}>
+    <div className='grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,14rem)] sm:items-center'>
+      <StatsChartFrame ariaLabel={ariaLabel} className='h-56'>
         <ResponsiveContainer width='100%' height='100%'>
           <PieChart>
             <Pie
@@ -325,8 +332,8 @@ function DonutChartView({
             <Tooltip content={<PersianTooltip />} />
           </PieChart>
         </ResponsiveContainer>
-      </div>
-      <ul className='space-y-2 text-sm'>
+      </StatsChartFrame>
+      <ul className='space-y-2 text-sm' aria-label='جزئیات توزیع'>
         {data.map((item, index) => {
           const percent = total > 0 ? Math.round((item.value / total) * 100) : 0
           return (
@@ -335,6 +342,7 @@ function DonutChartView({
                 <span
                   className='size-2.5 shrink-0 rounded-full'
                   style={{ background: CHART_COLORS[index % CHART_COLORS.length] }}
+                  aria-hidden
                 />
                 <span className='truncate'>{item.name}</span>
               </span>
@@ -422,12 +430,12 @@ export function StatsEventTypeChart({
       {data.length === 0 ? (
         <StatsChartEmpty />
       ) : (
-        <div className='h-64 w-full' role='img' aria-label='نمودار انواع رویداد'>
+        <StatsChartFrame ariaLabel='نمودار انواع رویداد'>
           <ResponsiveContainer width='100%' height='100%'>
             <BarChart
               data={data}
               layout='vertical'
-              margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+              margin={{ top: 8, right: 16, left: 8, bottom: 4 }}
             >
               <CartesianGrid strokeDasharray='3 3' className='stroke-border' horizontal={false} />
               <XAxis
@@ -441,7 +449,7 @@ export function StatsEventTypeChart({
               <YAxis
                 type='category'
                 dataKey='name'
-                width={100}
+                width={112}
                 tickLine={false}
                 axisLine={false}
                 tick={{ fontSize: 11 }}
@@ -450,7 +458,7 @@ export function StatsEventTypeChart({
               <Bar dataKey='value' name='تعداد' fill='var(--chart-5)' radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </StatsChartFrame>
       )}
     </StatsChartCard>
   )

@@ -102,3 +102,11 @@ export type PaymentLike = {
   status: PaymentRecordStatus
   date: string
 }
+
+export type StatisticsPaymentRow = {
+  id: string
+  caseId: string
+  caseTitle: string
+  amount: number
+  date: string
+}

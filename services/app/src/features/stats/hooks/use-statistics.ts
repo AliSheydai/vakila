@@ -17,12 +17,14 @@ type UseStatisticsOptions = {
 }
 
 export function useStatistics(options: UseStatisticsOptions) {
-  const { hydrated: casesHydrated } = useCasesHydration()
+  const { hydrated: casesHydrated, ownerId } = useCasesHydration()
   const { hydrated: eventsHydrated } = useEventsHydration({ seedIfEmpty: false })
 
   const clients = useCasesStore((state) => state.clients)
   const cases = useCasesStore((state) => state.cases)
   const events = useEventsStore((state) => state.events)
+  const hydrateCases = useCasesStore((state) => state.hydrate)
+  const hydrateEvents = useEventsStore((state) => state.hydrate)
 
   const range = useMemo(
     () =>
@@ -45,9 +47,15 @@ export function useStatistics(options: UseStatisticsOptions) {
     [cases, clients, events, range]
   )
 
+  const retry = () => {
+    hydrateCases(ownerId)
+    hydrateEvents(ownerId, { seedIfEmpty: false })
+  }
+
   return {
     hydrated: casesHydrated && eventsHydrated,
     range,
     statistics: payload,
+    retry,
   }
 }

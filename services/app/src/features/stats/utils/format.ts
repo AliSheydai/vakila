@@ -27,6 +27,13 @@ export const KPI_LABELS: Record<KpiMetric, string> = {
   avg_revenue_per_session: 'میانگین درآمد هر جلسه',
 }
 
+export const KPI_DRILLDOWN_HREF: Partial<Record<KpiMetric, string>> = {
+  new_clients: '/admin/clients',
+  created_cases: '/admin/cases',
+  closed_cases: '/admin/cases?status=closed',
+  sessions: '/admin/events',
+}
+
 export function formatStatNumber(value: number): string {
   return numberFormatter.format(Math.round(value))
 }

@@ -6,9 +6,11 @@ import type {
   StatisticsDataSources,
   StatisticsDateRange,
   StatisticsPayload,
+  StatisticsPaymentRow,
   StatisticsPreset,
   StatisticsTimePoint,
 } from '../types'
+import { buildStatisticsInsights } from './insights'
 
 const SESSION_EVENT_TYPES: Event['type'][] = [
   'client_meeting',
@@ -208,6 +210,32 @@ function paymentsInRange(
   })
 }
 
+export function listSuccessfulPaymentsInRange(
+  cases: Case[],
+  range: StatisticsDateRange
+): StatisticsPaymentRow[] {
+  const rows: StatisticsPaymentRow[] = []
+
+  for (const caseItem of cases) {
+    for (const payment of caseItem.payments) {
+      if (payment.status !== 'completed') continue
+      const date = parseIsoDate(payment.date)
+      if (!date || !isInRange(date, range)) continue
+      rows.push({
+        id: payment.id,
+        caseId: caseItem.id,
+        caseTitle: caseItem.title,
+        amount: payment.amount,
+        date: payment.date,
+      })
+    }
+  }
+
+  return rows.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )
+}
+
 function computeTimeline(
   sources: StatisticsDataSources,
   range: StatisticsDateRange
@@ -337,7 +365,7 @@ export function createStatisticsPayload(
 
   const eventsInCurrentRange = eventsInRange(sources.events, range)
 
-  return {
+  const payloadWithoutInsights: Omit<StatisticsPayload, 'insights'> = {
     range,
     previousRange,
     hasAnyData:
@@ -410,5 +438,13 @@ export function createStatisticsPayload(
       }, new Map())
     ).map(([type, count]) => ({ type, count })),
     timeline: computeTimeline(sources, range),
+  }
+
+  return {
+    ...payloadWithoutInsights,
+    insights: buildStatisticsInsights(
+      payloadWithoutInsights,
+      eventsInCurrentRange
+    ),
   }
 }

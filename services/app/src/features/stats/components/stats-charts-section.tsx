@@ -17,23 +17,23 @@ type StatsChartsSectionProps = {
 
 export function StatsChartsSection({ statistics }: StatsChartsSectionProps) {
   return (
-    <div className='space-y-4 sm:space-y-6'>
-      <div className='grid gap-4 lg:grid-cols-2'>
+    <section aria-label='نمودارهای آماری' className='space-y-4 sm:space-y-6'>
+      <div className='grid min-w-0 gap-4 lg:grid-cols-2'>
         <StatsRevenueChart timeline={statistics.timeline} />
         <StatsCasesChart timeline={statistics.timeline} />
       </div>
 
-      <div className='grid gap-4 lg:grid-cols-2'>
+      <div className='grid min-w-0 gap-4 lg:grid-cols-2'>
         <StatsClientsChart timeline={statistics.timeline} />
         <StatsEventsChart timeline={statistics.timeline} />
       </div>
 
-      <div className='grid gap-4 lg:grid-cols-2'>
+      <div className='grid min-w-0 gap-4 lg:grid-cols-2'>
         <StatsCaseStatusChart items={statistics.caseStatusBreakdown} />
         <StatsCaseAreaChart items={statistics.caseAreaBreakdown} />
       </div>
 
       <StatsEventTypeChart items={statistics.eventTypeBreakdown} />
-    </div>
+    </section>
   )
 }
