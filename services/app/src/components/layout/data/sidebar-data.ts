@@ -81,7 +81,7 @@ export const sidebarData: SidebarData = {
           icon: Users,
         },
         {
-          title: 'رویداد',
+          title: 'رویدادها',
           url: '/admin/events',
           icon: CalendarDays,
         },
