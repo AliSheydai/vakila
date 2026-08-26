@@ -95,11 +95,11 @@ export function RelatedEventsSection({
           <h3 className='text-base font-semibold tracking-tight'>{title}</h3>
           <p className='text-sm text-muted-foreground'>{description}</p>
         </div>
-        <div className='flex flex-wrap gap-2'>
-          <Button asChild variant='outline' size='sm'>
+        <div className='flex w-full flex-wrap gap-2 sm:w-auto'>
+          <Button asChild variant='outline' size='sm' className='flex-1 sm:flex-none'>
             <Link href='/admin/events'>مشاهده تقویم</Link>
           </Button>
-          <Button asChild size='sm'>
+          <Button asChild size='sm' className='flex-1 sm:flex-none'>
             <Link href={createHref}>
               <Plus className='size-4' />
               ایجاد رویداد

@@ -131,6 +131,9 @@ function EventsContent() {
             <EventsSummary events={events} />
             <EventsFiltersBar />
             <EventsToolbar />
+            <p className='sr-only' aria-live='polite'>
+              {filteredEvents.length.toLocaleString('fa-IR')} رویداد نمایش داده می‌شود.
+            </p>
             {filteredEvents.length === 0 && hasActiveFilters ? (
               <EventsFilteredEmpty totalCount={events.length} />
             ) : surface === 'calendar' ? (

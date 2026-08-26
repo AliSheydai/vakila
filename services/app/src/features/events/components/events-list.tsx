@@ -70,9 +70,10 @@ export function EventsList({
       {groups.map(([date, dayEvents]) => {
         const isToday = date === todayKey
         return (
-          <section key={date} className='space-y-2'>
+          <section key={date} className='space-y-2' aria-labelledby={`events-day-${date}`}>
             <div className='flex items-baseline gap-2'>
               <h3
+                id={`events-day-${date}`}
                 className={
                   isToday
                     ? 'text-sm font-semibold'

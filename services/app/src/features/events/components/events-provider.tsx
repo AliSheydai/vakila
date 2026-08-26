@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 import type {
   Event,
@@ -76,10 +76,18 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
     useState<EventCreateDefaults | null>(null)
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()))
   const [surface, setSurface] = useState<EventsSurface>('calendar')
+  const [mobileDefaultApplied, setMobileDefaultApplied] = useState(false)
   const [calendarMode, setCalendarMode] =
     useState<EventsCalendarMode>('month')
   const [anchorDate, setAnchorDate] = useState(() => new Date())
   const [filters, setFilters] = useState<EventsUiFilters>(DEFAULT_FILTERS)
+
+  useEffect(() => {
+    if (mobileDefaultApplied) return
+    const isNarrow = window.matchMedia('(max-width: 639px)').matches
+    if (isNarrow) setSurface('list')
+    setMobileDefaultApplied(true)
+  }, [mobileDefaultApplied])
 
   const hasActiveFilters = useMemo(
     () =>

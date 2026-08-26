@@ -44,9 +44,9 @@ function DetailRow({
   children: React.ReactNode
 }) {
   return (
-    <div className='grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start sm:gap-3'>
+    <div className='contents'>
       <dt className='text-sm text-muted-foreground'>{label}</dt>
-      <dd className='text-sm font-medium'>{children}</dd>
+      <dd className='text-sm font-medium sm:col-start-2'>{children}</dd>
     </div>
   )
 }
@@ -75,7 +75,7 @@ export function EventsDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className='flex h-full w-full flex-col gap-0 p-0 sm:max-w-lg'>
-        <SheetHeader className='border-b px-4 py-4 text-start'>
+        <SheetHeader className='border-b px-4 py-4 pe-12 text-start'>
           <div className='flex flex-wrap items-center gap-2'>
             <EventTypeBadge type={event.type} />
             {isImportantEventType(event.type) && (
@@ -99,7 +99,7 @@ export function EventsDetailSheet({
         </SheetHeader>
 
         <div className='flex-1 overflow-y-auto px-4 py-4'>
-          <dl className='space-y-4'>
+          <dl className='grid gap-x-3 gap-y-4 sm:grid-cols-[7rem_minmax(0,1fr)]'>
             <DetailRow label='ساعت'>
               <span className='tabular-nums'>
                 {formatTimeRange(event.startTime, event.endTime)}
@@ -157,13 +157,13 @@ export function EventsDetailSheet({
           <Button
             type='button'
             variant='outline'
-            className='text-destructive hover:bg-destructive/10 hover:text-destructive'
+            className='w-full text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto'
             onClick={onDelete}
           >
             <Trash2 className='size-4' />
             حذف
           </Button>
-          <Button type='button' onClick={onEdit}>
+          <Button type='button' className='w-full sm:w-auto' onClick={onEdit}>
             <Pencil className='size-4' />
             ویرایش
           </Button>

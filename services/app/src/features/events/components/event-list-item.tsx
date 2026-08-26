@@ -42,8 +42,9 @@ export function EventListItem({
     <button
       type='button'
       onClick={() => onSelect?.(event)}
+      aria-label={`${event.title}، ${formatTimeRange(event.startTime, event.endTime)}`}
       className={cn(
-        'flex w-full gap-3 rounded-lg border bg-background/70 px-3 py-3 text-start transition-colors hover:bg-accent/40',
+        'flex min-h-11 w-full gap-3 rounded-lg border bg-background/70 px-3 py-3 text-start transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         temporal === 'past' && 'opacity-55',
         temporal === 'today' && 'border-foreground/20 bg-accent/30',
         isImportantEventType(event.type) &&

@@ -47,7 +47,7 @@ export function EventsFiltersBar() {
               setSurface('list')
             }
           }}
-          placeholder='جستجو در عنوان، موکل، پرونده یا توضیحات…'
+          placeholder='جستجو عنوان، موکل، پرونده…'
           className='ps-9'
           aria-label='جستجوی رویدادها'
         />

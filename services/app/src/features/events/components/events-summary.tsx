@@ -37,10 +37,10 @@ export function EventsSummary({ events, now }: EventsSummaryProps) {
           key={item.key}
           className='rounded-lg border bg-background/60 px-3 py-3 sm:px-4'
         >
-          <p className='text-[11px] text-muted-foreground sm:text-xs'>
+          <p className='text-[11px] leading-4 text-muted-foreground sm:text-xs'>
             {item.label}
           </p>
-          <p className='mt-1 text-xl font-semibold tracking-tight tabular-nums sm:text-2xl'>
+          <p className='mt-1 text-lg font-semibold tracking-tight tabular-nums sm:text-2xl'>
             {item.getValue(summary).toLocaleString('fa-IR')}
           </p>
         </div>

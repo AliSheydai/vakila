@@ -14,10 +14,11 @@ export function EventsPrimaryButtons() {
   const canSeed = events.length === 0
 
   return (
-    <div className='flex flex-wrap items-center gap-2'>
+    <div className='flex w-full flex-wrap items-center gap-2 sm:w-auto'>
       {canSeed && (
         <Button
           variant='outline'
+          className='flex-1 sm:flex-none'
           onClick={() => {
             const result = seedDemoIfEmpty()
             if (!result.ok) {
@@ -32,6 +33,7 @@ export function EventsPrimaryButtons() {
         </Button>
       )}
       <Button
+        className='flex-1 sm:flex-none'
         onClick={() =>
           openCreate({
             date: selectedDate,

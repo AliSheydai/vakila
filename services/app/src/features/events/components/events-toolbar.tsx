@@ -70,12 +70,12 @@ export function EventsToolbar() {
 
   return (
     <div className='flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
-      <div className='flex flex-wrap items-center gap-2'>
+      <div className='flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center'>
         <Tabs
           value={surface}
           onValueChange={(value) => setSurface(value as EventsSurface)}
         >
-          <TabsList>
+          <TabsList className='grid h-9 w-full grid-cols-2 sm:w-fit' aria-label='نمای رویدادها'>
             <TabsTrigger value='calendar' className='gap-1.5 px-3'>
               <CalendarDays className='size-3.5' />
               تقویم
@@ -94,7 +94,7 @@ export function EventsToolbar() {
               setCalendarMode(value as EventsCalendarMode)
             }
           >
-            <TabsList>
+            <TabsList className='grid h-9 w-full grid-cols-3 sm:w-fit' aria-label='بازه تقویم'>
               <TabsTrigger value='day'>روزانه</TabsTrigger>
               <TabsTrigger value='week'>هفتگی</TabsTrigger>
               <TabsTrigger value='month'>ماهانه</TabsTrigger>
@@ -103,33 +103,33 @@ export function EventsToolbar() {
         )}
       </div>
 
-      <div className='flex flex-wrap items-center gap-2'>
-        <div className='flex items-center gap-1'>
+      <div className='flex min-w-0 items-center gap-2'>
+        <div className='flex min-w-0 flex-1 items-center gap-1'>
           <Button
             type='button'
             variant='outline'
             size='icon'
-            className='size-8'
+            className='size-9 shrink-0'
             onClick={() => shift(-1)}
             aria-label='بازه قبلی'
           >
             <ChevronRight className='size-4' />
           </Button>
-          <p className='min-w-36 text-center text-sm font-medium tabular-nums sm:min-w-48'>
+          <p className='min-w-0 flex-1 truncate text-center text-sm font-medium tabular-nums'>
             {getNavLabel(surface, calendarMode, anchorDate, selectedDate)}
           </p>
           <Button
             type='button'
             variant='outline'
             size='icon'
-            className='size-8'
+            className='size-9 shrink-0'
             onClick={() => shift(1)}
             aria-label='بازه بعدی'
           >
             <ChevronLeft className='size-4' />
           </Button>
         </div>
-        <Button type='button' variant='secondary' size='sm' onClick={goToday}>
+        <Button type='button' variant='secondary' size='sm' className='shrink-0' onClick={goToday}>
           امروز
         </Button>
       </div>

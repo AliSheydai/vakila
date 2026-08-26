@@ -53,12 +53,17 @@ function MonthView({
   const month = anchorDate.getMonth()
 
   return (
-    <div className='overflow-hidden rounded-xl border'>
-      <div className='grid grid-cols-7 border-b bg-muted/40'>
-        {WEEKDAY_HEADERS.map((label) => (
+    <div
+      className='overflow-hidden rounded-xl border'
+      role='grid'
+      aria-label='تقویم ماهانه'
+    >
+      <div className='grid grid-cols-7 border-b bg-muted/40' role='row'>
+        {WEEKDAY_HEADERS.map((label, index) => (
           <div
-            key={label}
-            className='px-1 py-2 text-center text-[11px] font-medium text-muted-foreground sm:text-xs'
+            key={`${label}-${index}`}
+            role='columnheader'
+            className='px-0.5 py-2 text-center text-[10px] font-medium text-muted-foreground sm:px-1 sm:text-xs'
           >
             {label}
           </div>
@@ -76,53 +81,92 @@ function MonthView({
           return (
             <div
               key={key}
+              role='gridcell'
+              aria-selected={isSelected}
               className={cn(
-                'flex min-h-20 flex-col gap-1 border-e border-b p-1.5 last:border-e-0 sm:min-h-24 sm:p-2',
+                'flex min-h-16 flex-col gap-0.5 border-e border-b p-1 [&:nth-child(7n)]:border-e-0 sm:min-h-24 sm:gap-1 sm:p-2',
                 !inMonth && 'bg-muted/20 text-muted-foreground',
                 isSelected && 'bg-accent/50',
                 isToday && 'bg-accent/30'
               )}
             >
-              <button
-                type='button'
-                onClick={() => {
-                  setSelectedDate(key)
-                  setAnchorDate(day)
-                }}
-                onDoubleClick={() => {
-                  setSelectedDate(key)
-                  setAnchorDate(day)
-                  openCreate({
-                    date: key,
-                    startTime: '10:00',
-                    endTime: '11:00',
-                  })
-                }}
-                className={cn(
-                  'inline-flex size-6 items-center justify-center rounded-full text-xs tabular-nums transition-colors hover:bg-muted sm:size-7 sm:text-sm',
-                  isToday &&
-                    'bg-foreground font-semibold text-background hover:bg-foreground',
-                  temporal === 'past' && !isToday && 'opacity-60'
+              <div className='flex items-center justify-between gap-0.5'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSelectedDate(key)
+                    setAnchorDate(day)
+                  }}
+                  onDoubleClick={() => {
+                    setSelectedDate(key)
+                    setAnchorDate(day)
+                    openCreate({
+                      date: key,
+                      startTime: '10:00',
+                      endTime: '11:00',
+                    })
+                  }}
+                  className={cn(
+                    'inline-flex size-8 items-center justify-center rounded-full text-xs tabular-nums transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:size-7 sm:text-sm',
+                    isToday &&
+                      'bg-foreground font-semibold text-background hover:bg-foreground',
+                    temporal === 'past' && !isToday && 'opacity-60'
+                  )}
+                  aria-label={`${formatEventDate(key)}${dayEvents.length ? `، ${dayEvents.length.toLocaleString('fa-IR')} رویداد` : ''}`}
+                  aria-current={isToday ? 'date' : undefined}
+                  title='برای ایجاد رویداد، دکمه افزودن را بزنید'
+                >
+                  {formatDayNumber(day)}
+                </button>
+                {isSelected && (
+                  <button
+                    type='button'
+                    className='inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:hidden'
+                    aria-label={`ایجاد رویداد در ${formatEventDate(key)}`}
+                    onClick={() =>
+                      openCreate({
+                        date: key,
+                        startTime: '10:00',
+                        endTime: '11:00',
+                      })
+                    }
+                  >
+                    <Plus className='size-3.5' />
+                  </button>
                 )}
-                aria-label={formatEventDate(key)}
-                title='دوبار کلیک برای ایجاد رویداد'
-              >
-                {formatDayNumber(day)}
-              </button>
-              <div className='flex flex-1 flex-col gap-0.5 overflow-hidden'>
+              </div>
+              <div className='mt-auto flex justify-center gap-0.5 sm:hidden'>
+                {dayEvents.slice(0, 3).map((event) => (
+                  <span
+                    key={event.id}
+                    className={cn(
+                      'size-1.5 rounded-full',
+                      event.type === 'legal_deadline' && 'bg-rose-500',
+                      event.type === 'court_hearing' && 'bg-amber-500',
+                      event.type === 'client_meeting' && 'bg-sky-500',
+                      event.type === 'online_meeting' && 'bg-teal-500',
+                      event.type === 'reminder' && 'bg-neutral-400',
+                      event.type === 'other' && 'bg-muted-foreground/50',
+                      getTemporalStatus(event, now) === 'past' && 'opacity-40'
+                    )}
+                  />
+                ))}
+              </div>
+              <div className='hidden flex-1 flex-col gap-0.5 overflow-hidden sm:flex'>
                 {dayEvents.slice(0, 3).map((event) => (
                   <button
                     key={event.id}
                     type='button'
                     onClick={() => openDetail(event)}
+                    aria-label={`${event.title}، ${formatEventTime(event.startTime)}`}
                     className={cn(
-                      'truncate rounded px-1 py-0.5 text-start text-[10px] leading-4 ring-1 ring-inset sm:text-[11px]',
+                      'truncate rounded px-1 py-0.5 text-start text-[11px] leading-4 ring-1 ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       eventBlockStyles.get(event.type),
                       getTemporalStatus(event, now) === 'past' && 'opacity-50',
                       isImportantEventType(event.type) && 'font-medium'
                     )}
                   >
-                    <span className='hidden tabular-nums sm:inline'>
+                    <span className='tabular-nums'>
                       {formatEventTime(event.startTime)}{' '}
                     </span>
                     {event.title}
@@ -180,7 +224,7 @@ function WeekView({
             <div
               key={key}
               className={cn(
-                'flex min-h-36 flex-col border-b border-e last:border-e-0 sm:min-h-64',
+                'flex min-h-28 flex-col border-b border-e last:border-e-0 sm:min-h-64 sm:[&:nth-child(7n)]:border-e-0',
                 isSelected && 'bg-accent/40',
                 isToday && !isSelected && 'bg-accent/20'
               )}
@@ -200,8 +244,9 @@ function WeekView({
                     endTime: '11:00',
                   })
                 }}
-                className='flex items-center justify-between gap-2 border-b px-2 py-2 text-start sm:flex-col sm:items-start'
-                title='دوبار کلیک برای ایجاد رویداد'
+                className='flex min-h-11 items-center justify-between gap-2 border-b px-2 py-2 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-col sm:items-start'
+                aria-label={`${formatWeekdayShort(day)} ${formatDayNumber(day)}`}
+                title='برای ایجاد رویداد، افزودن را بزنید'
               >
                 <span className='text-xs text-muted-foreground'>
                   {formatWeekdayShort(day)}
@@ -226,7 +271,7 @@ function WeekView({
                         endTime: '11:00',
                       })
                     }
-                    className='rounded-md border border-dashed px-1 py-2 text-[11px] text-muted-foreground hover:bg-accent/40'
+                    className='min-h-11 rounded-md border border-dashed px-1 py-2 text-[11px] text-muted-foreground hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
                   >
                     افزودن
                   </button>
@@ -236,8 +281,9 @@ function WeekView({
                       key={event.id}
                       type='button'
                       onClick={() => openDetail(event)}
+                      aria-label={`${event.title}، ${formatEventTime(event.startTime)}`}
                       className={cn(
-                        'rounded-md px-1.5 py-1 text-start text-[11px] leading-4 ring-1 ring-inset transition-opacity hover:opacity-90',
+                        'rounded-md px-1.5 py-1 text-start text-[11px] leading-4 ring-1 ring-inset transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         eventBlockStyles.get(event.type),
                         getTemporalStatus(event, now) === 'past' &&
                           'opacity-50'

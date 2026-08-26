@@ -238,7 +238,7 @@ export function EventsMutateDrawer({
       }}
     >
       <SheetContent className='flex h-full w-full flex-col gap-0 p-0 sm:max-w-lg'>
-        <SheetHeader className='border-b px-4 py-4 text-start'>
+        <SheetHeader className='border-b px-4 py-4 pe-12 text-start'>
           <SheetTitle>
             {isUpdate ? 'ویرایش رویداد' : 'ایجاد رویداد'}
           </SheetTitle>
@@ -459,12 +459,18 @@ export function EventsMutateDrawer({
           <Button
             type='button'
             variant='outline'
+            className='w-full sm:w-auto'
             disabled={submitting}
             onClick={() => onOpenChange(false)}
           >
             انصراف
           </Button>
-          <Button type='submit' form={formId} disabled={submitting}>
+          <Button
+            type='submit'
+            form={formId}
+            className='w-full sm:w-auto'
+            disabled={submitting}
+          >
             {submitting
               ? 'در حال ذخیره…'
               : isUpdate
