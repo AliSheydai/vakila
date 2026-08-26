@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useCasesStore } from './stores/cases-store'
 import { useCasesHydration } from './hooks/use-cases-hydration'
+import { useEventsHydration } from '@/features/events/hooks/use-events-hydration'
+import { useEventsStore } from '@/features/events/stores/events-store'
 import { CasesProvider, useCasesDialogs } from './components/cases-provider'
 import { CasesMutateDrawer } from './components/cases-mutate-drawer'
 import { CaseDetailHeader } from './components/case-detail-header'
@@ -20,6 +22,7 @@ import { CaseInfoTab } from './components/case-info-tab'
 import { CaseClientTab } from './components/case-client-tab'
 import { CaseAttachmentsTab } from './components/case-attachments-tab'
 import { CaseFinanceTab } from './components/case-finance-tab'
+import { RelatedEventsSection } from '@/features/events/components/related-events-section'
 
 type CaseDetailPageProps = {
   caseId: string
@@ -88,6 +91,7 @@ function CaseDetailDialogs({ caseId }: { caseId: string }) {
 
 function CaseDetailContent({ caseId }: CaseDetailPageProps) {
   const { hydrated } = useCasesHydration()
+  useEventsHydration({ seedIfEmpty: false })
   const caseItem = useCasesStore((state) =>
     state.cases.find((item) => item.id === caseId)
   )
@@ -95,6 +99,9 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
     caseItem?.clientId
       ? (state.clients.find((item) => item.id === caseItem.clientId) ?? null)
       : null
+  )
+  const relatedEventsCount = useEventsStore(
+    (state) => state.events.filter((item) => item.caseId === caseId).length
   )
 
   if (!hydrated) {
@@ -163,6 +170,14 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
               <TabsTrigger value='client' className='px-3'>
                 موکل
               </TabsTrigger>
+              <TabsTrigger value='events' className='px-3'>
+                رویدادها
+                {relatedEventsCount > 0 && (
+                  <span className='ms-1.5 tabular-nums text-muted-foreground'>
+                    ({relatedEventsCount.toLocaleString('fa-IR')})
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -180,6 +195,14 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
 
           <TabsContent value='client' className='outline-none'>
             <CaseClientTab caseItem={caseItem} client={client} />
+          </TabsContent>
+
+          <TabsContent value='events' className='outline-none'>
+            <RelatedEventsSection
+              caseId={caseItem.id}
+              defaultClientId={caseItem.clientId}
+              description='جلسات، دادگاه‌ها و مهلت‌های مرتبط با این پرونده.'
+            />
           </TabsContent>
         </Tabs>
       </Main>

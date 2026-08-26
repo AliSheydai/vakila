@@ -108,8 +108,8 @@ function getDefaultValues(
     endTime: createDefaults?.endTime ?? '11:00',
     location: '',
     description: '',
-    clientId: NONE,
-    caseId: NONE,
+    clientId: createDefaults?.clientId || NONE,
+    caseId: createDefaults?.caseId || NONE,
     status: 'scheduled',
   }
 }

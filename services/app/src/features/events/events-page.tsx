@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -11,6 +12,7 @@ import { useCasesStore } from '@/features/cases/stores/cases-store'
 import { useEventsHydration } from './hooks/use-events-hydration'
 import { useEventsStore } from './stores/events-store'
 import { filterEvents } from './utils/filters'
+import { toDateKey } from './utils/datetime'
 import { EventsProvider, useEventsUi } from './components/events-provider'
 import { EventsPrimaryButtons } from './components/events-primary-buttons'
 import { EventsSummary } from './components/events-summary'
@@ -22,6 +24,41 @@ import { EventsCalendar } from './components/events-calendar'
 import { EventsList } from './components/events-list'
 import { EventsDialogs } from './components/events-dialogs'
 import type { EventLookup } from './components/event-list-item'
+
+function EventsQueryBootstrap({ ready }: { ready: boolean }) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const { openCreate } = useEventsUi()
+  const cases = useCasesStore((state) => state.cases)
+  const handledRef = useRef(false)
+
+  useEffect(() => {
+    if (!ready || handledRef.current) return
+    if (searchParams.get('create') !== '1') return
+
+    handledRef.current = true
+    const caseId = searchParams.get('caseId')
+    let clientId = searchParams.get('clientId')
+
+    if (caseId && !clientId) {
+      const linked = cases.find((item) => item.id === caseId)
+      clientId = linked?.clientId ?? null
+    }
+
+    openCreate({
+      date: toDateKey(new Date()),
+      startTime: '10:00',
+      endTime: '11:00',
+      caseId,
+      clientId,
+    })
+
+    router.replace(pathname, { scroll: false })
+  }, [ready, searchParams, cases, openCreate, router, pathname])
+
+  return null
+}
 
 function EventsContent() {
   const { hydrated: eventsHydrated } = useEventsHydration({ seedIfEmpty: true })
@@ -53,6 +90,8 @@ function EventsContent() {
 
   return (
     <>
+      <EventsQueryBootstrap ready={hydrated} />
+
       <Header fixed>
         <Search className='me-auto' />
         <ThemeSwitch />

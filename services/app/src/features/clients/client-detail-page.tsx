@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useCasesStore } from '@/features/cases/stores/cases-store'
 import { useCasesHydration } from '@/features/cases/hooks/use-cases-hydration'
+import { useEventsHydration } from '@/features/events/hooks/use-events-hydration'
+import { useEventsStore } from '@/features/events/stores/events-store'
 import {
   clientHasActiveCase,
   getCasesForClient,
@@ -26,6 +28,7 @@ import { ClientDetailHeader } from './components/client-detail-header'
 import { ClientInfoSection } from './components/client-info-section'
 import { ClientCasesSection } from './components/client-cases-section'
 import { ClientAttachmentsSection } from './components/client-attachments-section'
+import { RelatedEventsSection } from '@/features/events/components/related-events-section'
 
 type ClientDetailPageProps = {
   clientId: string
@@ -116,6 +119,7 @@ function ClientDetailDialogs({ clientId }: { clientId: string }) {
 
 function ClientDetailContent({ clientId }: ClientDetailPageProps) {
   const { hydrated } = useCasesHydration()
+  useEventsHydration({ seedIfEmpty: false })
   const client = useCasesStore((state) =>
     state.clients.find((item) => item.id === clientId)
   )
@@ -124,6 +128,10 @@ function ClientDetailContent({ clientId }: ClientDetailPageProps) {
   const hasActiveCase = client
     ? clientHasActiveCase(cases, client.id)
     : false
+  const relatedEventsCount = useEventsStore(
+    (state) =>
+      state.events.filter((item) => item.clientId === clientId).length
+  )
 
   if (!hydrated) {
     return (
@@ -202,6 +210,14 @@ function ClientDetailContent({ clientId }: ClientDetailPageProps) {
                   </span>
                 )}
               </TabsTrigger>
+              <TabsTrigger value='events' className='px-3'>
+                رویدادها
+                {relatedEventsCount > 0 && (
+                  <span className='ms-1.5 tabular-nums text-muted-foreground'>
+                    ({relatedEventsCount.toLocaleString('fa-IR')})
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -215,6 +231,14 @@ function ClientDetailContent({ clientId }: ClientDetailPageProps) {
 
           <TabsContent value='attachments' className='outline-none'>
             <ClientAttachmentsSection client={client} />
+          </TabsContent>
+
+          <TabsContent value='events' className='outline-none'>
+            <RelatedEventsSection
+              clientId={client.id}
+              defaultClientId={client.id}
+              description='جلسات و یادآوری‌های مرتبط با این موکل.'
+            />
           </TabsContent>
         </Tabs>
       </Main>

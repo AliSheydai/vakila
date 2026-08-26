@@ -18,6 +18,8 @@ export type EventCreateDefaults = {
   date?: string
   startTime?: string
   endTime?: string
+  caseId?: string | null
+  clientId?: string | null
 }
 
 export type EventsUiFilters = {
