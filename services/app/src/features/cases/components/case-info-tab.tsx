@@ -5,8 +5,11 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
-import type { Case } from '../types'
-import { CASE_STATUS_LABELS, LEGAL_AREA_LABELS } from '../types'
+import {
+  CASE_STATUS_LABELS,
+  LEGAL_AREA_LABELS,
+  type Case,
+} from '../types'
 import { formatDate } from '../utils/format'
 import { useCasesStore } from '../stores/cases-store'
 

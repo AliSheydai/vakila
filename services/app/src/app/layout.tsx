@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from 'next'
-import { Vazirmatn, Inter, Manrope } from 'next/font/google'
+import { Amiri, Vazirmatn, Inter, Manrope } from 'next/font/google'
 import { Providers } from './providers'
 import '@/styles/index.css'
 
 const vazirmatn = Vazirmatn({
   subsets: ['arabic', 'latin'],
   variable: '--font-vazirmatn',
+  display: 'swap',
+})
+
+const amiri = Amiri({
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '700'],
+  variable: '--font-amiri',
   display: 'swap',
 })
 
@@ -69,7 +76,7 @@ export default function RootLayout({
       lang='fa'
       dir='rtl'
       suppressHydrationWarning
-      className={`${vazirmatn.variable} ${inter.variable} ${manrope.variable}`}
+      className={`${vazirmatn.variable} ${amiri.variable} ${inter.variable} ${manrope.variable}`}
     >
       <body className='min-h-svh w-full bg-background font-sans text-foreground antialiased'>
         <Providers>{children}</Providers>

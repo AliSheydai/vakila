@@ -1,7 +1,6 @@
 'use client'
 
-import type { LucideIcon } from 'lucide-react'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, type LucideIcon } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'

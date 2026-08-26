@@ -1,0 +1,181 @@
+.lawyer-landing {
+  --lp-ink: #06141c;
+  --lp-ink-deep: #031015;
+  --lp-mist: #0e2c38;
+  --lp-fog: #1a4654;
+  --lp-brass: #c9a25a;
+  --lp-brass-bright: #e8c87a;
+  --lp-brass-dim: rgba(201, 162, 90, 0.35);
+  --lp-paper: #f3efe6;
+  --lp-paper-soft: #ebe6db;
+  --lp-ink-text: #102028;
+  --lp-muted: #7f969c;
+  --lp-muted-on-dark: #a8c0c6;
+  --lp-line: rgba(201, 162, 90, 0.24);
+  --lp-line-soft: rgba(16, 32, 40, 0.1);
+  --font-display: var(--font-amiri), 'Amiri', 'Vazirmatn', serif;
+
+  color: var(--lp-ink-text);
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(201, 162, 90, 0.06), transparent 55%),
+    linear-gradient(180deg, var(--lp-paper) 0%, var(--lp-paper-soft) 100%);
+  font-family: var(--font-vazirmatn), 'Vazirmatn', system-ui, sans-serif;
+}
+
+.lawyer-landing .lp-display {
+  font-family: var(--font-display);
+}
+
+.lawyer-landing .lp-section {
+  position: relative;
+}
+
+.lawyer-landing .lp-container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 72rem;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .lawyer-landing .lp-container {
+    padding-inline: 1.75rem;
+  }
+}
+
+.lawyer-landing .lp-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--lp-brass);
+}
+
+.lawyer-landing .lp-kicker::before {
+  content: '';
+  width: 1.75rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lp-brass));
+}
+
+.lawyer-landing .lp-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--lp-ink-text);
+}
+
+.lawyer-landing .lp-lead {
+  max-width: 36rem;
+  color: var(--lp-muted);
+  line-height: 1.8;
+}
+
+.lawyer-landing .lp-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--lp-line),
+    transparent
+  );
+}
+
+.lawyer-landing .lp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.85rem;
+  padding-inline: 1.35rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--lp-brass-bright), var(--lp-brass));
+  color: var(--lp-ink-deep);
+  font-weight: 600;
+  font-size: 0.925rem;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    filter 0.25s ease;
+  box-shadow: 0 10px 30px rgba(201, 162, 90, 0.22);
+}
+
+.lawyer-landing .lp-btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 36px rgba(201, 162, 90, 0.3);
+}
+
+.lawyer-landing .lp-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.85rem;
+  padding-inline: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--lp-line);
+  color: var(--lp-paper);
+  font-weight: 500;
+  font-size: 0.925rem;
+  background: rgba(243, 239, 230, 0.04);
+  backdrop-filter: blur(8px);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lawyer-landing .lp-btn-ghost:hover {
+  background: rgba(243, 239, 230, 0.1);
+  border-color: var(--lp-brass-dim);
+  transform: translateY(-2px);
+}
+
+.lawyer-landing .lp-btn-ink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.85rem;
+  padding-inline: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--lp-line-soft);
+  color: var(--lp-ink-text);
+  font-weight: 500;
+  font-size: 0.925rem;
+  background: transparent;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.35s ease;
+}
+
+.lawyer-landing .lp-btn-ink:hover {
+  background: rgba(16, 32, 40, 0.04);
+  border-color: rgba(201, 162, 90, 0.45);
+  transform: translateY(-1px);
+}
+
+.lawyer-landing .lp-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  will-change: transform, opacity;
+}
+
+.lawyer-landing .lp-reveal-x {
+  opacity: 0;
+  transform: translateX(24px);
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lawyer-landing .lp-reveal,
+  .lawyer-landing .lp-reveal-x {
+    opacity: 1;
+    transform: none;
+  }
+}

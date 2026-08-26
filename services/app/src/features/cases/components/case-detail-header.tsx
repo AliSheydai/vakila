@@ -15,8 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { Case, Client } from '../types'
-import { LEGAL_AREA_LABELS } from '../types'
+import { LEGAL_AREA_LABELS, type Case, type Client } from '../types'
 import { formatDate } from '../utils/format'
 import { CaseStatusBadge } from './case-status-badge'
 import { useCasesDialogs } from './cases-provider'

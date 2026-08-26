@@ -21,7 +21,7 @@ type PortalState = {
   hydrated: boolean
   error: string | null
 
-  hydrate: (clientId?: string) => ServiceResult
+  hydrate: (clientId?: string) => ServiceResult<void>
   reset: () => void
 
   getLawyer: (lawyerId: string) => Lawyer | null
@@ -29,8 +29,8 @@ type PortalState = {
   getSession: (sessionId: string) => ClientSession | null
   getPayment: (paymentId: string) => ClientPayment | null
 
-  cancelSession: (sessionId: string) => ServiceResult
-  retryPayment: (paymentId: string) => ServiceResult
+  cancelSession: (sessionId: string) => ServiceResult<void>
+  retryPayment: (paymentId: string) => ServiceResult<void>
 }
 
 function applyData(
@@ -77,7 +77,7 @@ export const usePortalStore = create<PortalState>()((set, get) => ({
     }
 
     applyData(set, clientId, seeded.data)
-    return { ok: true, data: undefined }
+    return { ok: true, data: undefined as void }
   },
 
   reset: () =>
@@ -113,7 +113,7 @@ export const usePortalStore = create<PortalState>()((set, get) => ({
     if (!result.ok) return result
 
     applyData(set, clientId, result.data)
-    return { ok: true, data: undefined }
+    return { ok: true, data: undefined as void }
   },
 
   retryPayment: (paymentId) => {
@@ -126,6 +126,6 @@ export const usePortalStore = create<PortalState>()((set, get) => ({
     if (!result.ok) return result
 
     applyData(set, clientId, result.data)
-    return { ok: true, data: undefined }
+    return { ok: true, data: undefined as void }
   },
 }))

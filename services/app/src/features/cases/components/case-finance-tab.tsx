@@ -29,14 +29,16 @@ import {
 } from '@/components/ui/dialog'
 import { SelectDropdown } from '@/components/select-dropdown'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import type { Case, Expense, Payment } from '../types'
 import {
   CASE_PAYMENT_STATUS_LABELS,
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_LABELS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_METHODS,
+  type Case,
   type CasePaymentStatus,
+  type Expense,
+  type Payment,
 } from '../types'
 import { getCaseFinancialSummary } from '../utils/finance'
 import { formatDate, formatMoney } from '../utils/format'

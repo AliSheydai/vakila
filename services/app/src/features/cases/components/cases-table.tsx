@@ -37,6 +37,8 @@ import {
   CASE_STATUS_LABELS,
   LEGAL_AREAS,
   LEGAL_AREA_LABELS,
+  type Case,
+  type Client,
 } from '../types'
 import {
   buildCaseTableRows,
@@ -44,7 +46,6 @@ import {
   type CaseTableRow,
 } from './cases-columns'
 import { CasesMobileList } from './cases-mobile-list'
-import type { Case, Client } from '../types'
 
 type CasesTableProps = {
   cases: Case[]
