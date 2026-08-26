@@ -65,11 +65,11 @@ export const sidebarData: SidebarData = {
     {
       title: '',
       items: [
-        {
-          title: 'دستیار',
-          url: '/admin',
-          icon: Bot,
-        },
+        // {
+        //   title: 'دستیار',
+        //   url: '/admin',
+        //   icon: Bot,
+        // },
         {
           title: 'پرونده',
           url: '/admin/cases',

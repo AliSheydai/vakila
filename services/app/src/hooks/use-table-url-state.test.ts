@@ -235,6 +235,26 @@ describe('useTableUrlState', () => {
     ])
   })
 
+  it('coerces a single URL string into an array column filter', async () => {
+    const navigate = vi.fn() as Mock<NavigateFn>
+    const { result } = await renderHook(() =>
+      useTableUrlState({
+        search: { status: 'open', legalArea: 'civil' },
+        navigate,
+        pagination: { defaultPage: 1, defaultPageSize: 10 },
+        columnFilters: [
+          { columnId: 'status', searchKey: 'status', type: 'array' },
+          { columnId: 'legalArea', searchKey: 'legalArea', type: 'array' },
+        ],
+      })
+    )
+
+    expect(result.current.columnFilters).toEqual([
+      { id: 'status', value: ['open'] },
+      { id: 'legalArea', value: ['civil'] },
+    ])
+  })
+
   it('builds string column filters from search', async () => {
     const navigate = vi.fn() as Mock<NavigateFn>
     const { result } = await renderHook(() =>

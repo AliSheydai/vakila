@@ -42,7 +42,7 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
         {row.getValue('caseNumber')}
       </Link>
     ),
-    meta: { className: 'w-28' },
+    meta: { className: 'w-28', label: 'شماره' },
   },
   {
     accessorKey: 'title',
@@ -57,6 +57,7 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
         <LongText className='max-w-56'>{row.getValue('title')}</LongText>
       </Link>
     ),
+    meta: { label: 'عنوان' },
   },
   {
     accessorKey: 'clientName',
@@ -66,6 +67,7 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
     cell: ({ row }) => (
       <LongText className='max-w-36'>{row.getValue('clientName')}</LongText>
     ),
+    meta: { label: 'موکل' },
   },
   {
     accessorKey: 'legalArea',
@@ -80,6 +82,7 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
     filterFn: (row, id, value: string[]) => {
       return value.includes(row.getValue(id))
     },
+    meta: { label: 'نوع' },
   },
   {
     accessorKey: 'status',
@@ -90,6 +93,7 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
     filterFn: (row, id, value: string[]) => {
       return value.includes(row.getValue(id))
     },
+    meta: { label: 'وضعیت' },
   },
   {
     id: 'fee',
@@ -105,6 +109,7 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
         </span>
       )
     },
+    meta: { label: 'حق‌الزحمه' },
   },
   {
     id: 'paid',
@@ -120,12 +125,13 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
         </span>
       )
     },
+    meta: { label: 'پرداخت‌شده' },
   },
   {
     accessorKey: 'createdAt',
     header: () => null,
     cell: () => null,
-    enableHiding: true,
+    enableHiding: false,
   },
   {
     accessorKey: 'updatedAt',
@@ -137,6 +143,7 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
         {formatDate(row.original.updatedAt)}
       </span>
     ),
+    meta: { label: 'آخرین تغییر' },
   },
   {
     id: 'actions',

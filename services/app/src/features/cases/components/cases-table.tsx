@@ -31,7 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import {
+  DataTablePagination,
+  DataTableToolbar,
+  DataTableViewOptions,
+} from '@/components/data-table'
 import {
   CASE_STATUSES,
   CASE_STATUS_LABELS,
@@ -186,48 +190,54 @@ export function CasesTable({ cases, clients }: CasesTableProps) {
 
   return (
     <div className='flex flex-1 flex-col gap-4'>
-      <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
-        <DataTableToolbar
-          table={table}
-          searchPlaceholder='جستجو در عنوان، شماره یا موکل...'
-          filters={[
-            {
-              columnId: 'status',
-              title: 'وضعیت',
-              options: CASE_STATUSES.map((status) => ({
-                label: CASE_STATUS_LABELS[status],
-                value: status,
-              })),
-            },
-            {
-              columnId: 'legalArea',
-              title: 'نوع',
-              options: LEGAL_AREAS.map((area) => ({
-                label: LEGAL_AREA_LABELS[area],
-                value: area,
-              })),
-            },
-          ]}
-        />
-        <Select
-          value={sortPreset}
-          onValueChange={(value: SortPreset) => {
-            setSortPreset(value)
-            setSorting(sortingFromPreset(value))
-          }}
-        >
-          <SelectTrigger
-            className='h-8 w-full shrink-0 lg:w-48'
-            aria-label='مرتب‌سازی پرونده‌ها'
+      <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4'>
+        <div className='min-w-0 flex-1'>
+          <DataTableToolbar
+            table={table}
+            showViewOptions={false}
+            searchPlaceholder='جستجو در عنوان، شماره یا موکل...'
+            filters={[
+              {
+                columnId: 'status',
+                title: 'وضعیت',
+                options: CASE_STATUSES.map((status) => ({
+                  label: CASE_STATUS_LABELS[status],
+                  value: status,
+                })),
+              },
+              {
+                columnId: 'legalArea',
+                title: 'نوع',
+                options: LEGAL_AREAS.map((area) => ({
+                  label: LEGAL_AREA_LABELS[area],
+                  value: area,
+                })),
+              },
+            ]}
+          />
+        </div>
+        <div className='flex w-full shrink-0 flex-col gap-2 sm:flex-row sm:items-center lg:w-auto'>
+          <DataTableViewOptions table={table} className='w-full sm:w-auto' />
+          <Select
+            value={sortPreset}
+            onValueChange={(value: SortPreset) => {
+              setSortPreset(value)
+              setSorting(sortingFromPreset(value))
+            }}
           >
-            <SelectValue placeholder='مرتب‌سازی' />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='newest'>جدیدترین</SelectItem>
-            <SelectItem value='oldest'>قدیمی‌ترین</SelectItem>
-            <SelectItem value='updated'>آخرین بروزرسانی</SelectItem>
-          </SelectContent>
-        </Select>
+            <SelectTrigger
+              className='h-8 w-full shrink-0 lg:w-48'
+              aria-label='مرتب‌سازی پرونده‌ها'
+            >
+              <SelectValue placeholder='مرتب‌سازی' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='newest'>جدیدترین</SelectItem>
+              <SelectItem value='oldest'>قدیمی‌ترین</SelectItem>
+              <SelectItem value='updated'>آخرین بروزرسانی</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <CasesMobileList rows={table.getRowModel().rows.map((row) => row.original)} />

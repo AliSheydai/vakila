@@ -9,6 +9,7 @@ type DataTableToolbarProps<TData> = {
   table: Table<TData>
   searchPlaceholder?: string
   searchKey?: string
+  showViewOptions?: boolean
   filters?: {
     columnId: string
     title: string
@@ -24,13 +25,14 @@ export function DataTableToolbar<TData>({
   table,
   searchPlaceholder = 'فیلتر...',
   searchKey,
+  showViewOptions = true,
   filters = [],
 }: DataTableToolbarProps<TData>) {
   const isFiltered =
     table.getState().columnFilters.length > 0 || table.getState().globalFilter
 
   return (
-    <div className='flex items-center justify-between'>
+    <div className='flex items-center justify-between gap-2'>
       <div className='flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:gap-2'>
         {searchKey ? (
           <Input
@@ -79,7 +81,7 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
       </div>
-      <DataTableViewOptions table={table} />
+      {showViewOptions ? <DataTableViewOptions table={table} /> : null}
     </div>
   )
 }

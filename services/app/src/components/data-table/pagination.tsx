@@ -25,8 +25,10 @@ export function DataTablePagination<TData>({
   className,
 }: DataTablePaginationProps<TData>) {
   const currentPage = table.getState().pagination.pageIndex + 1
-  const totalPages = table.getPageCount()
+  const totalPages = Math.max(table.getPageCount(), 1)
   const pageNumbers = getPageNumbers(currentPage, totalPages)
+  const canPreviousPage = table.getCanPreviousPage()
+  const canNextPage = table.getCanNextPage()
 
   return (
     <div
@@ -52,7 +54,7 @@ export function DataTablePagination<TData>({
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side='top'>
-              {[10, 20, 30, 40, 50].map((pageSize) => (
+              {[5, 10, 20, 30, 40, 50].map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
                 </SelectItem>
@@ -72,7 +74,7 @@ export function DataTablePagination<TData>({
             variant='outline'
             className='size-8 p-0 @max-md/content:hidden'
             onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
+            disabled={!canPreviousPage}
           >
             <span className='sr-only'>رفتن به صفحه اول</span>
             <DoubleArrowLeftIcon className='h-4 w-4 rtl:rotate-180' />
@@ -81,13 +83,12 @@ export function DataTablePagination<TData>({
             variant='outline'
             className='size-8 p-0'
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={!canPreviousPage}
           >
             <span className='sr-only'>رفتن به صفحه قبل</span>
             <ChevronLeftIcon className='h-4 w-4 rtl:rotate-180' />
           </Button>
 
-          {/* Page number buttons */}
           {pageNumbers.map((pageNumber, index) => (
             <div key={`${pageNumber}-${index}`} className='flex items-center'>
               {pageNumber === '...' ? (
@@ -97,6 +98,7 @@ export function DataTablePagination<TData>({
                   variant={currentPage === pageNumber ? 'default' : 'outline'}
                   className='h-8 min-w-8 px-2'
                   onClick={() => table.setPageIndex((pageNumber as number) - 1)}
+                  disabled={table.getPageCount() === 0}
                 >
                   <span className='sr-only'>رفتن به صفحه {pageNumber}</span>
                   {pageNumber}
@@ -109,7 +111,7 @@ export function DataTablePagination<TData>({
             variant='outline'
             className='size-8 p-0'
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={!canNextPage}
           >
             <span className='sr-only'>رفتن به صفحه بعد</span>
             <ChevronRightIcon className='h-4 w-4 rtl:rotate-180' />
@@ -118,7 +120,7 @@ export function DataTablePagination<TData>({
             variant='outline'
             className='size-8 p-0 @max-md/content:hidden'
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
+            disabled={!canNextPage}
           >
             <span className='sr-only'>رفتن به صفحه آخر</span>
             <DoubleArrowRightIcon className='h-4 w-4 rtl:rotate-180' />

@@ -63,7 +63,7 @@ export function DataTableColumnHeader<TData, TValue>({
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
                 <EyeNoneIcon className='size-3.5 text-muted-foreground/70' />
-                مخفی
+                مخفی کردن ستون
               </DropdownMenuItem>
             </>
           )}

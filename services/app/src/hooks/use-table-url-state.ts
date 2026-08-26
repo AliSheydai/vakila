@@ -97,9 +97,14 @@ export function useTableUrlState(
           collected.push({ id: cfg.columnId, value })
         }
       } else {
-        // default to array type
-        const value = (deserialize(raw) as unknown[]) ?? []
-        if (Array.isArray(value) && value.length > 0) {
+        // default to array type — URL may hold a single value as a plain string
+        const deserialized = deserialize(raw)
+        const value = Array.isArray(deserialized)
+          ? deserialized
+          : typeof deserialized === 'string' && deserialized.trim() !== ''
+            ? [deserialized]
+            : []
+        if (value.length > 0) {
           collected.push({ id: cfg.columnId, value })
         }
       }
