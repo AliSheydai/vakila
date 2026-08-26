@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { type ColumnDef } from '@tanstack/react-table'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import type { Case, Client } from '@/features/cases/types'
 import {
@@ -12,6 +11,7 @@ import {
   getClientCaseCount,
 } from '@/features/cases/utils/clients'
 import { formatDate } from '@/features/cases/utils/format'
+import { ClientAvatar, getClientInitials } from './client-avatar'
 import { ClientsRowActions } from './clients-row-actions'
 
 export type ClientActivity = 'with_active_case' | 'without_active_case'
@@ -23,16 +23,7 @@ export type ClientTableRow = Client & {
   hasActiveCase: boolean
 }
 
-export function getClientInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) {
-    const value = parts[0].slice(0, 2)
-    return /[A-Za-z]/.test(value) ? value.toUpperCase() : value
-  }
-  const initials = `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`
-  return /[A-Za-z]/.test(initials) ? initials.toUpperCase() : initials
-}
+export { getClientInitials }
 
 export function buildClientTableRows(
   clients: Client[],
@@ -67,15 +58,17 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
           href={`/admin/clients/${client.id}`}
           className='flex min-w-0 items-center gap-3 hover:underline'
         >
-          <Avatar className='size-8 shrink-0'>
-            <AvatarFallback className='text-xs'>
-              {getClientInitials(client.name)}
-            </AvatarFallback>
-          </Avatar>
+          <ClientAvatar
+            name={client.name}
+            avatarDataUrl={client.avatarDataUrl}
+            className='size-8 shrink-0'
+            fallbackClassName='text-xs'
+          />
           <LongText className='max-w-44 font-medium'>{client.name}</LongText>
         </Link>
       )
     },
+    meta: { label: 'موکل' },
   },
   {
     accessorKey: 'phone',
@@ -87,7 +80,7 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
         {row.original.phone}
       </span>
     ),
-    meta: { className: 'w-32' },
+    meta: { className: 'w-32', label: 'موبایل' },
   },
   {
     accessorKey: 'email',
@@ -103,6 +96,7 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
         {row.original.email || '—'}
       </span>
     ),
+    meta: { label: 'ایمیل' },
   },
   {
     accessorKey: 'caseCount',
@@ -114,7 +108,7 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
         {row.original.caseCount.toLocaleString('fa-IR')}
       </span>
     ),
-    meta: { className: 'w-24' },
+    meta: { className: 'w-24', label: 'پرونده‌ها' },
   },
   {
     accessorKey: 'attachmentCount',
@@ -126,7 +120,7 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
         {row.original.attachmentCount.toLocaleString('fa-IR')}
       </span>
     ),
-    meta: { className: 'w-20' },
+    meta: { className: 'w-20', label: 'ضمائم' },
   },
   {
     accessorKey: 'activity',
@@ -144,12 +138,13 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
     filterFn: (row, id, value: string[]) => {
       return value.includes(row.getValue(id))
     },
+    meta: { label: 'وضعیت' },
   },
   {
     accessorKey: 'createdAt',
     header: () => null,
     cell: () => null,
-    enableHiding: true,
+    enableHiding: false,
   },
   {
     accessorKey: 'updatedAt',
@@ -161,6 +156,7 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
         {formatDate(row.original.updatedAt)}
       </span>
     ),
+    meta: { label: 'آخرین تغییر' },
   },
   {
     id: 'actions',

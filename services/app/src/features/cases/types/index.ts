@@ -138,8 +138,16 @@ export const clientSchema = z.object({
   name: z.string().min(1),
   phone: z.string().min(1),
   email: z.union([z.string().email(), z.literal('')]).optional(),
-  /** کد ملی — اختیاری */
+  /**
+   * تابعیت برای تفسیر فیلد شناسه:
+   * iranian → کد ملی ۱۰ رقمی | foreign → شناسه/گذرنامه اتباع
+   * اختیاری برای سازگاری با دادهٔ قدیمی در localStorage
+   */
+  citizenship: z.enum(['iranian', 'foreign']).optional(),
+  /** کد ملی یا شناسه اتباع — اختیاری */
   nationalId: z.string().optional(),
+  /** عکس پروفایل به صورت data URL فشرده — اختیاری */
+  avatarDataUrl: z.string().optional(),
   notes: z.string().optional(),
   /** ضمائم مربوط به خود شخص (نه پرونده) */
   attachments: z.array(attachmentSchema).default([]),
@@ -218,7 +226,10 @@ export type CreateClientInput = {
   name: string
   phone: string
   email?: string
+  citizenship?: 'iranian' | 'foreign'
   nationalId?: string
+  /** data URL؛ برای حذف در آپدیت می‌تواند null باشد */
+  avatarDataUrl?: string | null
   notes?: string
 }
 

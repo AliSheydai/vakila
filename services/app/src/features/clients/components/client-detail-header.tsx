@@ -7,7 +7,6 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Client } from '@/features/cases/types'
 import { formatDate } from '@/features/cases/utils/format'
-import { getClientInitials } from './clients-columns'
+import { ClientAvatar } from './client-avatar'
 import { useClientsDialogs } from './clients-provider'
 
 type ClientDetailHeaderProps = {
@@ -50,11 +49,12 @@ export function ClientDetailHeader({
 
       <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
         <div className='flex min-w-0 items-start gap-4'>
-          <Avatar className='size-14 shrink-0 sm:size-16'>
-            <AvatarFallback className='text-base sm:text-lg'>
-              {getClientInitials(client.name)}
-            </AvatarFallback>
-          </Avatar>
+          <ClientAvatar
+            name={client.name}
+            avatarDataUrl={client.avatarDataUrl}
+            className='size-14 shrink-0 sm:size-16'
+            fallbackClassName='text-base sm:text-lg'
+          />
 
           <div className='min-w-0 space-y-3'>
             <div className='flex flex-wrap items-center gap-2'>

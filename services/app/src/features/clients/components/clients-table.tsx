@@ -32,7 +32,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import {
+  DataTablePagination,
+  DataTableToolbar,
+  DataTableViewOptions,
+} from '@/components/data-table'
 import type { Case, Client } from '@/features/cases/types'
 import {
   buildClientTableRows,
@@ -189,10 +193,11 @@ export function ClientsTable({ clients, cases }: ClientsTableProps) {
 
   return (
     <div className='flex flex-1 flex-col gap-4'>
-      <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
+      <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4'>
         <div className='min-w-0 flex-1'>
           <DataTableToolbar
             table={table}
+            showViewOptions={false}
             searchPlaceholder='جستجو نام، موبایل یا ایمیل...'
             filters={[
               {
@@ -212,25 +217,28 @@ export function ClientsTable({ clients, cases }: ClientsTableProps) {
             ]}
           />
         </div>
-        <Select
-          value={sortPreset}
-          onValueChange={(value: SortPreset) => {
-            setSortPreset(value)
-            setSorting(sortingFromPreset(value))
-          }}
-        >
-          <SelectTrigger
-            className='h-8 w-full shrink-0 lg:w-48'
-            aria-label='مرتب‌سازی موکل‌ها'
+        <div className='flex w-full shrink-0 flex-col gap-2 sm:flex-row sm:items-center lg:w-auto'>
+          <DataTableViewOptions table={table} className='w-full sm:w-auto' />
+          <Select
+            value={sortPreset}
+            onValueChange={(value: SortPreset) => {
+              setSortPreset(value)
+              setSorting(sortingFromPreset(value))
+            }}
           >
-            <SelectValue placeholder='مرتب‌سازی' />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='newest'>جدیدترین موکل</SelectItem>
-            <SelectItem value='oldest'>قدیمی‌ترین موکل</SelectItem>
-            <SelectItem value='name_asc'>نام الفبایی</SelectItem>
-          </SelectContent>
-        </Select>
+            <SelectTrigger
+              className='h-8 w-full shrink-0 lg:w-48'
+              aria-label='مرتب‌سازی موکل‌ها'
+            >
+              <SelectValue placeholder='مرتب‌سازی' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='newest'>جدیدترین موکل</SelectItem>
+              <SelectItem value='oldest'>قدیمی‌ترین موکل</SelectItem>
+              <SelectItem value='name_asc'>نام الفبایی</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <ClientsMobileList

@@ -14,7 +14,8 @@ export function buildDemoClients(ownerId: string): Client[] {
       name: 'رضا محمدی',
       phone: '09121234567',
       email: 'reza.mohammadi@example.com',
-      nationalId: '0012345678',
+      nationalId: '0123456789',
+      citizenship: 'iranian' as const,
       notes: 'موکل پرونده ملکی',
       attachments: [
         {

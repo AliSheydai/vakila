@@ -283,7 +283,15 @@ export function CaseClientTab({ caseItem, client }: CaseClientTabProps) {
         <InfoRow label='نام' value={client.name} />
         <InfoRow label='شماره موبایل' value={client.phone} dir='ltr' />
         <InfoRow label='ایمیل' value={client.email ?? ''} dir='ltr' />
-        <InfoRow label='کد ملی' value={client.nationalId ?? ''} dir='ltr' />
+        <InfoRow
+          label={
+            client.citizenship === 'foreign'
+              ? 'شناسه اتباع / گذرنامه'
+              : 'کد ملی'
+          }
+          value={client.nationalId ?? ''}
+          dir='ltr'
+        />
         <InfoRow label='اطلاعات تکمیلی' value={client.notes ?? ''} />
       </dl>
 

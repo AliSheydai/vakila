@@ -43,7 +43,25 @@ export function ClientInfoSection({ client }: ClientInfoSectionProps) {
         <InfoRow label='نام' value={client.name} />
         <InfoRow label='شماره موبایل' value={client.phone} dir='ltr' />
         <InfoRow label='ایمیل' value={client.email ?? ''} dir='ltr' />
-        <InfoRow label='کد ملی' value={client.nationalId ?? ''} dir='ltr' />
+        <InfoRow
+          label={
+            client.citizenship === 'foreign'
+              ? 'شناسه اتباع / گذرنامه'
+              : 'کد ملی'
+          }
+          value={client.nationalId ?? ''}
+          dir='ltr'
+        />
+        <InfoRow
+          label='تابعیت'
+          value={
+            client.citizenship === 'foreign'
+              ? 'اتباع غیر ایرانی'
+              : client.citizenship === 'iranian' || client.nationalId
+                ? 'اتباع ایرانی'
+                : ''
+          }
+        />
         <InfoRow label='توضیحات' value={client.notes ?? ''} />
         <InfoRow label='تاریخ ثبت' value={formatDate(client.createdAt)} />
         <InfoRow

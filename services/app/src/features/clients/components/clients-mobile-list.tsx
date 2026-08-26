@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,10 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { formatDate } from '@/features/cases/utils/format'
-import {
-  getClientInitials,
-  type ClientTableRow,
-} from './clients-columns'
+import { ClientAvatar } from './client-avatar'
+import { type ClientTableRow } from './clients-columns'
 import { useClientsDialogs } from './clients-provider'
 
 type ClientsMobileListProps = {
@@ -63,11 +60,12 @@ export function ClientsMobileList({
               href={`/admin/clients/${client.id}`}
               className='flex min-w-0 items-center gap-3 hover:underline'
             >
-              <Avatar className='size-10 shrink-0'>
-                <AvatarFallback className='text-sm'>
-                  {getClientInitials(client.name)}
-                </AvatarFallback>
-              </Avatar>
+              <ClientAvatar
+                name={client.name}
+                avatarDataUrl={client.avatarDataUrl}
+                className='size-10 shrink-0'
+                fallbackClassName='text-sm'
+              />
               <div className='min-w-0 space-y-0.5'>
                 <p className='truncate text-base font-semibold tracking-tight'>
                   {client.name}

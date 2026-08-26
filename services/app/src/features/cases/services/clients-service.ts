@@ -132,7 +132,9 @@ export function createClient(
     name,
     phone,
     email: input.email?.trim() || undefined,
+    citizenship: input.citizenship,
     nationalId: input.nationalId?.trim() || undefined,
+    avatarDataUrl: input.avatarDataUrl?.trim() || undefined,
     notes: input.notes?.trim() || undefined,
     attachments: [],
     ownerId,
@@ -168,10 +170,18 @@ export function updateClient(
         input.email !== undefined
           ? input.email.trim() || undefined
           : current.email,
+      citizenship:
+        input.citizenship !== undefined
+          ? input.citizenship
+          : current.citizenship,
       nationalId:
         input.nationalId !== undefined
           ? input.nationalId.trim() || undefined
           : current.nationalId,
+      avatarDataUrl:
+        input.avatarDataUrl !== undefined
+          ? input.avatarDataUrl?.trim() || undefined
+          : current.avatarDataUrl,
       notes:
         input.notes !== undefined
           ? input.notes.trim() || undefined
