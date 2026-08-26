@@ -26,6 +26,10 @@ import {
 } from '@/components/ui/sheet'
 import { SelectDropdown } from '@/components/select-dropdown'
 import {
+  formatIranianMobileLocal,
+  isValidIranianMobile,
+} from '@/lib/iranian-phone'
+import {
   CASE_STATUSES,
   CASE_STATUS_LABELS,
   LEGAL_AREAS,
@@ -64,10 +68,17 @@ const formSchema = z
           path: ['clientName'],
         })
       }
-      if (!data.clientPhone?.trim()) {
+      const phone = data.clientPhone?.trim() ?? ''
+      if (!phone) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'شماره موبایل موکل الزامی است.',
+          path: ['clientPhone'],
+        })
+      } else if (!isValidIranianMobile(phone)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'شماره موبایل معتبر نیست. مثلاً ۰۹۱۲۱۲۳۴۵۶۷',
           path: ['clientPhone'],
         })
       }
@@ -149,7 +160,7 @@ export function CasesMutateDrawer({
       } else if (values.clientMode === 'new') {
         const clientResult = addClient({
           name: values.clientName!.trim(),
-          phone: values.clientPhone!.trim(),
+          phone: formatIranianMobileLocal(values.clientPhone!.trim()),
         })
         if (!clientResult.ok) {
           toast.error(clientResult.error)
@@ -359,7 +370,14 @@ export function CasesMutateDrawer({
                     <FormItem>
                       <FormLabel>موبایل</FormLabel>
                       <FormControl>
-                        <Input placeholder='09xxxxxxxxx' {...field} />
+                        <Input
+                          type='tel'
+                          inputMode='tel'
+                          dir='ltr'
+                          placeholder='09xxxxxxxxx'
+                          autoComplete='tel'
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

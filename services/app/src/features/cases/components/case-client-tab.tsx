@@ -27,6 +27,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { SelectDropdown } from '@/components/select-dropdown'
+import {
+  formatIranianMobileLocal,
+  isValidIranianMobile,
+} from '@/lib/iranian-phone'
 import type { Case, Client } from '../types'
 import { useCasesStore } from '../stores/cases-store'
 
@@ -37,7 +41,12 @@ type CaseClientTabProps = {
 
 const editSchema = z.object({
   name: z.string().min(1, 'نام موکل الزامی است.'),
-  phone: z.string().min(1, 'شماره موبایل الزامی است.'),
+  phone: z
+    .string()
+    .min(1, 'شماره موبایل الزامی است.')
+    .refine(isValidIranianMobile, {
+      message: 'شماره موبایل معتبر نیست. مثلاً ۰۹۱۲۱۲۳۴۵۶۷',
+    }),
   email: z.union([z.string().email('ایمیل معتبر نیست.'), z.literal('')]).optional(),
   notes: z.string().optional(),
 })
@@ -67,10 +76,17 @@ const changeSchema = z
           path: ['name'],
         })
       }
-      if (!data.phone?.trim()) {
+      const phone = data.phone?.trim() ?? ''
+      if (!phone) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'شماره موبایل الزامی است.',
+          path: ['phone'],
+        })
+      } else if (!isValidIranianMobile(phone)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'شماره موبایل معتبر نیست. مثلاً ۰۹۱۲۱۲۳۴۵۶۷',
           path: ['phone'],
         })
       }
@@ -164,7 +180,7 @@ export function CaseClientTab({ caseItem, client }: CaseClientTabProps) {
 
     const result = updateClient(client.id, {
       name: values.name,
-      phone: values.phone,
+      phone: formatIranianMobileLocal(values.phone),
       email: values.email,
       notes: values.notes,
     })
@@ -186,7 +202,7 @@ export function CaseClientTab({ caseItem, client }: CaseClientTabProps) {
     } else {
       const created = addClient({
         name: values.name!.trim(),
-        phone: values.phone!.trim(),
+        phone: formatIranianMobileLocal(values.phone!.trim()),
       })
       if (!created.ok) {
         toast.error(created.error)
@@ -306,7 +322,14 @@ export function CaseClientTab({ caseItem, client }: CaseClientTabProps) {
                   <FormItem>
                     <FormLabel>موبایل</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input
+                        type='tel'
+                        inputMode='tel'
+                        dir='ltr'
+                        placeholder='09xxxxxxxxx'
+                        autoComplete='tel'
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -468,7 +491,14 @@ function ChangeClientDialog({
                     <FormItem>
                       <FormLabel>موبایل</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input
+                          type='tel'
+                          inputMode='tel'
+                          dir='ltr'
+                          placeholder='09xxxxxxxxx'
+                          autoComplete='tel'
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
