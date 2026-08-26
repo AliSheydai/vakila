@@ -2,11 +2,10 @@
 
 import { CalendarDays, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
 import { useEventsUi } from './events-provider'
 
 export function EventsEmptyState() {
-  const { setOpen } = useEventsUi()
+  const { openCreate, selectedDate } = useEventsUi()
 
   return (
     <div className='flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed px-6 py-16 text-center sm:py-20'>
@@ -22,10 +21,13 @@ export function EventsEmptyState() {
       </p>
       <Button
         className='mt-6 w-full sm:w-auto'
-        onClick={() => {
-          setOpen('create')
-          toast.message('فرم ایجاد رویداد در فاز بعدی فعال می‌شود.')
-        }}
+        onClick={() =>
+          openCreate({
+            date: selectedDate,
+            startTime: '10:00',
+            endTime: '11:00',
+          })
+        }
       >
         <Plus className='size-4' />
         ایجاد رویداد

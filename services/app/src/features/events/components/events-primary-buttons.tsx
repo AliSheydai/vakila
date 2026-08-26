@@ -7,7 +7,7 @@ import { useEventsStore } from '../stores/events-store'
 import { useEventsUi } from './events-provider'
 
 export function EventsPrimaryButtons() {
-  const { setOpen } = useEventsUi()
+  const { openCreate, selectedDate } = useEventsUi()
   const events = useEventsStore((state) => state.events)
   const seedDemoIfEmpty = useEventsStore((state) => state.seedDemoIfEmpty)
 
@@ -32,10 +32,13 @@ export function EventsPrimaryButtons() {
         </Button>
       )}
       <Button
-        onClick={() => {
-          setOpen('create')
-          toast.message('فرم ایجاد رویداد در فاز بعدی فعال می‌شود.')
-        }}
+        onClick={() =>
+          openCreate({
+            date: selectedDate,
+            startTime: '10:00',
+            endTime: '11:00',
+          })
+        }
       >
         <Plus className='size-4' />
         ایجاد رویداد

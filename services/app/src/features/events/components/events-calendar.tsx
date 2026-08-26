@@ -1,6 +1,7 @@
 'use client'
 
-import { toast } from 'sonner'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { Event } from '../types'
 import { eventBlockStyles } from '../data/event-styles'
@@ -32,16 +33,6 @@ const WEEKDAY_HEADERS = (() => {
   return days.map((day) => formatWeekdayShort(day))
 })()
 
-function selectEvent(
-  event: Event,
-  setCurrentRow: (event: Event | null) => void,
-  setOpen: (value: 'detail' | null) => void
-) {
-  setCurrentRow(event)
-  setOpen('detail')
-  toast.message('جزئیات کامل و ویرایش در فاز بعدی فعال می‌شود.')
-}
-
 function MonthView({
   events,
   now,
@@ -54,8 +45,8 @@ function MonthView({
     selectedDate,
     setSelectedDate,
     setAnchorDate,
-    setCurrentRow,
-    setOpen,
+    openDetail,
+    openCreate,
   } = useEventsUi()
   const grid = getMonthGrid(anchorDate)
   const todayKey = toDateKey(now)
@@ -98,12 +89,23 @@ function MonthView({
                   setSelectedDate(key)
                   setAnchorDate(day)
                 }}
+                onDoubleClick={() => {
+                  setSelectedDate(key)
+                  setAnchorDate(day)
+                  openCreate({
+                    date: key,
+                    startTime: '10:00',
+                    endTime: '11:00',
+                  })
+                }}
                 className={cn(
                   'inline-flex size-6 items-center justify-center rounded-full text-xs tabular-nums transition-colors hover:bg-muted sm:size-7 sm:text-sm',
-                  isToday && 'bg-foreground font-semibold text-background hover:bg-foreground',
+                  isToday &&
+                    'bg-foreground font-semibold text-background hover:bg-foreground',
                   temporal === 'past' && !isToday && 'opacity-60'
                 )}
                 aria-label={formatEventDate(key)}
+                title='دوبار کلیک برای ایجاد رویداد'
               >
                 {formatDayNumber(day)}
               </button>
@@ -112,9 +114,7 @@ function MonthView({
                   <button
                     key={event.id}
                     type='button'
-                    onClick={() =>
-                      selectEvent(event, setCurrentRow, setOpen)
-                    }
+                    onClick={() => openDetail(event)}
                     className={cn(
                       'truncate rounded px-1 py-0.5 text-start text-[10px] leading-4 ring-1 ring-inset sm:text-[11px]',
                       eventBlockStyles.get(event.type),
@@ -161,8 +161,8 @@ function WeekView({
     selectedDate,
     setSelectedDate,
     setAnchorDate,
-    setCurrentRow,
-    setOpen,
+    openDetail,
+    openCreate,
   } = useEventsUi()
   const days = getWeekDays(anchorDate)
   const todayKey = toDateKey(now)
@@ -191,7 +191,17 @@ function WeekView({
                   setSelectedDate(key)
                   setAnchorDate(day)
                 }}
+                onDoubleClick={() => {
+                  setSelectedDate(key)
+                  setAnchorDate(day)
+                  openCreate({
+                    date: key,
+                    startTime: '10:00',
+                    endTime: '11:00',
+                  })
+                }}
                 className='flex items-center justify-between gap-2 border-b px-2 py-2 text-start sm:flex-col sm:items-start'
+                title='دوبار کلیک برای ایجاد رویداد'
               >
                 <span className='text-xs text-muted-foreground'>
                   {formatWeekdayShort(day)}
@@ -207,17 +217,25 @@ function WeekView({
               </button>
               <div className='flex flex-1 flex-col gap-1 p-1.5'>
                 {dayEvents.length === 0 ? (
-                  <p className='px-1 py-2 text-[11px] text-muted-foreground'>
-                    —
-                  </p>
+                  <button
+                    type='button'
+                    onClick={() =>
+                      openCreate({
+                        date: key,
+                        startTime: '10:00',
+                        endTime: '11:00',
+                      })
+                    }
+                    className='rounded-md border border-dashed px-1 py-2 text-[11px] text-muted-foreground hover:bg-accent/40'
+                  >
+                    افزودن
+                  </button>
                 ) : (
                   dayEvents.map((event) => (
                     <button
                       key={event.id}
                       type='button'
-                      onClick={() =>
-                        selectEvent(event, setCurrentRow, setOpen)
-                      }
+                      onClick={() => openDetail(event)}
                       className={cn(
                         'rounded-md px-1.5 py-1 text-start text-[11px] leading-4 ring-1 ring-inset transition-opacity hover:opacity-90',
                         eventBlockStyles.get(event.type),
@@ -252,7 +270,7 @@ function DayView({
   lookup: EventLookup
   now: Date
 }) {
-  const { selectedDate, setCurrentRow, setOpen } = useEventsUi()
+  const { selectedDate, openDetail, openCreate } = useEventsUi()
   const dayEvents = getEventsByDate(events, selectedDate)
   const temporal = getDateTemporalStatus(selectedDate, now)
 
@@ -260,24 +278,57 @@ function DayView({
     <div className='rounded-xl border'>
       <div
         className={cn(
-          'border-b px-4 py-3',
+          'flex items-center justify-between gap-3 border-b px-4 py-3',
           temporal === 'today' && 'bg-accent/40'
         )}
       >
-        <p className='text-sm font-semibold'>
-          {temporal === 'today' ? 'امروز' : formatEventWeekday(selectedDate)}
-        </p>
-        <p className='mt-0.5 text-sm tabular-nums text-muted-foreground'>
-          {formatEventDate(selectedDate)}
-        </p>
+        <div>
+          <p className='text-sm font-semibold'>
+            {temporal === 'today' ? 'امروز' : formatEventWeekday(selectedDate)}
+          </p>
+          <p className='mt-0.5 text-sm tabular-nums text-muted-foreground'>
+            {formatEventDate(selectedDate)}
+          </p>
+        </div>
+        <Button
+          type='button'
+          size='sm'
+          variant='outline'
+          onClick={() =>
+            openCreate({
+              date: selectedDate,
+              startTime: '10:00',
+              endTime: '11:00',
+            })
+          }
+        >
+          <Plus className='size-4' />
+          رویداد
+        </Button>
       </div>
       <div className='space-y-2 p-3 sm:p-4'>
         {dayEvents.length === 0 ? (
-          <p className='py-10 text-center text-sm text-muted-foreground'>
-            {temporal === 'today'
-              ? 'امروز رویدادی ندارید.'
-              : 'در این روز رویدادی ندارید.'}
-          </p>
+          <div className='py-10 text-center'>
+            <p className='text-sm text-muted-foreground'>
+              {temporal === 'today'
+                ? 'امروز رویدادی ندارید.'
+                : 'در این روز رویدادی ندارید.'}
+            </p>
+            <Button
+              type='button'
+              className='mt-4'
+              onClick={() =>
+                openCreate({
+                  date: selectedDate,
+                  startTime: '10:00',
+                  endTime: '11:00',
+                })
+              }
+            >
+              <Plus className='size-4' />
+              ایجاد رویداد
+            </Button>
+          </div>
         ) : (
           dayEvents.map((event) => (
             <EventListItem
@@ -285,7 +336,7 @@ function DayView({
               event={event}
               lookup={lookup}
               now={now}
-              onSelect={(item) => selectEvent(item, setCurrentRow, setOpen)}
+              onSelect={openDetail}
             />
           ))
         )}
@@ -303,7 +354,7 @@ function SelectedDaySidebar({
   lookup: EventLookup
   now: Date
 }) {
-  const { selectedDate, setCurrentRow, setOpen } = useEventsUi()
+  const { selectedDate, openDetail, openCreate } = useEventsUi()
   const dayEvents = getEventsByDate(events, selectedDate)
   const temporal = getDateTemporalStatus(selectedDate, now)
 
@@ -311,18 +362,36 @@ function SelectedDaySidebar({
     <aside className='rounded-xl border'>
       <div
         className={cn(
-          'border-b px-4 py-3',
+          'flex items-center justify-between gap-2 border-b px-4 py-3',
           temporal === 'today' && 'bg-accent/40'
         )}
       >
-        <p className='text-sm font-semibold'>
-          {temporal === 'today'
-            ? 'رویدادهای امروز'
-            : `رویدادهای ${formatEventWeekday(selectedDate)}`}
-        </p>
-        <p className='mt-0.5 text-xs tabular-nums text-muted-foreground'>
-          {formatEventDate(selectedDate)}
-        </p>
+        <div className='min-w-0'>
+          <p className='text-sm font-semibold'>
+            {temporal === 'today'
+              ? 'رویدادهای امروز'
+              : `رویدادهای ${formatEventWeekday(selectedDate)}`}
+          </p>
+          <p className='mt-0.5 text-xs tabular-nums text-muted-foreground'>
+            {formatEventDate(selectedDate)}
+          </p>
+        </div>
+        <Button
+          type='button'
+          size='icon'
+          variant='outline'
+          className='size-8 shrink-0'
+          onClick={() =>
+            openCreate({
+              date: selectedDate,
+              startTime: '10:00',
+              endTime: '11:00',
+            })
+          }
+          aria-label='ایجاد رویداد'
+        >
+          <Plus className='size-4' />
+        </Button>
       </div>
       <div className='max-h-[28rem] space-y-2 overflow-y-auto p-3'>
         {dayEvents.length === 0 ? (
@@ -337,7 +406,7 @@ function SelectedDaySidebar({
               lookup={lookup}
               now={now}
               compact
-              onSelect={(item) => selectEvent(item, setCurrentRow, setOpen)}
+              onSelect={openDetail}
             />
           ))
         )}

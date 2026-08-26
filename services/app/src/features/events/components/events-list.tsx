@@ -1,14 +1,13 @@
 'use client'
 
-import { toast } from 'sonner'
 import type { Event } from '../types'
 import {
   formatEventDate,
   formatEventWeekday,
   formatMonthTitle,
   toDateKey,
+  compareEventsByStart,
 } from '../utils/datetime'
-import { compareEventsByStart } from '../utils/datetime'
 import { useEventsUi } from './events-provider'
 import { EventListItem, type EventLookup } from './event-list-item'
 
@@ -36,7 +35,7 @@ export function EventsList({
   scopeToAnchorMonth = false,
   now = new Date(),
 }: EventsListProps) {
-  const { anchorDate, setOpen, setCurrentRow } = useEventsUi()
+  const { anchorDate, openDetail } = useEventsUi()
 
   const scoped = scopeToAnchorMonth
     ? events.filter((event) => {
@@ -50,12 +49,6 @@ export function EventsList({
   const sorted = scoped.slice().sort(compareEventsByStart)
   const groups = groupByDate(sorted)
   const todayKey = toDateKey(now)
-
-  const handleSelect = (event: Event) => {
-    setCurrentRow(event)
-    setOpen('detail')
-    toast.message('جزئیات کامل و ویرایش در فاز بعدی فعال می‌شود.')
-  }
 
   if (sorted.length === 0) {
     return (
@@ -99,7 +92,7 @@ export function EventsList({
                   event={event}
                   lookup={lookup}
                   now={now}
-                  onSelect={handleSelect}
+                  onSelect={openDetail}
                 />
               ))}
             </div>

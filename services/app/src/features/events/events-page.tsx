@@ -17,6 +17,7 @@ import { EventsEmptyState } from './components/events-empty-state'
 import { EventsToolbar } from './components/events-toolbar'
 import { EventsCalendar } from './components/events-calendar'
 import { EventsList } from './components/events-list'
+import { EventsDialogs } from './components/events-dialogs'
 import type { EventLookup } from './components/event-list-item'
 
 function EventsContent() {
@@ -94,6 +95,8 @@ function EventsContent() {
           </>
         )}
       </Main>
+
+      <EventsDialogs />
     </>
   )
 }
