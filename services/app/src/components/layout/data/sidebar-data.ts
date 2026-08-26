@@ -76,12 +76,12 @@ export const sidebarData: SidebarData = {
           icon: Briefcase,
         },
         {
-          title: 'موکل',
+          title: 'موکل‌ها',
           url: '/admin/clients',
           icon: Users,
         },
         {
-          title: 'رویداد',
+          title: 'رویدادها',
           url: '/admin/events',
           icon: CalendarDays,
         },

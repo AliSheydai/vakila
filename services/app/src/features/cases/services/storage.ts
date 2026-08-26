@@ -5,7 +5,7 @@
 
 const STORAGE_PREFIX = 'vakila:admin:v1'
 
-export type StorageResource = 'cases' | 'clients' | 'meta'
+export type StorageResource = 'cases' | 'clients' | 'events' | 'meta'
 
 function buildKey(ownerId: string, resource: StorageResource): string {
   return `${STORAGE_PREFIX}:${ownerId}:${resource}`

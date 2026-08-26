@@ -112,12 +112,37 @@ export type AttachmentUploadStatus = (typeof ATTACHMENT_UPLOAD_STATUSES)[number]
 
 // ─── Zod schemas ───────────────────────────────────────────
 
+/**
+ * فقط metadata — محتوای فایل در localStorage ذخیره نمی‌شود.
+ * برای preview در جلسه فعلی می‌توان از Object URL در UI استفاده کرد.
+ * همین schema برای ضمیمهٔ پرونده و ضمیمهٔ موکل استفاده می‌شود (جدا در هر موجودیت).
+ */
+export const attachmentSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  mimeType: z.string().min(1),
+  size: z.number().nonnegative(),
+  uploadedAt: z.string().datetime(),
+  uploadedBy: z.string().optional(),
+})
+
+export type Attachment = z.infer<typeof attachmentSchema>
+
+/**
+ * موکل موجودیت مستقل است (جدا از Case).
+ * attachments فقط metadata است — محتوای فایل در localStorage ذخیره نمی‌شود.
+ * فیلدهای جدید با default سازگار با دادهٔ قدیمی در LS هستند.
+ */
 export const clientSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   phone: z.string().min(1),
   email: z.union([z.string().email(), z.literal('')]).optional(),
+  /** کد ملی — اختیاری */
+  nationalId: z.string().optional(),
   notes: z.string().optional(),
+  /** ضمائم مربوط به خود شخص (نه پرونده) */
+  attachments: z.array(attachmentSchema).default([]),
   ownerId: z.string().min(1),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -165,21 +190,6 @@ export const expenseSchema = z.object({
 
 export type Expense = z.infer<typeof expenseSchema>
 
-/**
- * فقط metadata — محتوای فایل در localStorage ذخیره نمی‌شود.
- * برای preview در جلسه فعلی می‌توان از Object URL در UI استفاده کرد.
- */
-export const attachmentSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  mimeType: z.string().min(1),
-  size: z.number().nonnegative(),
-  uploadedAt: z.string().datetime(),
-  uploadedBy: z.string().optional(),
-})
-
-export type Attachment = z.infer<typeof attachmentSchema>
-
 export const caseSchema = z.object({
   id: z.string().min(1),
   caseNumber: z.string().min(1),
@@ -208,10 +218,22 @@ export type CreateClientInput = {
   name: string
   phone: string
   email?: string
+  nationalId?: string
   notes?: string
 }
 
 export type UpdateClientInput = Partial<CreateClientInput>
+
+/** فیلتر وضعیت پرونده برای لیست موکل‌ها */
+export type ClientCaseActivityFilter =
+  | 'all'
+  | 'with_active_case'
+  | 'without_active_case'
+
+export type ClientSortOption =
+  | 'newest'
+  | 'oldest'
+  | 'name_asc'
 
 export type CreateCaseInput = {
   title: string
