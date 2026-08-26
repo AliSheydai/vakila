@@ -86,7 +86,7 @@ export const sidebarData: SidebarData = {
           icon: CalendarDays,
         },
         {
-          title: 'آمار ها',
+          title: 'آمارها',
           url: '/admin/stats',
           icon: BarChart3,
         },
