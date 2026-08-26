@@ -1,8 +1,14 @@
 'use client'
 
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
-import type { Event } from '../types'
+import type {
+  Event,
+  EventFilters,
+  EventRelationFilter,
+  EventTemporalFilter,
+  EventTypeFilter,
+} from '../types'
 import type { EventsCalendarMode, EventsSurface } from '../types/ui'
 import { toDateKey } from '../utils/datetime'
 
@@ -12,6 +18,20 @@ export type EventCreateDefaults = {
   date?: string
   startTime?: string
   endTime?: string
+}
+
+export type EventsUiFilters = {
+  query: string
+  type: EventTypeFilter
+  temporal: EventTemporalFilter
+  relation: EventRelationFilter
+}
+
+const DEFAULT_FILTERS: EventsUiFilters = {
+  query: '',
+  type: 'all',
+  temporal: 'all',
+  relation: 'all',
 }
 
 type EventsContextType = {
@@ -35,6 +55,14 @@ type EventsContextType = {
   setCalendarMode: React.Dispatch<React.SetStateAction<EventsCalendarMode>>
   anchorDate: Date
   setAnchorDate: React.Dispatch<React.SetStateAction<Date>>
+  filters: EventsUiFilters
+  setFilter: <K extends keyof EventsUiFilters>(
+    key: K,
+    value: EventsUiFilters[K]
+  ) => void
+  resetFilters: () => void
+  hasActiveFilters: boolean
+  toEventFilters: () => EventFilters
 }
 
 const EventsContext = React.createContext<EventsContextType | null>(null)
@@ -49,6 +77,37 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
   const [calendarMode, setCalendarMode] =
     useState<EventsCalendarMode>('month')
   const [anchorDate, setAnchorDate] = useState(() => new Date())
+  const [filters, setFilters] = useState<EventsUiFilters>(DEFAULT_FILTERS)
+
+  const hasActiveFilters = useMemo(
+    () =>
+      Boolean(filters.query.trim()) ||
+      filters.type !== 'all' ||
+      filters.temporal !== 'all' ||
+      filters.relation !== 'all',
+    [filters]
+  )
+
+  const setFilter = useCallback(
+    <K extends keyof EventsUiFilters>(key: K, value: EventsUiFilters[K]) => {
+      setFilters((prev) => ({ ...prev, [key]: value }))
+    },
+    []
+  )
+
+  const resetFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS)
+  }, [])
+
+  const toEventFilters = useCallback(
+    (): EventFilters => ({
+      query: filters.query,
+      type: filters.type,
+      temporal: filters.temporal,
+      relation: filters.relation,
+    }),
+    [filters]
+  )
 
   const openCreate = useCallback(
     (defaults?: EventCreateDefaults) => {
@@ -110,6 +169,11 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
         setCalendarMode,
         anchorDate,
         setAnchorDate,
+        filters,
+        setFilter,
+        resetFilters,
+        hasActiveFilters,
+        toEventFilters,
       }}
     >
       {children}

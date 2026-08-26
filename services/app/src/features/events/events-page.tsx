@@ -10,10 +10,13 @@ import { useCasesHydration } from '@/features/cases/hooks/use-cases-hydration'
 import { useCasesStore } from '@/features/cases/stores/cases-store'
 import { useEventsHydration } from './hooks/use-events-hydration'
 import { useEventsStore } from './stores/events-store'
+import { filterEvents } from './utils/filters'
 import { EventsProvider, useEventsUi } from './components/events-provider'
 import { EventsPrimaryButtons } from './components/events-primary-buttons'
 import { EventsSummary } from './components/events-summary'
 import { EventsEmptyState } from './components/events-empty-state'
+import { EventsFiltersBar } from './components/events-filters-bar'
+import { EventsFilteredEmpty } from './components/events-filtered-empty'
 import { EventsToolbar } from './components/events-toolbar'
 import { EventsCalendar } from './components/events-calendar'
 import { EventsList } from './components/events-list'
@@ -27,7 +30,7 @@ function EventsContent() {
   const error = useEventsStore((state) => state.error)
   const cases = useCasesStore((state) => state.cases)
   const clients = useCasesStore((state) => state.clients)
-  const { surface } = useEventsUi()
+  const { surface, toEventFilters, hasActiveFilters } = useEventsUi()
 
   const hydrated = eventsHydrated && casesHydrated
 
@@ -42,6 +45,11 @@ function EventsContent() {
     }
     return { clientNameById, caseTitleById }
   }, [cases, clients])
+
+  const filteredEvents = useMemo(
+    () => filterEvents(events, toEventFilters(), lookup),
+    [events, toEventFilters, lookup]
+  )
 
   return (
     <>
@@ -82,14 +90,17 @@ function EventsContent() {
         ) : (
           <>
             <EventsSummary events={events} />
+            <EventsFiltersBar />
             <EventsToolbar />
-            {surface === 'calendar' ? (
-              <EventsCalendar events={events} lookup={lookup} />
+            {filteredEvents.length === 0 && hasActiveFilters ? (
+              <EventsFilteredEmpty totalCount={events.length} />
+            ) : surface === 'calendar' ? (
+              <EventsCalendar events={filteredEvents} lookup={lookup} />
             ) : (
               <EventsList
-                events={events}
+                events={filteredEvents}
                 lookup={lookup}
-                scopeToAnchorMonth
+                scopeToAnchorMonth={!hasActiveFilters}
               />
             )}
           </>
