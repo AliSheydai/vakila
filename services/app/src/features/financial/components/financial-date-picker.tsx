@@ -48,14 +48,27 @@ export function FinancialDatePicker({
           <CalendarIcon className='ms-auto size-4 opacity-50' aria-hidden />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-auto p-0' align='start'>
+      <PopoverContent
+        className='w-auto overflow-visible p-0'
+        align='start'
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onInteractOutside={(event) => {
+          const target = event.target as HTMLElement | null
+          if (target?.closest('[data-slot="select-content"]')) {
+            event.preventDefault()
+          }
+        }}
+      >
         <Calendar
           mode='single'
           captionLayout='dropdown'
           selected={selected}
           onSelect={onSelect}
+          defaultMonth={selected}
+          startMonth={new Date(1921, 0)}
+          endMonth={new Date()}
           disabled={(date: Date) =>
-            date > new Date() || date < new Date('1900-01-01')
+            date > new Date() || date < new Date('1921-01-01')
           }
         />
       </PopoverContent>
