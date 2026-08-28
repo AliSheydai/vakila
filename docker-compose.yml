@@ -78,6 +78,47 @@ services:
       retries: 5
       start_period: 20s
 
+  coturn:
+    image: coturn/coturn:latest
+    container_name: vokala-coturn
+    restart: unless-stopped
+    ports:
+      - "${TURN_PORT:-3478}:3478/udp"
+      - "${TURN_PORT:-3478}:3478/tcp"
+      - "${TURN_TLS_PORT:-5349}:5349/tcp"
+    volumes:
+      - ./infra/coturn.conf:/etc/coturn/turnserver.conf:ro
+    networks:
+      - vokala-net
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: vokala-livekit
+    restart: unless-stopped
+    command: ["--config", "/etc/livekit.yaml", "--dev"]
+    ports:
+      - "${LIVEKIT_PORT:-7880}:7880"
+      - "${LIVEKIT_TCP_PORT:-7881}:7881"
+      - "${LIVEKIT_UDP_PORT:-7882}:7882/udp"
+      - "60000-60010:60000-60010/udp"
+    volumes:
+      - ./infra/livekit.yaml:/etc/livekit.yaml:ro
+    networks:
+      - vokala-net
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--spider",
+          "http://127.0.0.1:7880",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   app:
     build:
       context: .
@@ -99,6 +140,10 @@ services:
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-vakila_rustfs_secret_change_me}
       RUSTFS_BUCKET: ${RUSTFS_BUCKET:-vakila-attachments}
       RUSTFS_STORAGE_LIMIT_BYTES: ${RUSTFS_STORAGE_LIMIT_BYTES:-10737418240}
+      LIVEKIT_URL: ${LIVEKIT_URL:-ws://livekit:7880}
+      LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:-ws://localhost:7880}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-vakila_livekit_secret_change_in_production}
     env_file:
       - path: services/app/.env
         required: false
@@ -108,6 +153,8 @@ services:
       postgres:
         condition: service_healthy
       rustfs:
+        condition: service_healthy
+      livekit:
         condition: service_healthy
     healthcheck:
       test:

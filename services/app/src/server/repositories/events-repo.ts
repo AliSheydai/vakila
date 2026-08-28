@@ -163,14 +163,21 @@ export async function setRecordingConsent(
 }
 
 export async function markEventCompleted(
-  ownerId: string,
-  eventId: string
+  eventId: string,
+  userId: string,
+  userRole: string
 ): Promise<Event | null> {
+  const row = await getEventRowById(eventId)
+  if (!row) return null
+
+  const canComplete = row.owner_id === userId || userRole === 'super_admin'
+  if (!canComplete) return null
+
   const { rows } = await query<EventRow>(
-    `UPDATE events SET status = 'completed', call_status = 'ended'
-     WHERE id = $1 AND owner_id = $2
+    `UPDATE events SET status = 'completed', call_status = 'ended', updated_at = NOW()
+     WHERE id = $1
      RETURNING *`,
-    [eventId, ownerId]
+    [eventId]
   )
   return rows[0] ? mapEvent(rows[0]) : null
 }

@@ -12,9 +12,9 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const { id } = await context.params
-    const event = await eventsRepo.markEventCompleted(user.id, id)
+    const event = await eventsRepo.markEventCompleted(id, user.id, user.role)
     if (!event) {
-      return fail('جلسه یافت نشد.', 404)
+      return fail('جلسه یافت نشد یا دسترسی تکمیل ندارید.', 404)
     }
 
     return ok(event)
