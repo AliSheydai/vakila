@@ -40,10 +40,18 @@ type PortalState = {
     caseId: string,
     input: AddCaseCommentInput
   ) => Promise<ServiceResult<void>>
+  deleteCaseComment: (
+    caseId: string,
+    commentId: string
+  ) => Promise<ServiceResult<void>>
   addCaseDocument: (
     caseId: string,
     file: File
   ) => Promise<ServiceResult<CaseDocument>>
+  deleteCaseDocument: (
+    caseId: string,
+    documentId: string
+  ) => Promise<ServiceResult<void>>
   cancelSession: (sessionId: string) => Promise<ServiceResult<void>>
   retryPayment: (paymentId: string) => Promise<ServiceResult<void>>
 }
@@ -162,6 +170,21 @@ export const usePortalStore = create<PortalState>()((set, get) => ({
     return { ok: true, data: undefined as void }
   },
 
+  deleteCaseComment: async (caseId, commentId) => {
+    const clientId = get().clientId
+    if (!clientId) {
+      return { ok: false, error: 'شناسه موکل مشخص نیست.' }
+    }
+
+    const result = await apiPortal.deletePortalComment(caseId, commentId)
+    if (!result.ok) return result
+
+    const reloaded = await reloadPortal(set, clientId)
+    if (!reloaded.ok) return reloaded
+
+    return { ok: true, data: undefined as void }
+  },
+
   addCaseDocument: async (caseId, file) => {
     const result = await apiPortal.addCaseDocument(caseId, file)
     if (!result.ok) return result
@@ -187,6 +210,21 @@ export const usePortalStore = create<PortalState>()((set, get) => ({
     }
 
     return result
+  },
+
+  deleteCaseDocument: async (caseId, documentId) => {
+    const clientId = get().clientId
+    if (!clientId) {
+      return { ok: false, error: 'شناسه موکل مشخص نیست.' }
+    }
+
+    const result = await apiPortal.deletePortalCaseDocument(caseId, documentId)
+    if (!result.ok) return result
+
+    const reloaded = await reloadPortal(set, clientId)
+    if (!reloaded.ok) return reloaded
+
+    return { ok: true, data: undefined as void }
   },
 
   cancelSession: async (sessionId) => {

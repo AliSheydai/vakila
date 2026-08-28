@@ -9,7 +9,7 @@ export async function GET(request: Request, ctx: Ctx) {
     const user = await requireUser(request)
     requireRole(user, ['lawyer', 'super_admin'])
     const { id } = await ctx.params
-    const comments = await casesRepo.listComments(user.id, id)
+    const comments = await casesRepo.listComments(user.id, id, { markSeen: true })
     if (!comments) return fail('Case not found', 404)
     return ok(comments)
   })

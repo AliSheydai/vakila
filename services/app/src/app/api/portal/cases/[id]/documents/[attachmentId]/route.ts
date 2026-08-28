@@ -1,4 +1,4 @@
-import { fail, ok, withApiHandler } from '@/server/api'
+import { fail, ok, sanitizeError, withApiHandler } from '@/server/api'
 import { requireRole, requireUser } from '@/server/auth/require-user'
 import * as attachmentsRepo from '@/server/repositories/attachments-repo'
 
@@ -42,12 +42,16 @@ export async function DELETE(request: Request, ctx: Ctx) {
     requireRole(user, ['client'])
     const { attachmentId } = await ctx.params
 
-    const deleted = await attachmentsRepo.deleteAttachmentWithObject(
-      attachmentId,
-      user.id,
-      'client'
-    )
-    if (!deleted) return fail('Attachment not found', 404)
-    return ok({ deleted: true })
+    try {
+      const deleted = await attachmentsRepo.deleteAttachmentWithObject(
+        attachmentId,
+        user.id,
+        'client'
+      )
+      if (!deleted) return fail('Attachment not found', 404)
+      return ok({ deleted: true })
+    } catch (error) {
+      return fail(sanitizeError(error, 'Unable to delete attachment'), 400)
+    }
   })
 }

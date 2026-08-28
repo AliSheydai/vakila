@@ -9,7 +9,7 @@ import type {
   AddCaseCommentInput,
   CreateCaseInput,
 } from './portal-service'
-import { uploadPortalCaseDocument } from '@/features/cases/services/api-attachments-service'
+import { uploadPortalCaseDocument, deletePortalCaseDocument as deletePortalDocument } from '@/features/cases/services/api-attachments-service'
 import type { Attachment } from '@/features/cases/types'
 
 function toCaseDocument(att: Attachment): CaseDocument {
@@ -53,6 +53,25 @@ export async function addPortalComment(
       attachmentIds: input.attachmentIds,
     },
   })
+}
+
+export async function deletePortalComment(
+  caseId: string,
+  commentId: string
+): Promise<ApiResult<void>> {
+  const result = await api<{ deleted: boolean }>(
+    `/api/portal/cases/${caseId}/comments/${commentId}`,
+    { method: 'DELETE' }
+  )
+  if (!result.ok) return result
+  return { ok: true, data: undefined }
+}
+
+export async function deletePortalCaseDocument(
+  caseId: string,
+  attachmentId: string
+): Promise<ApiResult<void>> {
+  return deletePortalDocument(caseId, attachmentId)
 }
 
 export async function cancelPortalSession(

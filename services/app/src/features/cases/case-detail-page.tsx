@@ -21,7 +21,9 @@ import { CaseDetailHeader } from './components/case-detail-header'
 import { CaseInfoTab } from './components/case-info-tab'
 import { CaseClientTab } from './components/case-client-tab'
 import { CaseAttachmentsTab } from './components/case-attachments-tab'
+import { CaseCommentsTab } from './components/case-comments-tab'
 import { CaseFinanceTab } from './components/case-finance-tab'
+import { useUnseenCommentsCount } from './hooks/use-unseen-comments-count'
 import { RelatedEventsSection } from '@/features/events/components/related-events-section'
 
 type CaseDetailPageProps = {
@@ -94,6 +96,8 @@ function CaseDetailDialogs({ caseId }: { caseId: string }) {
 function CaseDetailContent({ caseId }: CaseDetailPageProps) {
   const { hydrated } = useCasesHydration()
   useEventsHydration()
+  const { count: unseenComments, reload: reloadUnseenCount } =
+    useUnseenCommentsCount(caseId, hydrated)
   const caseItem = useCasesStore((state) =>
     state.cases.find((item) => item.id === caseId)
   )
@@ -163,6 +167,14 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
               <TabsTrigger value='info' className='px-3'>
                 اطلاعات
               </TabsTrigger>
+              <TabsTrigger value='comments' className='px-3'>
+                گفتگو
+                {unseenComments > 0 && (
+                  <span className='ms-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums'>
+                    {unseenComments.toLocaleString('fa-IR')}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value='attachments' className='px-3'>
                 مدارک
               </TabsTrigger>
@@ -185,6 +197,13 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
 
           <TabsContent value='info' className='flex-1 outline-none'>
             <CaseInfoTab caseItem={caseItem} />
+          </TabsContent>
+
+          <TabsContent value='comments' className='outline-none'>
+            <CaseCommentsTab
+              caseItem={caseItem}
+              onSeen={() => void reloadUnseenCount()}
+            />
           </TabsContent>
 
           <TabsContent value='attachments' className='outline-none'>

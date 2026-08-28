@@ -5,14 +5,17 @@ import {
   Download,
   FileText,
   Loader2,
+  Trash2,
   UploadCloud,
   XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useAuthStore } from '@/stores/auth-store'
 import { usePortalStore } from '../../stores/portal-store'
-import type { ClientCase } from '../../types'
+import type { CaseDocument, ClientCase } from '../../types'
 import { DocumentStatusBadge } from '../status-badges'
 import {
   formatDate,
@@ -49,11 +52,15 @@ function validateFile(file: File): string | null {
 }
 
 export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
+  const userId = useAuthStore((s) => s.auth.user?.id)
   const addCaseDocument = usePortalStore((s) => s.addCaseDocument)
+  const deleteCaseDocument = usePortalStore((s) => s.deleteCaseDocument)
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [pending, setPending] = useState<PendingUpload[]>([])
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [docToDelete, setDocToDelete] = useState<CaseDocument | null>(null)
 
   const processFiles = useCallback(
     async (fileList: FileList | File[]) => {
@@ -197,7 +204,12 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
           </li>
         ))}
 
-        {documents.map((doc) => (
+        {documents.map((doc) => {
+          const isOwn = doc.uploadedBy === userId
+          const canDelete = isOwn && !doc.seenByLawyerAt
+          const pendingReview = isOwn && !doc.seenByLawyerAt
+
+          return (
           <li
             key={doc.id}
             className='flex items-center justify-between gap-3 px-4 py-3'
@@ -209,25 +221,47 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
                 <p className='text-xs text-muted-foreground'>
                   {formatMimeTypeLabel(doc.mimeType)} ·{' '}
                   {formatFileSize(doc.size)} · {formatDate(doc.uploadedAt)}
+                  {pendingReview ? ' · در انتظار مشاهده وکیل' : null}
+                  {isOwn && doc.seenByLawyerAt ? ' · مشاهده شده' : null}
                 </p>
               </div>
               <DocumentStatusBadge status={doc.status} />
             </div>
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon'
-              disabled={downloadingId === doc.id}
-              onClick={() => void handleDownload(doc.id, doc.name)}
-            >
-              {downloadingId === doc.id ? (
-                <Loader2 className='size-4 animate-spin' />
-              ) : (
-                <Download className='size-4' />
-              )}
-            </Button>
+            <div className='flex items-center gap-1'>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                disabled={downloadingId === doc.id}
+                onClick={() => void handleDownload(doc.id, doc.name)}
+              >
+                {downloadingId === doc.id ? (
+                  <Loader2 className='size-4 animate-spin' />
+                ) : (
+                  <Download className='size-4' />
+                )}
+              </Button>
+              {canDelete ? (
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='icon'
+                  className='text-destructive hover:text-destructive'
+                  disabled={deletingId === doc.id}
+                  onClick={() => setDocToDelete(doc)}
+                  title='حذف مدرک'
+                >
+                  {deletingId === doc.id ? (
+                    <Loader2 className='size-4 animate-spin' />
+                  ) : (
+                    <Trash2 className='size-4' />
+                  )}
+                </Button>
+              ) : null}
+            </div>
           </li>
-        ))}
+          )
+        })}
 
         {documents.length === 0 && pending.length === 0 ? (
           <li className='px-4 py-6 text-center text-sm text-muted-foreground'>
@@ -235,6 +269,32 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
           </li>
         ) : null}
       </ul>
+
+      <ConfirmDialog
+        destructive
+        open={Boolean(docToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setDocToDelete(null)
+        }}
+        handleConfirm={() => {
+          if (!docToDelete) return
+          void (async () => {
+            setDeletingId(docToDelete.id)
+            const result = await deleteCaseDocument(caseItem.id, docToDelete.id)
+            setDeletingId(null)
+            setDocToDelete(null)
+            if (!result.ok) {
+              toast.error(result.error)
+              return
+            }
+            toast.success('مدرک حذف شد.')
+          })()
+        }}
+        className='max-w-md'
+        title='حذف مدرک'
+        desc='این مدرک حذف می‌شود. پس از مشاهده توسط وکیل، حذف امکان‌پذیر نیست.'
+        confirmText='حذف مدرک'
+      />
     </div>
   )
 }

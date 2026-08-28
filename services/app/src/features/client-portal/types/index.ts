@@ -197,6 +197,8 @@ export const caseDocumentSchema = z.object({
   size: z.number().nonnegative(),
   uploadedAt: z.string().datetime(),
   status: z.enum(DOCUMENT_STATUSES),
+  uploadedBy: z.string().optional(),
+  seenByLawyerAt: z.string().datetime().nullable().optional(),
 })
 
 export type CaseDocument = z.infer<typeof caseDocumentSchema>
@@ -213,10 +215,12 @@ export type TimelineEvent = z.infer<typeof timelineEventSchema>
 
 export const caseCommentSchema = z.object({
   id: z.string().min(1),
+  authorId: z.string().optional(),
   authorRole: z.enum(COMMENT_AUTHOR_ROLES),
   authorName: z.string().min(1),
   bodyHtml: z.string().default(''),
   attachments: z.array(caseDocumentSchema).default([]),
+  seenByLawyerAt: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
 })
 

@@ -1,3 +1,4 @@
+import type { CaseComment } from '@/features/client-portal/types'
 import { api, type ApiResult } from '@/lib/api-client'
 import type {
   Attachment,
@@ -119,4 +120,28 @@ export async function deleteAttachment(
   )
   if (!result.ok) return result
   return { ok: true, data: undefined }
+}
+
+export async function listCaseComments(
+  caseId: string
+): Promise<ApiResult<CaseComment[]>> {
+  return api<CaseComment[]>(`/api/cases/${caseId}/comments`)
+}
+
+export async function addCaseComment(
+  caseId: string,
+  bodyHtml: string
+): Promise<ApiResult<CaseComment>> {
+  return api<CaseComment>(`/api/cases/${caseId}/comments`, {
+    method: 'POST',
+    body: { bodyHtml },
+  })
+}
+
+export async function markClientDocumentsSeen(
+  caseId: string
+): Promise<ApiResult<{ marked: number }>> {
+  return api<{ marked: number }>(`/api/cases/${caseId}/attachments/seen`, {
+    method: 'POST',
+  })
 }

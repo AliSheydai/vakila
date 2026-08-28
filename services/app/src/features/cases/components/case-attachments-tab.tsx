@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Download,
   FileText,
@@ -26,6 +26,7 @@ import {
   validateAttachmentMeta,
 } from '@/lib/attachment-validation'
 import { downloadCaseAttachment } from '../services/api-attachments-service'
+import * as apiCases from '../services/api-cases-service'
 
 type PendingUpload = {
   id: string
@@ -59,6 +60,10 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
   const [pending, setPending] = useState<PendingUpload[]>([])
   const [toDelete, setToDelete] = useState<Attachment | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    void apiCases.markClientDocumentsSeen(caseItem.id)
+  }, [caseItem.id])
 
   const processFiles = useCallback(
     async (fileList: FileList | File[]) => {

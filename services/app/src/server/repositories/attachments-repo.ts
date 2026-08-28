@@ -38,6 +38,7 @@ export type AttachmentRow = {
   uploaded_by: string | null
   created_at: Date
   comment_id: string | null
+  seen_by_lawyer_at: Date | null
 }
 
 type InitInput = {
@@ -290,6 +291,31 @@ export async function deleteAttachmentWithObject(
 
   const allowed = await canAccessAttachment(userId, role, row)
   if (!allowed) return false
+
+  if (role === 'client') {
+    if (row.uploaded_by !== userId) {
+      throw new Error('فقط فایل‌های خودتان قابل حذف است.')
+    }
+    if (row.seen_by_lawyer_at) {
+      throw new Error('پس از مشاهده توسط وکیل، حذف فایل امکان‌پذیر نیست.')
+    }
+    if (row.comment_id) {
+      const { rows: parentRows } = await query<{
+        author_id: string | null
+        seen_by_lawyer_at: Date | null
+      }>(
+        `SELECT author_id, seen_by_lawyer_at FROM case_comments WHERE id = $1 LIMIT 1`,
+        [row.comment_id]
+      )
+      const parent = parentRows[0]
+      if (!parent || parent.author_id !== userId) {
+        throw new Error('فقط فایل‌های خودتان قابل حذف است.')
+      }
+      if (parent.seen_by_lawyer_at) {
+        throw new Error('پس از مشاهده توسط وکیل، حذف فایل امکان‌پذیر نیست.')
+      }
+    }
+  }
 
   if (row.storage_key) {
     try {

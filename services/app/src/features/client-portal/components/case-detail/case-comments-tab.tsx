@@ -6,13 +6,16 @@ import {
   FileText,
   Loader2,
   Paperclip,
+  Trash2,
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { RichTextContent } from '@/components/ui/rich-text-content'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
+import { useAuthStore } from '@/stores/auth-store'
 import { usePortalStore } from '../../stores/portal-store'
 import type { CaseComment, ClientCase } from '../../types'
 import { formatDateTime, formatFileSize } from '../../utils/format'
@@ -37,11 +40,17 @@ type CaseCommentsTabProps = {
 }
 
 export function CaseCommentsTab({ caseItem }: CaseCommentsTabProps) {
+  const userId = useAuthStore((s) => s.auth.user?.id)
   const addCaseComment = usePortalStore((s) => s.addCaseComment)
+  const deleteCaseComment = usePortalStore((s) => s.deleteCaseComment)
   const [bodyHtml, setBodyHtml] = useState('')
   const [files, setFiles] = useState<PendingFile[]>([])
   const [sending, setSending] = useState(false)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
+  const [commentToDelete, setCommentToDelete] = useState<CaseComment | null>(
+    null
+  )
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const comments = [...(caseItem.comments ?? [])].sort(
@@ -135,8 +144,11 @@ export function CaseCommentsTab({ caseItem }: CaseCommentsTabProps) {
               key={comment.id}
               comment={comment}
               caseId={caseItem.id}
+              currentUserId={userId}
               downloadingId={downloadingId}
+              deletingCommentId={deletingCommentId}
               onDownload={handleDownload}
+              onDeleteRequest={setCommentToDelete}
             />
           ))
         )}
@@ -204,6 +216,35 @@ export function CaseCommentsTab({ caseItem }: CaseCommentsTabProps) {
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        destructive
+        open={Boolean(commentToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setCommentToDelete(null)
+        }}
+        handleConfirm={() => {
+          if (!commentToDelete) return
+          void (async () => {
+            setDeletingCommentId(commentToDelete.id)
+            const result = await deleteCaseComment(
+              caseItem.id,
+              commentToDelete.id
+            )
+            setDeletingCommentId(null)
+            setCommentToDelete(null)
+            if (!result.ok) {
+              toast.error(result.error)
+              return
+            }
+            toast.success('پیام حذف شد.')
+          })()
+        }}
+        className='max-w-md'
+        title='حذف پیام'
+        desc='این پیام و پیوست‌های آن حذف می‌شود. پس از مشاهده توسط وکیل، حذف امکان‌پذیر نیست.'
+        confirmText='حذف پیام'
+      />
     </div>
   )
 }
@@ -211,14 +252,24 @@ export function CaseCommentsTab({ caseItem }: CaseCommentsTabProps) {
 function CommentBubble({
   comment,
   caseId,
+  currentUserId,
   downloadingId,
+  deletingCommentId,
   onDownload,
+  onDeleteRequest,
 }: {
   comment: CaseComment
   caseId: string
+  currentUserId?: string
   downloadingId: string | null
+  deletingCommentId: string | null
   onDownload: (caseId: string, docId: string, name: string) => void
+  onDeleteRequest: (comment: CaseComment) => void
 }) {
+  const isOwn = comment.authorRole === 'client' && comment.authorId === currentUserId
+  const canDelete = isOwn && !comment.seenByLawyerAt
+  const pendingReview = isOwn && !comment.seenByLawyerAt
+
   return (
     <article
       className={cn(
@@ -229,8 +280,38 @@ function CommentBubble({
       )}
     >
       <header className='mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground'>
-        <span className='font-medium text-foreground'>{comment.authorName}</span>
-        <time>{formatDateTime(comment.createdAt)}</time>
+        <div className='flex min-w-0 items-center gap-2'>
+          <span className='font-medium text-foreground'>{comment.authorName}</span>
+          {pendingReview ? (
+            <span className='shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400'>
+              در انتظار مشاهده وکیل
+            </span>
+          ) : isOwn ? (
+            <span className='shrink-0 text-[10px] text-muted-foreground'>
+              مشاهده شده
+            </span>
+          ) : null}
+        </div>
+        <div className='flex shrink-0 items-center gap-1'>
+          <time>{formatDateTime(comment.createdAt)}</time>
+          {canDelete ? (
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon'
+              className='size-6 text-destructive hover:text-destructive'
+              disabled={deletingCommentId === comment.id}
+              onClick={() => onDeleteRequest(comment)}
+              title='حذف پیام'
+            >
+              {deletingCommentId === comment.id ? (
+                <Loader2 className='size-3 animate-spin' />
+              ) : (
+                <Trash2 className='size-3' />
+              )}
+            </Button>
+          ) : null}
+        </div>
       </header>
       {!isEmptyHtml(comment.bodyHtml) ? (
         <RichTextContent html={comment.bodyHtml} className='text-sm' />

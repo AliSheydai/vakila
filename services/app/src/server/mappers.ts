@@ -252,6 +252,8 @@ export function mapCaseDocument(row: {
   size_bytes: string | number
   status: string
   created_at: Date | string
+  uploaded_by?: string | null
+  seen_by_lawyer_at?: Date | string | null
 }): CaseDocument {
   return {
     id: row.id,
@@ -260,25 +262,35 @@ export function mapCaseDocument(row: {
     size: num(row.size_bytes),
     uploadedAt: toIsoRequired(row.created_at),
     status: row.status as CaseDocument['status'],
+    uploadedBy: row.uploaded_by ?? undefined,
+    seenByLawyerAt: row.seen_by_lawyer_at
+      ? toIsoRequired(row.seen_by_lawyer_at)
+      : null,
   }
 }
 
 export function mapCaseComment(
   row: {
     id: string
+    author_id?: string | null
     author_role: string
     author_name: string
     body_html: string
     created_at: Date | string
+    seen_by_lawyer_at?: Date | string | null
   },
   attachments: CaseDocument[] = []
 ): CaseComment {
   return {
     id: row.id,
+    authorId: row.author_id ?? undefined,
     authorRole: row.author_role as CaseComment['authorRole'],
     authorName: row.author_name,
     bodyHtml: row.body_html,
     attachments,
+    seenByLawyerAt: row.seen_by_lawyer_at
+      ? toIsoRequired(row.seen_by_lawyer_at)
+      : null,
     createdAt: toIsoRequired(row.created_at),
   }
 }

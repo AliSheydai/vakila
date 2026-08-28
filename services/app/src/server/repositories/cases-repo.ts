@@ -17,6 +17,7 @@ import {
   mapAttachment,
   mapCase,
   mapCaseComment,
+  mapCaseDocument,
   mapExpense,
   mapFee,
   mapPayment,
@@ -68,15 +69,19 @@ type AttachmentRow = {
   size_bytes: string
   created_at: Date
   uploaded_by: string | null
+  comment_id: string | null
+  seen_by_lawyer_at: Date | null
 }
 
 type CommentRow = {
   id: string
   case_id: string
+  author_id: string | null
   author_role: string
   author_name: string
   body_html: string
   created_at: Date
+  seen_by_lawyer_at: Date | null
 }
 
 async function loadCaseBundle(
@@ -93,7 +98,9 @@ async function loadCaseBundle(
       [row.id]
     ),
     query<AttachmentRow>(
-      `SELECT * FROM attachments WHERE case_id = $1 ORDER BY created_at DESC`,
+      `SELECT * FROM attachments
+       WHERE case_id = $1 AND comment_id IS NULL
+       ORDER BY created_at DESC`,
       [row.id]
     ),
   ])
@@ -396,15 +403,107 @@ export async function deleteAttachment(
 
 export async function listComments(
   ownerId: string,
-  caseId: string
+  caseId: string,
+  options?: { markSeen?: boolean }
 ): Promise<CaseComment[] | null> {
   const owned = await assertOwnedCase(ownerId, caseId)
   if (!owned) return null
-  const { rows } = await query<CommentRow>(
-    `SELECT * FROM case_comments WHERE case_id = $1 ORDER BY created_at ASC`,
+
+  if (options?.markSeen) {
+    await markClientCommentsSeen(ownerId, caseId)
+  }
+
+  const [commentsRes, docsRes] = await Promise.all([
+    query<CommentRow>(
+      `SELECT * FROM case_comments WHERE case_id = $1 ORDER BY created_at ASC`,
+      [caseId]
+    ),
+    query<{
+      id: string
+      name: string
+      mime_type: string
+      size_bytes: string
+      status: string
+      created_at: Date
+      comment_id: string | null
+      uploaded_by: string | null
+      seen_by_lawyer_at: Date | null
+    }>(
+      `SELECT id, name, mime_type, size_bytes, status, created_at, comment_id,
+              uploaded_by, seen_by_lawyer_at
+       FROM attachments WHERE case_id = $1 AND comment_id IS NOT NULL`,
+      [caseId]
+    ),
+  ])
+
+  return commentsRes.rows.map((row) => {
+    const commentAttachments = docsRes.rows
+      .filter((d) => d.comment_id === row.id)
+      .map(mapCaseDocument)
+    return mapCaseComment(row, commentAttachments)
+  })
+}
+
+export async function countUnseenClientComments(
+  ownerId: string,
+  caseId: string
+): Promise<number | null> {
+  const owned = await assertOwnedCase(ownerId, caseId)
+  if (!owned) return null
+  const { rows } = await query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count FROM case_comments
+     WHERE case_id = $1 AND author_role = 'client' AND seen_by_lawyer_at IS NULL`,
     [caseId]
   )
-  return rows.map((row) => mapCaseComment(row))
+  return Number(rows[0]?.count ?? 0)
+}
+
+export async function markClientCommentsSeen(
+  ownerId: string,
+  caseId: string
+): Promise<number> {
+  const owned = await assertOwnedCase(ownerId, caseId)
+  if (!owned) return 0
+
+  const { rows: seenIds } = await query<{ id: string }>(
+    `UPDATE case_comments
+     SET seen_by_lawyer_at = NOW()
+     WHERE case_id = $1 AND author_role = 'client' AND seen_by_lawyer_at IS NULL
+     RETURNING id`,
+    [caseId]
+  )
+
+  if (seenIds.length > 0) {
+    await query(
+      `UPDATE attachments
+       SET seen_by_lawyer_at = NOW()
+       WHERE comment_id = ANY($1::uuid[]) AND seen_by_lawyer_at IS NULL`,
+      [seenIds.map((r) => r.id)]
+    )
+  }
+
+  return seenIds.length
+}
+
+export async function markClientDocumentsSeen(
+  ownerId: string,
+  caseId: string
+): Promise<number> {
+  const owned = await assertOwnedCase(ownerId, caseId)
+  if (!owned) return 0
+  const { rowCount } = await query(
+    `UPDATE attachments a
+     SET seen_by_lawyer_at = NOW()
+     FROM cases c
+     WHERE a.case_id = c.id
+       AND c.id = $1
+       AND c.owner_id = $2
+       AND a.comment_id IS NULL
+       AND a.uploaded_by = c.client_user_id
+       AND a.seen_by_lawyer_at IS NULL`,
+    [caseId, ownerId]
+  )
+  return rowCount ?? 0
 }
 
 export async function addComment(
@@ -421,6 +520,13 @@ export async function addComment(
      RETURNING *`,
     [caseId, input.authorId, input.authorName, input.bodyHtml]
   )
+
+  await query(
+    `INSERT INTO case_timeline (case_id, type, title, description)
+     VALUES ($1, 'note', 'پاسخ وکیل', 'وکیل در گفتگوی پرونده پاسخ داد.')`,
+    [caseId]
+  )
+
   return mapCaseComment(rows[0]!)
 }
 

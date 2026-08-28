@@ -22,14 +22,18 @@ type AttachmentRow = {
   status: string
   created_at: Date
   comment_id: string | null
+  uploaded_by: string | null
+  seen_by_lawyer_at: Date | null
 }
 
 type CommentRow = {
   id: string
+  author_id: string | null
   author_role: string
   author_name: string
   body_html: string
   created_at: Date
+  seen_by_lawyer_at: Date | null
 }
 
 type TimelineRow = {
@@ -77,12 +81,14 @@ type PaymentRow = {
 async function loadPortalCase(row: CaseRow) {
   const [docs, comments, timeline] = await Promise.all([
     query<AttachmentRow>(
-      `SELECT id, name, mime_type, size_bytes, status, created_at, comment_id
+      `SELECT id, name, mime_type, size_bytes, status, created_at, comment_id,
+              uploaded_by, seen_by_lawyer_at
        FROM attachments WHERE case_id = $1 ORDER BY created_at DESC`,
       [row.id]
     ),
     query<CommentRow>(
-      `SELECT id, author_role, author_name, body_html, created_at
+      `SELECT id, author_id, author_role, author_name, body_html, created_at,
+              seen_by_lawyer_at
        FROM case_comments WHERE case_id = $1 ORDER BY created_at ASC`,
       [row.id]
     ),
@@ -265,7 +271,8 @@ export async function addPortalComment(
   const { rows: comments } = await query<CommentRow>(
     `INSERT INTO case_comments (case_id, author_id, author_role, author_name, body_html)
      VALUES ($1,$2,'client',$3,$4)
-     RETURNING id, author_role, author_name, body_html, created_at`,
+     RETURNING id, author_id, author_role, author_name, body_html, created_at,
+               seen_by_lawyer_at`,
     [caseId, user.id, user.name || 'موکل', bodyHtml]
   )
   const comment = comments[0]!
@@ -289,12 +296,43 @@ export async function addPortalComment(
   )
 
   const { rows: linkedDocs } = await query<AttachmentRow>(
-    `SELECT id, name, mime_type, size_bytes, status, created_at, comment_id
+    `SELECT id, name, mime_type, size_bytes, status, created_at, comment_id,
+            uploaded_by, seen_by_lawyer_at
      FROM attachments WHERE comment_id = $1`,
     [comment.id]
   )
 
   return mapCaseComment(comment, linkedDocs.map(mapCaseDocument))
+}
+
+export async function deletePortalComment(
+  user: User,
+  caseId: string,
+  commentId: string
+): Promise<void> {
+  const { rows } = await query<{
+    id: string
+    author_id: string | null
+    author_role: string
+    seen_by_lawyer_at: Date | null
+  }>(
+    `SELECT cc.id, cc.author_id, cc.author_role, cc.seen_by_lawyer_at
+     FROM case_comments cc
+     JOIN cases c ON c.id = cc.case_id
+     WHERE cc.id = $1 AND cc.case_id = $2 AND c.client_user_id = $3
+     LIMIT 1`,
+    [commentId, caseId, user.id]
+  )
+  const comment = rows[0]
+  if (!comment) throw new Error('پیام یافت نشد.')
+  if (comment.author_role !== 'client' || comment.author_id !== user.id) {
+    throw new Error('فقط پیام‌های خودتان قابل حذف است.')
+  }
+  if (comment.seen_by_lawyer_at) {
+    throw new Error('پس از مشاهده توسط وکیل، حذف پیام امکان‌پذیر نیست.')
+  }
+
+  await query(`DELETE FROM case_comments WHERE id = $1`, [commentId])
 }
 
 export async function cancelPortalSession(

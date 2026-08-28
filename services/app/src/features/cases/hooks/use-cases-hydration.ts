@@ -27,6 +27,7 @@ export function useCasesHydration() {
       event.table === 'cases' ||
       event.table === 'clients' ||
       event.table === 'attachments' ||
+      event.table === 'case_comments' ||
       event.table === 'case_fees' ||
       event.table === 'case_payments' ||
       event.table === 'case_expenses'
