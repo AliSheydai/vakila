@@ -35,6 +35,33 @@ export function TeamSwitcher({ teams, collapsed }: TeamSwitcherProps) {
       isAdmin ? team.url.startsWith('/admin') : !team.url.startsWith('/admin')
     ) ?? teams[0]
 
+  const singleTeam = teams.length <= 1
+  const Logo = activeTeam?.logo ?? Scale
+
+  if (singleTeam) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            className={cn(
+              'pointer-events-none gap-2.5 rounded-xl px-1 text-muted-foreground',
+              collapsed && 'justify-center p-0'
+            )}
+          >
+            <div className='flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary'>
+              <Logo className='size-4' />
+            </div>
+            {!collapsed && (
+              <span className='truncate whitespace-nowrap font-display text-sm font-bold tracking-tight text-foreground'>
+                وکلا
+              </span>
+            )}
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -71,7 +98,7 @@ export function TeamSwitcher({ teams, collapsed }: TeamSwitcherProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator className='mb-1' />
             {teams.map((team) => {
-              const selected = activeTeam.name === team.name
+              const selected = activeTeam?.name === team.name
               return (
                 <DropdownMenuItem
                   key={team.name}

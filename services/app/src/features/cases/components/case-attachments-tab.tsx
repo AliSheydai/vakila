@@ -121,7 +121,7 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
             useCasesStore.getState().getCase(caseItem.id)?.attachments ?? []
           ).map((item) => item.id)
         )
-        const result = addAttachment(caseItem.id, {
+        const result = await addAttachment(caseItem.id, {
           name: file.name,
           mimeType: file.type || 'application/octet-stream',
           size: file.size,
@@ -178,10 +178,10 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
     anchor.click()
   }
 
-  function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     if (!toDelete) return
 
-    const result = deleteAttachment(caseItem.id, toDelete.id)
+    const result = await deleteAttachment(caseItem.id, toDelete.id)
     if (!result.ok) {
       toast.error(result.error)
       return

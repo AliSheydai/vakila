@@ -221,14 +221,16 @@ export function ClientSessionDetailPage({
         confirmText='لغو جلسه'
         destructive
         handleConfirm={() => {
-          const result = cancelSession(session.id)
-          if (!result.ok) {
-            toast.error(result.error)
-            return
-          }
-          toast.success('جلسه با موفقیت لغو شد.')
-          setCancelOpen(false)
-          router.refresh()
+          void (async () => {
+            const result = await cancelSession(session.id)
+            if (!result.ok) {
+              toast.error(result.error)
+              return
+            }
+            toast.success('جلسه با موفقیت لغو شد.')
+            setCancelOpen(false)
+            router.refresh()
+          })()
         }}
       />
     </PageShell>

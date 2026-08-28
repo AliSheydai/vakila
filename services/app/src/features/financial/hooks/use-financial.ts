@@ -48,7 +48,8 @@ export function useFinancial(options: UseFinancialOptions) {
   )
 
   const retry = () => {
-    hydrateCases(ownerId)
+    if (!ownerId) return
+    void hydrateCases(ownerId)
   }
 
   return {

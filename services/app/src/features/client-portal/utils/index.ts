@@ -1,3 +1,5 @@
 export * from './id'
 export * from './format'
+export * from './html'
+export * from './document-session'
 export * from './seed'

@@ -1,53 +1,91 @@
 import { create } from 'zustand'
-import { getCookie, setCookie, removeCookie } from '@/lib/cookies'
+import { api } from '@/lib/api-client'
 
-const ACCESS_TOKEN = 'thisisjustarandomstring'
+export type AuthRole = 'super_admin' | 'lawyer' | 'client'
 
-interface AuthUser {
-  accountNo: string
-  email: string
-  role: string[]
-  exp: number
+export type AuthUser = {
+  id: string
+  phone: string
+  name: string | null
+  email: string | null
+  role: AuthRole
+}
+
+type MeResponse = {
+  user: AuthUser & {
+    avatarUrl?: string | null
+    title?: string | null
+    specialty?: string | null
+    barNumber?: string | null
+    createdAt?: string
+    updatedAt?: string
+  }
+  needsName: boolean
+}
+
+function toAuthUser(user: MeResponse['user']): AuthUser {
+  return {
+    id: user.id,
+    phone: user.phone,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  }
 }
 
 interface AuthState {
   auth: {
     user: AuthUser | null
+    hydrated: boolean
     setUser: (user: AuthUser | null) => void
-    accessToken: string
-    setAccessToken: (accessToken: string) => void
-    resetAccessToken: () => void
     reset: () => void
+    hydrateFromServer: () => Promise<{ ok: true } | { ok: false; error: string }>
+    logout: () => Promise<void>
   }
 }
 
-export const useAuthStore = create<AuthState>()((set) => {
-  const cookieState = getCookie(ACCESS_TOKEN)
-  const initToken = cookieState ? JSON.parse(cookieState) : ''
-  return {
-    auth: {
-      user: null,
-      setUser: (user) =>
-        set((state) => ({ ...state, auth: { ...state.auth, user } })),
-      accessToken: initToken,
-      setAccessToken: (accessToken) =>
-        set((state) => {
-          setCookie(ACCESS_TOKEN, JSON.stringify(accessToken))
-          return { ...state, auth: { ...state.auth, accessToken } }
-        }),
-      resetAccessToken: () =>
-        set((state) => {
-          removeCookie(ACCESS_TOKEN)
-          return { ...state, auth: { ...state.auth, accessToken: '' } }
-        }),
-      reset: () =>
-        set((state) => {
-          removeCookie(ACCESS_TOKEN)
-          return {
-            ...state,
-            auth: { ...state.auth, user: null, accessToken: '' },
-          }
-        }),
+export const useAuthStore = create<AuthState>()((set, get) => ({
+  auth: {
+    user: null,
+    hydrated: false,
+    setUser: (user) =>
+      set((state) => ({
+        auth: { ...state.auth, user },
+      })),
+    reset: () =>
+      set((state) => ({
+        auth: { ...state.auth, user: null, hydrated: true },
+      })),
+    hydrateFromServer: async () => {
+      const result = await api<MeResponse>('/api/auth/me')
+      if (!result.ok) {
+        set((state) => ({
+          auth: { ...state.auth, user: null, hydrated: true },
+        }))
+        return { ok: false, error: result.error }
+      }
+
+      set((state) => ({
+        auth: {
+          ...state.auth,
+          user: toAuthUser(result.data.user),
+          hydrated: true,
+        },
+      }))
+      return { ok: true }
     },
-  }
-})
+    logout: async () => {
+      await api('/api/auth/logout', { method: 'POST' })
+      get().auth.reset()
+    },
+  },
+}))
+
+export function roleHome(role: AuthRole): string {
+  if (role === 'super_admin' || role === 'lawyer') return '/admin'
+  return '/dashboard'
+}
+
+export function isLawyerRole(role: AuthRole): boolean {
+  return role === 'super_admin' || role === 'lawyer'
+}

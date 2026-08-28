@@ -1,9 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { Eye, FolderOpen, Search as SearchIcon } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Eye, FolderOpen, Plus, Search as SearchIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -27,6 +26,7 @@ import { PageShell, PortalListSkeleton } from './components/page-shell'
 import { ErrorState } from './components/error-state'
 import { EmptyState } from './components/empty-state'
 import { CaseStatusBadge } from './components/status-badges'
+import { ClientCreateCaseDrawer } from './components/client-create-case-drawer'
 import {
   CLIENT_CASE_STATUSES,
   CLIENT_CASE_STATUS_LABELS,
@@ -38,6 +38,7 @@ import { formatDate } from './utils/format'
 type SortKey = 'updated' | 'newest' | 'oldest' | 'title'
 
 export function ClientCasesPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const initialStatus = searchParams.get('status')
   const { hydrated } = usePortalHydration()
@@ -54,6 +55,7 @@ export function ClientCasesPage() {
       : 'all'
   )
   const [sort, setSort] = useState<SortKey>('updated')
+  const [createOpen, setCreateOpen] = useState(false)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -92,10 +94,22 @@ export function ClientCasesPage() {
   const getLawyerName = (id: string) =>
     lawyers.find((l) => l.id === id)?.name ?? '—'
 
+  const openCase = (caseId: string) => {
+    router.push(`/cases/${caseId}`)
+  }
+
+  const createAction = (
+    <Button onClick={() => setCreateOpen(true)}>
+      <Plus className='size-4' />
+      ثبت پرونده جدید
+    </Button>
+  )
+
   return (
     <PageShell
       title='پرونده‌ها'
-      description='پرونده‌های حقوقی خود را مشاهده و وضعیت آنها را پیگیری کنید.'
+      description='پرونده‌های حقوقی خود را مشاهده کنید، پرونده جدید ثبت کنید و وضعیت آن‌ها را پیگیری کنید.'
+      actions={hydrated && !error ? createAction : undefined}
     >
       {!hydrated ? (
         <PortalListSkeleton cards={0} />
@@ -104,8 +118,10 @@ export function ClientCasesPage() {
       ) : cases.length === 0 ? (
         <EmptyState
           icon={FolderOpen}
-          title='هنوز پرونده‌ای برای شما ثبت نشده است.'
-          description='پس از ثبت پرونده توسط وکیل، جزئیات و وضعیت آن در این بخش نمایش داده می‌شود.'
+          title='هنوز پرونده‌ای ثبت نشده است.'
+          description='می‌توانید خودتان پرونده ثبت کنید یا منتظر بمانید تا وکیل پرونده‌ای برای شما ایجاد کند.'
+          actionLabel='ثبت پرونده جدید'
+          onAction={() => setCreateOpen(true)}
         />
       ) : (
         <div className='space-y-4'>
@@ -165,20 +181,19 @@ export function ClientCasesPage() {
                       <TableHead className='text-start'>وضعیت</TableHead>
                       <TableHead className='text-start'>آخرین بروزرسانی</TableHead>
                       <TableHead className='text-start'>تاریخ ایجاد</TableHead>
-                      <TableHead className='w-24 text-start'>عملیات</TableHead>
+                      <TableHead className='w-28 text-start'>عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filtered.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow
+                        key={item.id}
+                        className='cursor-pointer'
+                        onClick={() => openCase(item.id)}
+                      >
                         <TableCell>
                           <div className='space-y-0.5'>
-                            <Link
-                              href={`/cases/${item.id}`}
-                              className='font-medium hover:underline'
-                            >
-                              {item.title}
-                            </Link>
+                            <p className='font-medium'>{item.title}</p>
                             <p className='text-xs text-muted-foreground'>
                               {LEGAL_AREA_LABELS[item.legalArea]}
                             </p>
@@ -194,11 +209,16 @@ export function ClientCasesPage() {
                         <TableCell>{formatDate(item.updatedAt)}</TableCell>
                         <TableCell>{formatDate(item.createdAt)}</TableCell>
                         <TableCell>
-                          <Button variant='ghost' size='sm' asChild>
-                            <Link href={`/cases/${item.id}`}>
-                              <Eye className='size-4' />
-                              مشاهده
-                            </Link>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openCase(item.id)
+                            }}
+                          >
+                            <Eye className='size-4' />
+                            مشاهده
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -212,12 +232,13 @@ export function ClientCasesPage() {
                   <li key={item.id} className='rounded-xl border p-4'>
                     <div className='flex items-start justify-between gap-3'>
                       <div className='min-w-0 space-y-1'>
-                        <Link
-                          href={`/cases/${item.id}`}
-                          className='line-clamp-2 font-semibold hover:underline'
+                        <button
+                          type='button'
+                          className='line-clamp-2 text-start font-semibold hover:underline'
+                          onClick={() => openCase(item.id)}
                         >
                           {item.title}
-                        </Link>
+                        </button>
                         <p className='text-xs tabular-nums text-muted-foreground'>
                           {item.caseNumber} · {LEGAL_AREA_LABELS[item.legalArea]}
                         </p>
@@ -242,9 +263,10 @@ export function ClientCasesPage() {
                       variant='outline'
                       size='sm'
                       className='mt-3 w-full'
-                      asChild
+                      onClick={() => openCase(item.id)}
                     >
-                      <Link href={`/cases/${item.id}`}>مشاهده پرونده</Link>
+                      <Eye className='size-4' />
+                      مشاهده پرونده
                     </Button>
                   </li>
                 ))}
@@ -253,6 +275,8 @@ export function ClientCasesPage() {
           )}
         </div>
       )}
+
+      <ClientCreateCaseDrawer open={createOpen} onOpenChange={setCreateOpen} />
     </PageShell>
   )
 }

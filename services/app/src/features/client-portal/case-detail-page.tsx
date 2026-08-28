@@ -1,13 +1,14 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowRight,
-  Download,
-  FileText,
+  Info,
   Mail,
   Phone,
 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePortalHydration } from './hooks/use-portal-hydration'
@@ -19,11 +20,14 @@ import {
 import { ErrorState } from './components/error-state'
 import {
   CaseStatusBadge,
-  DocumentStatusBadge,
   PaymentStatusBadge,
   SessionStatusBadge,
 } from './components/status-badges'
+import { CaseOverviewTab } from './components/case-detail/case-overview-tab'
+import { CaseCommentsTab } from './components/case-detail/case-comments-tab'
+import { CaseDocumentsTab } from './components/case-detail/case-documents-tab'
 import {
+  CASE_CREATED_BY_LABELS,
   LEGAL_AREA_LABELS,
   SESSION_TYPE_LABELS,
   type TimelineEventType,
@@ -31,8 +35,6 @@ import {
 import {
   formatDate,
   formatDateTime,
-  formatFileSize,
-  formatMimeTypeLabel,
   formatMoney,
   formatTime,
 } from './utils/format'
@@ -53,18 +55,28 @@ type ClientCaseDetailPageProps = {
 
 export function ClientCaseDetailPage({ caseId }: ClientCaseDetailPageProps) {
   const { hydrated } = usePortalHydration()
-  const caseItem = usePortalStore((s) => s.getCase(caseId))
+  const [tab, setTab] = useState('overview')
+
+  const caseItem = usePortalStore((s) =>
+    s.cases.find((item) => item.id === caseId)
+  )
+  const lawyerId = caseItem?.lawyerId
   const lawyer = usePortalStore((s) =>
-    caseItem ? s.getLawyer(caseItem.lawyerId) : null
+    lawyerId ? (s.lawyers.find((item) => item.id === lawyerId) ?? null) : null
   )
-  const sessions = usePortalStore((s) =>
-    s.sessions.filter((item) => item.caseId === caseId)
-  )
-  const payments = usePortalStore((s) =>
-    s.payments.filter((item) => item.caseId === caseId)
-  )
+  const allSessions = usePortalStore((s) => s.sessions)
+  const allPayments = usePortalStore((s) => s.payments)
   const error = usePortalStore((s) => s.error)
   const hydrate = usePortalStore((s) => s.hydrate)
+
+  const sessions = useMemo(
+    () => allSessions.filter((item) => item.caseId === caseId),
+    [allSessions, caseId]
+  )
+  const payments = useMemo(
+    () => allPayments.filter((item) => item.caseId === caseId),
+    [allPayments, caseId]
+  )
 
   if (!hydrated) {
     return (
@@ -98,7 +110,7 @@ export function ClientCaseDetailPage({ caseId }: ClientCaseDetailPageProps) {
     )
   }
 
-  const timeline = [...caseItem.timeline].sort(
+  const timeline = [...(caseItem.timeline ?? [])].sort(
     (a, b) =>
       new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
   )
@@ -123,6 +135,9 @@ export function ClientCaseDetailPage({ caseId }: ClientCaseDetailPageProps) {
               {caseItem.title}
             </h1>
             <CaseStatusBadge status={caseItem.status} />
+            <span className='rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground'>
+              {CASE_CREATED_BY_LABELS[caseItem.createdBy]}
+            </span>
           </div>
           <dl className='grid grid-cols-2 gap-3 text-sm sm:flex sm:flex-wrap sm:gap-x-6'>
             <div>
@@ -150,43 +165,53 @@ export function ClientCaseDetailPage({ caseId }: ClientCaseDetailPageProps) {
           </dl>
         </div>
 
-        <Tabs defaultValue='overview' className='gap-4'>
+        <Alert>
+          <Info className='size-4' />
+          <AlertDescription>
+            این پرونده قابل ویرایش نیست. برای پیگیری، پیام بگذارید یا مدرک
+            پیوست کنید.
+          </AlertDescription>
+        </Alert>
+
+        <Tabs value={tab} onValueChange={setTab} className='gap-4'>
           <TabsList className='flex h-auto w-full flex-wrap justify-start gap-1 sm:w-fit'>
             <TabsTrigger value='overview'>نمای کلی</TabsTrigger>
-            <TabsTrigger value='timeline'>زمان‌بندی</TabsTrigger>
+            <TabsTrigger value='comments'>
+              گفتگو
+              {(caseItem.comments?.length ?? 0) > 0 ? (
+                <span className='ms-1 tabular-nums text-muted-foreground'>
+                  ({caseItem.comments.length.toLocaleString('fa-IR')})
+                </span>
+              ) : null}
+            </TabsTrigger>
             <TabsTrigger value='documents'>مدارک</TabsTrigger>
+            <TabsTrigger value='timeline'>زمان‌بندی</TabsTrigger>
             <TabsTrigger value='sessions'>جلسات</TabsTrigger>
             <TabsTrigger value='payments'>پرداخت‌ها</TabsTrigger>
             <TabsTrigger value='lawyer'>وکیل</TabsTrigger>
           </TabsList>
 
-          <TabsContent value='overview' className='space-y-4'>
-            <section className='rounded-xl border p-4 sm:p-5'>
-              <h2 className='text-sm font-semibold'>توضیحات پرونده</h2>
-              <p className='mt-2 text-sm leading-7 text-muted-foreground'>
-                {caseItem.description || 'توضیحی ثبت نشده است.'}
-              </p>
-            </section>
-            <section className='grid gap-3 sm:grid-cols-3'>
-              <div className='rounded-xl border p-4'>
-                <p className='text-xs text-muted-foreground'>آخرین بروزرسانی</p>
-                <p className='mt-1 font-medium'>
-                  {formatDate(caseItem.updatedAt)}
-                </p>
-              </div>
-              <div className='rounded-xl border p-4'>
-                <p className='text-xs text-muted-foreground'>تعداد مدارک</p>
-                <p className='mt-1 font-medium tabular-nums'>
-                  {caseItem.documents.length.toLocaleString('fa-IR')}
-                </p>
-              </div>
-              <div className='rounded-xl border p-4'>
-                <p className='text-xs text-muted-foreground'>جلسات مرتبط</p>
-                <p className='mt-1 font-medium tabular-nums'>
-                  {sessions.length.toLocaleString('fa-IR')}
-                </p>
-              </div>
-            </section>
+          <TabsContent value='overview'>
+            {tab === 'overview' ? (
+              <CaseOverviewTab
+                caseItem={caseItem}
+                lawyer={lawyer}
+                sessionsCount={sessions.length}
+                commentsCount={caseItem.comments?.length ?? 0}
+              />
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value='comments'>
+            {tab === 'comments' ? (
+              <CaseCommentsTab caseItem={caseItem} />
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value='documents'>
+            {tab === 'documents' ? (
+              <CaseDocumentsTab caseItem={caseItem} />
+            ) : null}
           </TabsContent>
 
           <TabsContent value='timeline'>
@@ -216,52 +241,6 @@ export function ClientCaseDetailPage({ caseId }: ClientCaseDetailPageProps) {
                   </li>
                 ))}
               </ol>
-            )}
-          </TabsContent>
-
-          <TabsContent value='documents'>
-            {caseItem.documents.length === 0 ? (
-              <p className='rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground'>
-                مدرکی برای این پرونده ثبت نشده است.
-              </p>
-            ) : (
-              <ul className='divide-y rounded-xl border'>
-                {caseItem.documents.map((doc) => (
-                  <li
-                    key={doc.id}
-                    className='flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between'
-                  >
-                    <div className='flex min-w-0 items-start gap-3'>
-                      <div className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted'>
-                        <FileText className='size-4 text-muted-foreground' />
-                      </div>
-                      <div className='min-w-0 space-y-1'>
-                        <p className='truncate font-medium'>{doc.name}</p>
-                        <p className='text-xs text-muted-foreground'>
-                          {formatMimeTypeLabel(doc.mimeType)} ·{' '}
-                          {formatFileSize(doc.size)} ·{' '}
-                          {formatDate(doc.uploadedAt)}
-                        </p>
-                        <DocumentStatusBadge status={doc.status} />
-                      </div>
-                    </div>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      disabled={doc.status !== 'available'}
-                      onClick={() => {
-                        // Prototype: فایل واقعی ذخیره نمی‌شود
-                        window.alert(
-                          `در نسخه نمونه، دانلود «${doc.name}» شبیه‌سازی شده است.`
-                        )
-                      }}
-                    >
-                      <Download className='size-4' />
-                      دانلود
-                    </Button>
-                  </li>
-                ))}
-              </ul>
             )}
           </TabsContent>
 

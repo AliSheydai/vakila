@@ -38,14 +38,16 @@ export function CasesDialogs() {
               setTimeout(() => setCurrentRow(null), 500)
             }}
             handleConfirm={() => {
-              const result = deleteCase(currentRow.id)
-              if (!result.ok) {
-                toast.error(result.error)
-                return
-              }
-              toast.success('پرونده حذف شد.')
-              setOpen(null)
-              setTimeout(() => setCurrentRow(null), 500)
+              void (async () => {
+                const result = await deleteCase(currentRow.id)
+                if (!result.ok) {
+                  toast.error(result.error)
+                  return
+                }
+                toast.success('پرونده حذف شد.')
+                setOpen(null)
+                setTimeout(() => setCurrentRow(null), 500)
+              })()
             }}
             className='max-w-md'
             title='حذف پرونده'

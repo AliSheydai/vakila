@@ -1,7 +1,5 @@
 import { create } from 'zustand'
-import * as casesService from '@/features/cases/services/cases-service'
-import * as clientsService from '@/features/cases/services/clients-service'
-import * as eventsService from '../services/events-service'
+import * as apiEvents from '../services/api-events-service'
 import type {
   CreateEventInput,
   Event,
@@ -20,7 +18,6 @@ import {
   summarizeEvents,
   type EventsSummary,
 } from '../utils/filters'
-import { buildDemoEvents } from '../utils/seed'
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -32,13 +29,15 @@ type EventsState = {
   hydrated: boolean
   error: string | null
 
-  hydrate: (ownerId: string, options?: { seedIfEmpty?: boolean }) => ActionResult
-  seedDemoIfEmpty: () => ActionResult
+  hydrate: (ownerId: string) => Promise<ActionResult>
   reset: () => void
 
-  addEvent: (input: CreateEventInput) => ActionResult<Event>
-  updateEvent: (eventId: string, input: UpdateEventInput) => ActionResult<Event>
-  deleteEvent: (eventId: string) => ActionResult
+  addEvent: (input: CreateEventInput) => Promise<ActionResult<Event>>
+  updateEvent: (
+    eventId: string,
+    input: UpdateEventInput
+  ) => Promise<ActionResult<Event>>
+  deleteEvent: (eventId: string) => Promise<ActionResult>
   getEvent: (eventId: string) => Event | null
 
   searchEvents: (query: string, context?: EventSearchContext) => Event[]
@@ -56,38 +55,14 @@ type EventsState = {
   getSummary: (now?: Date) => EventsSummary
 }
 
-function requireOwner(
-  ownerId: string | null
-): { ok: true; ownerId: string } | { ok: false; error: string } {
-  if (!ownerId) {
-    return { ok: false, error: 'کاربر مشخص نیست. ابتدا وارد شوید.' }
-  }
-  return { ok: true, ownerId }
-}
-
-function seedDemoData(ownerId: string): ActionResult<Event[]> {
-  const casesResult = casesService.listCases(ownerId)
-  const clientsResult = clientsService.listClients(ownerId)
-
-  const cases = casesResult.ok ? casesResult.data : []
-  const clients = clientsResult.ok ? clientsResult.data : []
-
-  const events = buildDemoEvents(ownerId, { cases, clients })
-  const saved = eventsService.replaceEvents(ownerId, events)
-  if (!saved.ok) return saved
-
-  return { ok: true, data: events }
-}
-
 export const useEventsStore = create<EventsState>((set, get) => ({
   ownerId: null,
   events: [],
   hydrated: false,
   error: null,
 
-  hydrate: (ownerId, options) => {
-    const seedIfEmpty = options?.seedIfEmpty ?? false
-    const result = eventsService.listEvents(ownerId)
+  hydrate: async (ownerId) => {
+    const result = await apiEvents.listEvents()
 
     if (!result.ok) {
       set({
@@ -99,44 +74,13 @@ export const useEventsStore = create<EventsState>((set, get) => ({
       return { ok: false, error: result.error }
     }
 
-    let events = result.data
-
-    if (seedIfEmpty && events.length === 0) {
-      const seeded = seedDemoData(ownerId)
-      if (seeded.ok) {
-        events = seeded.data
-      }
-    }
-
     set({
       ownerId,
-      events,
+      events: result.data,
       hydrated: true,
       error: null,
     })
 
-    return { ok: true, data: undefined }
-  },
-
-  seedDemoIfEmpty: () => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    if (get().events.length > 0) {
-      return {
-        ok: false,
-        error:
-          'داده‌ای از قبل وجود دارد؛ برای جلوگیری از بازنویسی seed انجام نشد.',
-      }
-    }
-
-    const seeded = seedDemoData(gate.ownerId)
-    if (!seeded.ok) {
-      set({ error: seeded.error })
-      return seeded
-    }
-
-    set({ events: seeded.data, error: null })
     return { ok: true, data: undefined }
   },
 
@@ -149,28 +93,22 @@ export const useEventsStore = create<EventsState>((set, get) => ({
     })
   },
 
-  addEvent: (input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = eventsService.createEvent(gate.ownerId, input)
+  addEvent: async (input) => {
+    const result = await apiEvents.createEvent(input)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
 
     set({
-      events: [...get().events, result.data],
+      events: [result.data, ...get().events],
       error: null,
     })
     return result
   },
 
-  updateEvent: (eventId, input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = eventsService.updateEvent(gate.ownerId, eventId, input)
+  updateEvent: async (eventId, input) => {
+    const result = await apiEvents.updateEvent(eventId, input)
     if (!result.ok) {
       set({ error: result.error })
       return result
@@ -185,11 +123,8 @@ export const useEventsStore = create<EventsState>((set, get) => ({
     return result
   },
 
-  deleteEvent: (eventId) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = eventsService.deleteEvent(gate.ownerId, eventId)
+  deleteEvent: async (eventId) => {
+    const result = await apiEvents.deleteEvent(eventId)
     if (!result.ok) {
       set({ error: result.error })
       return result
@@ -206,10 +141,10 @@ export const useEventsStore = create<EventsState>((set, get) => ({
     get().events.find((item) => item.id === eventId) ?? null,
 
   searchEvents: (query, context) =>
-    eventsService.searchEvents(get().events, query, context),
+    apiEvents.searchEvents(get().events, query, context),
 
   filterEvents: (filters, context) =>
-    eventsService.queryEvents(get().events, filters, context),
+    apiEvents.queryEvents(get().events, filters, context),
 
   getEventsByDate: (date) => getEventsByDate(get().events, date),
 

@@ -3,8 +3,8 @@ import {
   FolderOpen,
   Calendar,
   CreditCard,
-  Bot,
   Users,
+  UserCog,
   CalendarDays,
   BarChart3,
   Wallet,
@@ -16,8 +16,8 @@ import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
   user: {
-    name: 'علی رضایی',
-    phone: '09123456789',
+    name: 'کاربر',
+    phone: '',
     avatar: '',
   },
   teams: [
@@ -65,11 +65,6 @@ export const sidebarData: SidebarData = {
     {
       title: '',
       items: [
-        // {
-        //   title: 'دستیار',
-        //   url: '/admin',
-        //   icon: Bot,
-        // },
         {
           title: 'پرونده',
           url: '/admin/cases',
@@ -94,6 +89,11 @@ export const sidebarData: SidebarData = {
           title: 'مالی',
           url: '/admin/financial',
           icon: Wallet,
+        },
+        {
+          title: 'کاربران',
+          url: '/admin/users',
+          icon: UserCog,
         },
       ],
     },

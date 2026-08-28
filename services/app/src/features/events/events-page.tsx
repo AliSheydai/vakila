@@ -61,7 +61,7 @@ function EventsQueryBootstrap({ ready }: { ready: boolean }) {
 }
 
 function EventsContent() {
-  const { hydrated: eventsHydrated } = useEventsHydration({ seedIfEmpty: true })
+  const { hydrated: eventsHydrated } = useEventsHydration()
   const { hydrated: casesHydrated } = useCasesHydration()
   const events = useEventsStore((state) => state.events)
   const error = useEventsStore((state) => state.error)

@@ -82,16 +82,18 @@ function ClientDetailDialogs({ clientId }: { clientId: string }) {
               return
             }
 
-            const result = deleteClient(activeClient.id)
-            if (!result.ok) {
-              toast.error(result.error)
-              return
-            }
-            toast.success('موکل حذف شد.')
-            closeDelete()
-            if (activeClient.id === clientId) {
-              router.push('/admin/clients')
-            }
+            void (async () => {
+              const result = await deleteClient(activeClient.id)
+              if (!result.ok) {
+                toast.error(result.error)
+                return
+              }
+              toast.success('موکل حذف شد.')
+              closeDelete()
+              if (activeClient.id === clientId) {
+                router.push('/admin/clients')
+              }
+            })()
           }}
           className='max-w-md'
           title={isBlocked ? 'حذف امکان‌پذیر نیست' : 'حذف موکل'}
@@ -119,7 +121,7 @@ function ClientDetailDialogs({ clientId }: { clientId: string }) {
 
 function ClientDetailContent({ clientId }: ClientDetailPageProps) {
   const { hydrated } = useCasesHydration()
-  useEventsHydration({ seedIfEmpty: false })
+  useEventsHydration()
   const client = useCasesStore((state) =>
     state.clients.find((item) => item.id === clientId)
   )

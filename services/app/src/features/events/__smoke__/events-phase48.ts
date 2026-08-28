@@ -4,7 +4,6 @@
  */
 
 import * as eventsService from '../services/events-service'
-import { useEventsStore } from '../stores/events-store'
 import {
   formatEventDate,
   formatEventTime,
@@ -169,22 +168,18 @@ function run() {
     '9 temporal past'
   )
 
-  // 16. حفظ در localStorage + 15 شبیه‌سازی refresh (hydrate دوباره)
+  // 16. حفظ در localStorage + خواندن مجدد
   assert(store.has(key), '16 storage key')
   const firstRead = eventsService.listEvents(OWNER)
   assert(firstRead.ok && firstRead.data.length >= 2, '16 first read')
 
-  useEventsStore.getState().reset()
-  const hydrated = useEventsStore.getState().hydrate(OWNER)
-  assert(hydrated.ok, '15 hydrate')
-  assert(useEventsStore.getState().events.length >= 2, '15 refresh keeps data')
-
-  // hydrate با seed نباید داده موجود را پاک کند
-  const seeded = useEventsStore.getState().hydrate(OWNER, { seedIfEmpty: true })
-  assert(seeded.ok, 'seedIfEmpty on existing')
+  const secondRead = eventsService.listEvents(OWNER)
+  assert(secondRead.ok, '15 re-read')
+  if (!secondRead.ok) return
+  assert(secondRead.data.length >= 2, '15 refresh keeps data')
   assert(
-    useEventsStore.getState().events.some((event) => event.id === created.data.id),
-    'seed must not overwrite'
+    secondRead.data.some((event) => event.id === created.data.id),
+    're-read must keep data'
   )
 
   // 7. حذف
@@ -192,9 +187,11 @@ function run() {
   assert(deleted.ok, '7 delete')
   const gone = eventsService.getEvent(OWNER, created.data.id)
   assert(gone.ok && gone.data === null, '7 gone')
-  useEventsStore.getState().hydrate(OWNER)
+  const afterDelete = eventsService.listEvents(OWNER)
+  assert(afterDelete.ok, '7 list after delete')
+  if (!afterDelete.ok) return
   assert(
-    !useEventsStore.getState().events.some((event) => event.id === created.data.id),
+    !afterDelete.data.some((event) => event.id === created.data.id),
     '7 refresh after delete'
   )
 

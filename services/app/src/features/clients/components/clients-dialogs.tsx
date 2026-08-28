@@ -55,13 +55,15 @@ export function ClientsDialogs() {
                 return
               }
 
-              const result = deleteClient(currentRow.id)
-              if (!result.ok) {
-                toast.error(result.error)
-                return
-              }
-              toast.success('موکل حذف شد.')
-              closeDelete()
+              void (async () => {
+                const result = await deleteClient(currentRow.id)
+                if (!result.ok) {
+                  toast.error(result.error)
+                  return
+                }
+                toast.success('موکل حذف شد.')
+                closeDelete()
+              })()
             }}
             className='max-w-md'
             title={isBlocked ? 'حذف امکان‌پذیر نیست' : 'حذف موکل'}

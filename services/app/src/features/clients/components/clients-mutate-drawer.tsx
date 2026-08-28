@@ -204,8 +204,8 @@ export function ClientsMutateDrawer({
       }
 
       const result = isUpdate
-        ? updateClient(currentRow.id, payload)
-        : addClient(payload)
+        ? await updateClient(currentRow.id, payload)
+        : await addClient(payload)
 
       if (!result.ok) {
         toast.error(result.error)

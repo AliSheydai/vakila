@@ -67,7 +67,6 @@ export function EventsFiltersBar() {
       <div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
         <div className='grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-3'>
           <Select
-            modal={false}
             value={filters.type}
             onValueChange={(value) =>
               setFilter('type', value as EventTypeFilter)
@@ -87,7 +86,6 @@ export function EventsFiltersBar() {
           </Select>
 
           <Select
-            modal={false}
             value={filters.temporal}
             onValueChange={(value) =>
               setFilter('temporal', value as EventTemporalFilter)
@@ -111,7 +109,6 @@ export function EventsFiltersBar() {
           </Select>
 
           <Select
-            modal={false}
             value={filters.relation}
             onValueChange={(value) =>
               setFilter('relation', value as EventRelationFilter)

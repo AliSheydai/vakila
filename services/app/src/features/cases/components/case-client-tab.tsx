@@ -175,10 +175,10 @@ export function CaseClientTab({ caseItem, client }: CaseClientTabProps) {
 
   const changeMode = changeForm.watch('mode')
 
-  function onEditSubmit(values: EditValues) {
+  async function onEditSubmit(values: EditValues) {
     if (!client) return
 
-    const result = updateClient(client.id, {
+    const result = await updateClient(client.id, {
       name: values.name,
       phone: formatIranianMobileLocal(values.phone),
       email: values.email,
@@ -194,13 +194,13 @@ export function CaseClientTab({ caseItem, client }: CaseClientTabProps) {
     setEditOpen(false)
   }
 
-  function onChangeSubmit(values: ChangeValues) {
+  async function onChangeSubmit(values: ChangeValues) {
     let nextClientId: string | null = null
 
     if (values.mode === 'existing') {
       nextClientId = values.clientId || null
     } else {
-      const created = addClient({
+      const created = await addClient({
         name: values.name!.trim(),
         phone: formatIranianMobileLocal(values.phone!.trim()),
       })
@@ -211,7 +211,7 @@ export function CaseClientTab({ caseItem, client }: CaseClientTabProps) {
       nextClientId = created.data.id
     }
 
-    const result = updateCase(caseItem.id, { clientId: nextClientId })
+    const result = await updateCase(caseItem.id, { clientId: nextClientId })
     if (!result.ok) {
       toast.error(result.error)
       return

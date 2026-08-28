@@ -57,7 +57,7 @@ export function RelatedEventsSection({
   title = 'رویدادهای مرتبط',
   description = 'جلسات، دادگاه‌ها و مهلت‌های متصل به این بخش.',
 }: RelatedEventsSectionProps) {
-  const { hydrated } = useEventsHydration({ seedIfEmpty: false })
+  const { hydrated } = useEventsHydration()
   const events = useEventsStore((state) => state.events)
 
   const related = sortRelated(

@@ -2,28 +2,36 @@
 
 import { useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
+import { useRealtimeSync } from '@/hooks/use-realtime'
 import { useEventsStore } from '../stores/events-store'
 
-/** شناسه پایدار مالک برای Prototype — با accountNo ورود mock هم‌خوان است */
-const FALLBACK_OWNER_ID = 'ACC001'
-
-export function useEventsHydration(options?: { seedIfEmpty?: boolean }) {
+export function useEventsHydration() {
   const user = useAuthStore((state) => state.auth.user)
+  const authHydrated = useAuthStore((state) => state.auth.hydrated)
   const hydrate = useEventsStore((state) => state.hydrate)
   const hydrated = useEventsStore((state) => state.hydrated)
   const ownerId = useEventsStore((state) => state.ownerId)
 
-  const resolvedOwnerId = user?.accountNo || FALLBACK_OWNER_ID
-  const seedIfEmpty = options?.seedIfEmpty ?? true
+  const resolvedOwnerId = user?.id ?? null
 
   useEffect(() => {
+    if (!authHydrated || !resolvedOwnerId) return
     if (!hydrated || ownerId !== resolvedOwnerId) {
-      hydrate(resolvedOwnerId, { seedIfEmpty })
+      void hydrate(resolvedOwnerId)
     }
-  }, [hydrate, hydrated, ownerId, resolvedOwnerId, seedIfEmpty])
+  }, [authHydrated, hydrate, hydrated, ownerId, resolvedOwnerId])
+
+  useRealtimeSync((event) => {
+    if (!resolvedOwnerId) return
+    if (event.table === 'events') {
+      void hydrate(resolvedOwnerId)
+    }
+  }, Boolean(resolvedOwnerId))
 
   return {
-    hydrated: hydrated && ownerId === resolvedOwnerId,
+    hydrated: Boolean(
+      authHydrated && hydrated && ownerId === resolvedOwnerId
+    ),
     ownerId: resolvedOwnerId,
   }
 }

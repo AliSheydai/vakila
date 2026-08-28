@@ -130,12 +130,14 @@ export function ClientPaymentsPage() {
   }
 
   const handleRetry = (paymentId: string) => {
-    const result = retryPayment(paymentId)
-    if (!result.ok) {
-      toast.error(result.error)
-      return
-    }
-    toast.success('پرداخت با موفقیت انجام شد.')
+    void (async () => {
+      const result = await retryPayment(paymentId)
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('پرداخت با موفقیت انجام شد.')
+    })()
   }
 
   return (

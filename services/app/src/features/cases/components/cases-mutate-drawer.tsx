@@ -158,7 +158,7 @@ export function CasesMutateDrawer({
       if (values.clientMode === 'existing') {
         clientId = values.clientId || null
       } else if (values.clientMode === 'new') {
-        const clientResult = addClient({
+        const clientResult = await addClient({
           name: values.clientName!.trim(),
           phone: formatIranianMobileLocal(values.clientPhone!.trim()),
         })
@@ -179,8 +179,8 @@ export function CasesMutateDrawer({
       }
 
       const result = isUpdate
-        ? updateCase(currentRow.id, payload)
-        : addCase(payload)
+        ? await updateCase(currentRow.id, payload)
+        : await addCase(payload)
 
       if (!result.ok) {
         toast.error(result.error)

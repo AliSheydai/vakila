@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import * as casesService from '../services/cases-service'
-import * as clientsService from '../services/clients-service'
+import * as apiCases from '../services/api-cases-service'
+import * as apiClients from '../services/api-clients-service'
 import type {
   Case,
   Client,
@@ -14,7 +14,6 @@ import type {
   UpsertFeeInput,
 } from '../types'
 import { getCasesForClient } from '../utils/clients'
-import { buildDemoCases, buildDemoClients } from '../utils/seed'
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -27,14 +26,15 @@ type CasesState = {
   hydrated: boolean
   error: string | null
 
-  hydrate: (ownerId: string, options?: { seedIfEmpty?: boolean }) => ActionResult
-  /** فقط اگر هیچ داده‌ای نباشد، دادهٔ نمونه می‌سازد */
-  seedDemoIfEmpty: () => ActionResult
+  hydrate: (ownerId: string) => Promise<ActionResult>
   reset: () => void
 
-  addClient: (input: CreateClientInput) => ActionResult<Client>
-  updateClient: (clientId: string, input: UpdateClientInput) => ActionResult<Client>
-  deleteClient: (clientId: string) => ActionResult
+  addClient: (input: CreateClientInput) => Promise<ActionResult<Client>>
+  updateClient: (
+    clientId: string,
+    input: UpdateClientInput
+  ) => Promise<ActionResult<Client>>
+  deleteClient: (clientId: string) => Promise<ActionResult>
   getClient: (clientId: string) => Client | null
   searchClients: (query: string) => Client[]
   getClientCases: (clientId: string) => Case[]
@@ -42,52 +42,48 @@ type CasesState = {
   addClientAttachment: (
     clientId: string,
     input: CreateAttachmentInput
-  ) => ActionResult<Client>
+  ) => Promise<ActionResult<Client>>
   deleteClientAttachment: (
     clientId: string,
     attachmentId: string
-  ) => ActionResult<Client>
+  ) => Promise<ActionResult<Client>>
 
-  addCase: (input: CreateCaseInput) => ActionResult<Case>
-  updateCase: (caseId: string, input: UpdateCaseInput) => ActionResult<Case>
-  deleteCase: (caseId: string) => ActionResult
+  addCase: (input: CreateCaseInput) => Promise<ActionResult<Case>>
+  updateCase: (
+    caseId: string,
+    input: UpdateCaseInput
+  ) => Promise<ActionResult<Case>>
+  deleteCase: (caseId: string) => Promise<ActionResult>
   getCase: (caseId: string) => Case | null
 
-  upsertFee: (caseId: string, input: UpsertFeeInput) => ActionResult<Case>
-  addPayment: (caseId: string, input: CreatePaymentInput) => ActionResult<Case>
-  deletePayment: (caseId: string, paymentId: string) => ActionResult<Case>
-  addExpense: (caseId: string, input: CreateExpenseInput) => ActionResult<Case>
-  deleteExpense: (caseId: string, expenseId: string) => ActionResult<Case>
+  upsertFee: (
+    caseId: string,
+    input: UpsertFeeInput
+  ) => Promise<ActionResult<Case>>
+  addPayment: (
+    caseId: string,
+    input: CreatePaymentInput
+  ) => Promise<ActionResult<Case>>
+  deletePayment: (
+    caseId: string,
+    paymentId: string
+  ) => Promise<ActionResult<Case>>
+  addExpense: (
+    caseId: string,
+    input: CreateExpenseInput
+  ) => Promise<ActionResult<Case>>
+  deleteExpense: (
+    caseId: string,
+    expenseId: string
+  ) => Promise<ActionResult<Case>>
   addAttachment: (
     caseId: string,
     input: CreateAttachmentInput
-  ) => ActionResult<Case>
+  ) => Promise<ActionResult<Case>>
   deleteAttachment: (
     caseId: string,
     attachmentId: string
-  ) => ActionResult<Case>
-}
-
-function syncClientIntoState(
-  set: (partial: Partial<CasesState>) => void,
-  get: () => CasesState,
-  updated: Client
-) {
-  set({
-    clients: get().clients.map((item) =>
-      item.id === updated.id ? updated : item
-    ),
-    error: null,
-  })
-}
-
-function requireOwner(
-  ownerId: string | null
-): { ok: true; ownerId: string } | { ok: false; error: string } {
-  if (!ownerId) {
-    return { ok: false, error: 'کاربر مشخص نیست. ابتدا وارد شوید.' }
-  }
-  return { ok: true, ownerId }
+  ) => Promise<ActionResult<Case>>
 }
 
 function syncCaseIntoState(
@@ -103,19 +99,23 @@ function syncCaseIntoState(
   })
 }
 
-function seedDemoData(
-  ownerId: string
-): ActionResult<{ cases: Case[]; clients: Client[] }> {
-  const clients = buildDemoClients(ownerId)
-  const cases = buildDemoCases(ownerId, clients)
-
-  const clientsSaved = clientsService.replaceClients(ownerId, clients)
-  if (!clientsSaved.ok) return clientsSaved
-
-  const casesSaved = casesService.replaceCases(ownerId, cases)
-  if (!casesSaved.ok) return casesSaved
-
-  return { ok: true, data: { cases, clients } }
+async function refreshCase(
+  set: (partial: Partial<CasesState>) => void,
+  get: () => CasesState,
+  caseId: string
+): Promise<ActionResult<Case>> {
+  const refreshed = await apiCases.getCase(caseId)
+  if (!refreshed.ok) {
+    set({ error: refreshed.error })
+    return refreshed
+  }
+  const existing = get().cases.some((c) => c.id === caseId)
+  if (existing) {
+    syncCaseIntoState(set, get, refreshed.data)
+  } else {
+    set({ cases: [...get().cases, refreshed.data], error: null })
+  }
+  return { ok: true, data: refreshed.data }
 }
 
 export const useCasesStore = create<CasesState>((set, get) => ({
@@ -125,11 +125,11 @@ export const useCasesStore = create<CasesState>((set, get) => ({
   hydrated: false,
   error: null,
 
-  hydrate: (ownerId, options) => {
-    const seedIfEmpty = options?.seedIfEmpty ?? false
-
-    const casesResult = casesService.listCases(ownerId)
-    const clientsResult = clientsService.listClients(ownerId)
+  hydrate: async (ownerId) => {
+    const [casesResult, clientsResult] = await Promise.all([
+      apiCases.listCases(),
+      apiClients.listClients(),
+    ])
 
     if (!casesResult.ok) {
       set({
@@ -153,50 +153,14 @@ export const useCasesStore = create<CasesState>((set, get) => ({
       return { ok: false, error: clientsResult.error }
     }
 
-    let cases = casesResult.data
-    let clients = clientsResult.data
-
-    if (seedIfEmpty && cases.length === 0 && clients.length === 0) {
-      const seeded = seedDemoData(ownerId)
-      if (seeded.ok) {
-        cases = seeded.data.cases
-        clients = seeded.data.clients
-      }
-    }
-
     set({
       ownerId,
-      cases,
-      clients,
+      cases: casesResult.data,
+      clients: clientsResult.data,
       hydrated: true,
       error: null,
     })
 
-    return { ok: true, data: undefined }
-  },
-
-  seedDemoIfEmpty: () => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    if (get().cases.length > 0 || get().clients.length > 0) {
-      return {
-        ok: false,
-        error: 'داده‌ای از قبل وجود دارد؛ برای جلوگیری از بازنویسی seed انجام نشد.',
-      }
-    }
-
-    const seeded = seedDemoData(gate.ownerId)
-    if (!seeded.ok) {
-      set({ error: seeded.error })
-      return seeded
-    }
-
-    set({
-      cases: seeded.data.cases,
-      clients: seeded.data.clients,
-      error: null,
-    })
     return { ok: true, data: undefined }
   },
 
@@ -210,28 +174,22 @@ export const useCasesStore = create<CasesState>((set, get) => ({
     })
   },
 
-  addClient: (input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = clientsService.createClient(gate.ownerId, input)
+  addClient: async (input) => {
+    const result = await apiClients.createClient(input)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
 
     set({
-      clients: [...get().clients, result.data],
+      clients: [result.data, ...get().clients],
       error: null,
     })
     return result
   },
 
-  updateClient: (clientId, input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = clientsService.updateClient(gate.ownerId, clientId, input)
+  updateClient: async (clientId, input) => {
+    const result = await apiClients.updateClient(clientId, input)
     if (!result.ok) {
       set({ error: result.error })
       return result
@@ -246,16 +204,18 @@ export const useCasesStore = create<CasesState>((set, get) => ({
     return result
   },
 
-  deleteClient: (clientId) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
+  deleteClient: async (clientId) => {
     const hasLinkedCases = get().cases.some(
       (item) => item.clientId === clientId
     )
-    const result = clientsService.deleteClient(gate.ownerId, clientId, {
-      hasLinkedCases,
-    })
+    if (hasLinkedCases) {
+      const error =
+        'این موکل به پرونده متصل است. ابتدا ارتباط پرونده‌ها را قطع کنید.'
+      set({ error })
+      return { ok: false, error }
+    }
+
+    const result = await apiClients.deleteClient(clientId)
     if (!result.ok) {
       set({ error: result.error })
       return result
@@ -271,69 +231,36 @@ export const useCasesStore = create<CasesState>((set, get) => ({
   getClient: (clientId) =>
     get().clients.find((client) => client.id === clientId) ?? null,
 
-  searchClients: (query) =>
-    clientsService.searchClients(get().clients, query),
+  searchClients: (query) => apiClients.searchClients(get().clients, query),
 
   getClientCases: (clientId) => getCasesForClient(get().cases, clientId),
 
-  addClientAttachment: (clientId, input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
+  addClientAttachment: async () => ({
+    ok: false,
+    error: 'آپلود مدرک موکل هنوز به سرور متصل نشده است.',
+  }),
 
-    const result = clientsService.addAttachment(
-      gate.ownerId,
-      clientId,
-      input
-    )
-    if (!result.ok) {
-      set({ error: result.error })
-      return result
-    }
+  deleteClientAttachment: async () => ({
+    ok: false,
+    error: 'حذف مدرک موکل هنوز به سرور متصل نشده است.',
+  }),
 
-    syncClientIntoState(set, get, result.data)
-    return result
-  },
-
-  deleteClientAttachment: (clientId, attachmentId) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = clientsService.deleteAttachment(
-      gate.ownerId,
-      clientId,
-      attachmentId
-    )
-    if (!result.ok) {
-      set({ error: result.error })
-      return result
-    }
-
-    syncClientIntoState(set, get, result.data)
-    return result
-  },
-
-  addCase: (input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.createCase(gate.ownerId, input)
+  addCase: async (input) => {
+    const result = await apiCases.createCase(input)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
 
     set({
-      cases: [...get().cases, result.data],
+      cases: [result.data, ...get().cases],
       error: null,
     })
     return result
   },
 
-  updateCase: (caseId, input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.updateCase(gate.ownerId, caseId, input)
+  updateCase: async (caseId, input) => {
+    const result = await apiCases.updateCase(caseId, input)
     if (!result.ok) {
       set({ error: result.error })
       return result
@@ -343,11 +270,8 @@ export const useCasesStore = create<CasesState>((set, get) => ({
     return result
   },
 
-  deleteCase: (caseId) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.deleteCase(gate.ownerId, caseId)
+  deleteCase: async (caseId) => {
+    const result = await apiCases.deleteCase(caseId)
     if (!result.ok) {
       set({ error: result.error })
       return result
@@ -362,105 +286,66 @@ export const useCasesStore = create<CasesState>((set, get) => ({
 
   getCase: (caseId) => get().cases.find((item) => item.id === caseId) ?? null,
 
-  upsertFee: (caseId, input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.upsertFee(gate.ownerId, caseId, input)
+  upsertFee: async (caseId, input) => {
+    const result = await apiCases.upsertFee(caseId, input)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
-
-    syncCaseIntoState(set, get, result.data)
-    return result
+    return refreshCase(set, get, caseId)
   },
 
-  addPayment: (caseId, input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.addPayment(gate.ownerId, caseId, input)
+  addPayment: async (caseId, input) => {
+    const result = await apiCases.addPayment(caseId, input)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
-
-    syncCaseIntoState(set, get, result.data)
-    return result
+    return refreshCase(set, get, caseId)
   },
 
-  deletePayment: (caseId, paymentId) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.deletePayment(gate.ownerId, caseId, paymentId)
+  deletePayment: async (caseId, paymentId) => {
+    const result = await apiCases.deletePayment(caseId, paymentId)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
-
-    syncCaseIntoState(set, get, result.data)
-    return result
+    return refreshCase(set, get, caseId)
   },
 
-  addExpense: (caseId, input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.addExpense(gate.ownerId, caseId, input)
+  addExpense: async (caseId, input) => {
+    const result = await apiCases.addExpense(caseId, input)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
-
-    syncCaseIntoState(set, get, result.data)
-    return result
+    return refreshCase(set, get, caseId)
   },
 
-  deleteExpense: (caseId, expenseId) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.deleteExpense(gate.ownerId, caseId, expenseId)
+  deleteExpense: async (caseId, expenseId) => {
+    const result = await apiCases.deleteExpense(caseId, expenseId)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
-
-    syncCaseIntoState(set, get, result.data)
-    return result
+    return refreshCase(set, get, caseId)
   },
 
-  addAttachment: (caseId, input) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.addAttachment(gate.ownerId, caseId, input)
+  addAttachment: async (caseId, input) => {
+    const result = await apiCases.addAttachment(caseId, input)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
-
-    syncCaseIntoState(set, get, result.data)
-    return result
+    return refreshCase(set, get, caseId)
   },
 
-  deleteAttachment: (caseId, attachmentId) => {
-    const gate = requireOwner(get().ownerId)
-    if (!gate.ok) return { ok: false, error: gate.error }
-
-    const result = casesService.deleteAttachment(
-      gate.ownerId,
-      caseId,
-      attachmentId
-    )
+  deleteAttachment: async (caseId, attachmentId) => {
+    const result = await apiCases.deleteAttachment(caseId, attachmentId)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
-
-    syncCaseIntoState(set, get, result.data)
-    return result
+    return refreshCase(set, get, caseId)
   },
 }))

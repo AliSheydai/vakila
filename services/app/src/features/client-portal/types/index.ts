@@ -146,6 +146,27 @@ export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
   restricted: 'محدود',
 }
 
+// ─── Case authorship / comments ─────────────────────────────
+
+export const CASE_CREATED_BY = ['lawyer', 'client'] as const
+export type CaseCreatedBy = (typeof CASE_CREATED_BY)[number]
+
+export const CASE_CREATED_BY_LABELS: Record<CaseCreatedBy, string> = {
+  lawyer: 'ثبت‌شده توسط وکیل',
+  client: 'ثبت‌شده توسط موکل',
+}
+
+export const COMMENT_AUTHOR_ROLES = ['lawyer', 'client'] as const
+export type CommentAuthorRole = (typeof COMMENT_AUTHOR_ROLES)[number]
+
+/** آماده برای فاز بعدی؛ فعلاً UI ویرایش فیلدها ساخته نمی‌شود. */
+export function canClientEditCaseFields(caseItem: {
+  createdBy: CaseCreatedBy
+  lawyerSynced: boolean
+}): boolean {
+  return caseItem.createdBy === 'client' && !caseItem.lawyerSynced
+}
+
 // ─── Zod schemas ───────────────────────────────────────────
 
 export const lawyerSchema = z.object({
@@ -190,15 +211,30 @@ export const timelineEventSchema = z.object({
 
 export type TimelineEvent = z.infer<typeof timelineEventSchema>
 
+export const caseCommentSchema = z.object({
+  id: z.string().min(1),
+  authorRole: z.enum(COMMENT_AUTHOR_ROLES),
+  authorName: z.string().min(1),
+  bodyHtml: z.string().default(''),
+  attachments: z.array(caseDocumentSchema).default([]),
+  createdAt: z.string().datetime(),
+})
+
+export type CaseComment = z.infer<typeof caseCommentSchema>
+
 export const clientCaseSchema = z.object({
   id: z.string().min(1),
   caseNumber: z.string().min(1),
   title: z.string().min(1),
   description: z.string().default(''),
+  descriptionHtml: z.string().default(''),
   legalArea: z.enum(LEGAL_AREAS),
   status: z.enum(CLIENT_CASE_STATUSES),
   lawyerId: z.string().min(1),
+  createdBy: z.enum(CASE_CREATED_BY).default('lawyer'),
+  lawyerSynced: z.boolean().default(true),
   documents: z.array(caseDocumentSchema).default([]),
+  comments: z.array(caseCommentSchema).default([]),
   timeline: z.array(timelineEventSchema).default([]),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),

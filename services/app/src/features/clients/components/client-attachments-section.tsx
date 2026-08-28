@@ -130,7 +130,7 @@ export function ClientAttachmentsSection({
           ).map((item) => item.id)
         )
 
-        const result = addClientAttachment(client.id, {
+        const result = await addClientAttachment(client.id, {
           name: file.name,
           mimeType: file.type || 'application/octet-stream',
           size: file.size,
@@ -187,10 +187,10 @@ export function ClientAttachmentsSection({
     anchor.click()
   }
 
-  function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     if (!toDelete) return
 
-    const result = deleteClientAttachment(client.id, toDelete.id)
+    const result = await deleteClientAttachment(client.id, toDelete.id)
     if (!result.ok) {
       toast.error(result.error)
       return

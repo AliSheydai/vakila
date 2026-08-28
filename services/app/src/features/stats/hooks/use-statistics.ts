@@ -18,7 +18,7 @@ type UseStatisticsOptions = {
 
 export function useStatistics(options: UseStatisticsOptions) {
   const { hydrated: casesHydrated, ownerId } = useCasesHydration()
-  const { hydrated: eventsHydrated } = useEventsHydration({ seedIfEmpty: false })
+  const { hydrated: eventsHydrated } = useEventsHydration()
 
   const clients = useCasesStore((state) => state.clients)
   const cases = useCasesStore((state) => state.cases)
@@ -48,8 +48,9 @@ export function useStatistics(options: UseStatisticsOptions) {
   )
 
   const retry = () => {
-    hydrateCases(ownerId)
-    hydrateEvents(ownerId, { seedIfEmpty: false })
+    if (!ownerId) return
+    void hydrateCases(ownerId)
+    void hydrateEvents(ownerId)
   }
 
   return {

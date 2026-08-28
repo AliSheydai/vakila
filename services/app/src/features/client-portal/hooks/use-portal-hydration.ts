@@ -1,25 +1,43 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
+import { useRealtimeSync } from '@/hooks/use-realtime'
 import { usePortalStore } from '../stores/portal-store'
-import { DEMO_CLIENT_ID } from '../utils/seed'
 
-/**
- * تا زمان اتصال API واقعی، دادهٔ پنل موکل با شناسه پایدار نمونه hydrate می‌شود.
- */
 export function usePortalHydration() {
+  const user = useAuthStore((state) => state.auth.user)
+  const authHydrated = useAuthStore((state) => state.auth.hydrated)
   const hydrate = usePortalStore((state) => state.hydrate)
   const hydrated = usePortalStore((state) => state.hydrated)
   const clientId = usePortalStore((state) => state.clientId)
 
+  const resolvedClientId = user?.id ?? null
+
   useEffect(() => {
-    if (!hydrated || clientId !== DEMO_CLIENT_ID) {
-      hydrate(DEMO_CLIENT_ID)
+    if (!authHydrated || !resolvedClientId) return
+    if (!hydrated || clientId !== resolvedClientId) {
+      void hydrate(resolvedClientId)
     }
-  }, [hydrate, hydrated, clientId])
+  }, [authHydrated, hydrate, hydrated, clientId, resolvedClientId])
+
+  useRealtimeSync((event) => {
+    if (!resolvedClientId) return
+    if (
+      event.table === 'cases' ||
+      event.table === 'events' ||
+      event.table === 'case_payments' ||
+      event.table === 'case_comments' ||
+      event.table === 'attachments'
+    ) {
+      void hydrate(resolvedClientId)
+    }
+  }, Boolean(resolvedClientId))
 
   return {
-    hydrated: hydrated && clientId === DEMO_CLIENT_ID,
-    clientId: DEMO_CLIENT_ID,
+    hydrated: Boolean(
+      authHydrated && hydrated && clientId === resolvedClientId
+    ),
+    clientId: resolvedClientId,
   }
 }

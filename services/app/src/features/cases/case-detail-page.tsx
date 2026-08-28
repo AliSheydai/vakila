@@ -61,17 +61,19 @@ function CaseDetailDialogs({ caseId }: { caseId: string }) {
             setTimeout(() => setCurrentRow(null), 500)
           }}
           handleConfirm={() => {
-            const result = deleteCase(activeCase.id)
-            if (!result.ok) {
-              toast.error(result.error)
-              return
-            }
-            toast.success('پرونده حذف شد.')
-            setOpen(null)
-            setCurrentRow(null)
-            if (activeCase.id === caseId) {
-              router.push('/admin/cases')
-            }
+            void (async () => {
+              const result = await deleteCase(activeCase.id)
+              if (!result.ok) {
+                toast.error(result.error)
+                return
+              }
+              toast.success('پرونده حذف شد.')
+              setOpen(null)
+              setCurrentRow(null)
+              if (activeCase.id === caseId) {
+                router.push('/admin/cases')
+              }
+            })()
           }}
           className='max-w-md'
           title='حذف پرونده'
@@ -91,7 +93,7 @@ function CaseDetailDialogs({ caseId }: { caseId: string }) {
 
 function CaseDetailContent({ caseId }: CaseDetailPageProps) {
   const { hydrated } = useCasesHydration()
-  useEventsHydration({ seedIfEmpty: false })
+  useEventsHydration()
   const caseItem = useCasesStore((state) =>
     state.cases.find((item) => item.id === caseId)
   )

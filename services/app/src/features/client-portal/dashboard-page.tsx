@@ -150,7 +150,8 @@ export function ClientDashboardPage() {
               </div>
               {recentCases.length === 0 ? (
                 <p className='rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground'>
-                  هنوز پرونده‌ای ثبت نشده است.
+                  هنوز پرونده‌ای ثبت نشده است. از بخش پرونده‌ها می‌توانید پرونده
+                  جدید ثبت کنید.
                 </p>
               ) : (
                 <ul className='divide-y rounded-xl border'>
@@ -169,7 +170,11 @@ export function ClientDashboardPage() {
                           {formatDate(item.updatedAt)}
                         </p>
                       </div>
-                      <Button variant='outline' size='sm' asChild>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        asChild
+                      >
                         <Link href={`/cases/${item.id}`}>مشاهده</Link>
                       </Button>
                     </li>

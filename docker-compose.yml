@@ -1,10 +1,35 @@
-# Vokala monorepo — microservices orchestration
-# Usage: ./run.sh  →  Production (containers)
+# Vokala / Vakila — microservices orchestration
+# Development: ./run.sh dev  (Postgres container + Next watch)
+# Production:  ./run.sh prod (full stack containers)
 
 name: vokala
 
 services:
-  # ── Frontend (Next.js) ────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: vokala-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vakila}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vakila_dev_secret_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-vakila}
+    volumes:
+      - vokala-pg-data:/var/lib/postgresql/data
+    networks:
+      - vokala-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-vakila} -d ${POSTGRES_DB:-vakila}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   app:
     build:
       context: .
@@ -13,16 +38,22 @@ services:
     container_name: vokala-app
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-4000}:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vakila}:${POSTGRES_PASSWORD:-vakila_dev_secret_change_me}@postgres:5432/${POSTGRES_DB:-vakila}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      APP_URL: ${APP_URL:-http://localhost:4000}
     env_file:
       - path: services/app/.env
         required: false
     networks:
       - vokala-net
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -34,25 +65,11 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 40s
 
-  # ── Future services (uncomment / add as needed) ───────────
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: services/api/Dockerfile
-  #   container_name: vokala-api
-  #   restart: unless-stopped
-  #   ports:
-  #     - "${API_PORT:-4000}:4000"
-  #   env_file:
-  #     - path: services/api/.env
-  #       required: false
-  #   networks:
-  #     - vokala-net
-  #   depends_on:
-  #     app:
-  #       condition: service_healthy
+volumes:
+  vokala-pg-data:
+    name: vokala-pg-data
 
 networks:
   vokala-net:

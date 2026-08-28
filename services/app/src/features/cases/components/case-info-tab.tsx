@@ -37,9 +37,9 @@ export function CaseInfoTab({ caseItem }: CaseInfoTabProps) {
 
   const isDirty = description !== caseItem.description
 
-  function handleSaveDescription() {
+  async function handleSaveDescription() {
     setSaving(true)
-    const result = updateCase(caseItem.id, { description })
+    const result = await updateCase(caseItem.id, { description })
     setSaving(false)
 
     if (!result.ok) {

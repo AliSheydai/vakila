@@ -1,8 +1,10 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { useMemo } from 'react'
 import { PanelLeft } from 'lucide-react'
 import { useLayout } from '@/context/layout-provider'
+import { useAuthStore, isLawyerRole, type AuthRole } from '@/stores/auth-store'
 import {
   Sidebar,
   SidebarContent,
@@ -16,28 +18,74 @@ import { sidebarData } from './data/sidebar-data'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
 import { TeamSwitcher } from './team-switcher'
+import type { NavGroup as NavGroupType, Team } from './types'
 
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
   const pathname = usePathname()
+  const user = useAuthStore((s) => s.auth.user)
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
-  const navGroups = isAdmin
-    ? sidebarData.adminNavGroups
-    : sidebarData.userNavGroups
+
+  const teams = useMemo(() => filterTeams(sidebarData.teams, user?.role), [user?.role])
+
+  const navGroups = useMemo(() => {
+    if (isAdmin) {
+      return filterAdminNav(sidebarData.adminNavGroups, user?.role)
+    }
+    return sidebarData.userNavGroups
+  }, [isAdmin, user?.role])
+
+  const displayUser = {
+    name: user?.name?.trim() || 'کاربر',
+    phone: user?.phone || '',
+    avatar: '',
+  }
 
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
-      <AppSidebarInner navGroups={navGroups} isAdmin={isAdmin} />
+      <AppSidebarInner
+        navGroups={navGroups}
+        isAdmin={isAdmin}
+        teams={teams}
+        user={displayUser}
+      />
     </Sidebar>
   )
+}
+
+function filterTeams(teams: Team[], role?: AuthRole): Team[] {
+  if (!role) return []
+  if (isLawyerRole(role)) {
+    return teams.filter((t) => t.url.startsWith('/admin'))
+  }
+  return teams.filter((t) => !t.url.startsWith('/admin'))
+}
+
+function filterAdminNav(
+  groups: NavGroupType[],
+  role?: AuthRole
+): NavGroupType[] {
+  return groups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      if ('url' in item && item.url === '/admin/users') {
+        return role === 'super_admin'
+      }
+      return true
+    }),
+  }))
 }
 
 function AppSidebarInner({
   navGroups,
   isAdmin,
+  teams,
+  user,
 }: {
-  navGroups: typeof sidebarData.userNavGroups
+  navGroups: NavGroupType[]
   isAdmin: boolean
+  teams: Team[]
+  user: { name: string; phone: string; avatar: string }
 }) {
   const { state, isMobile, toggleSidebar } = useSidebar()
   const collapsed = state === 'collapsed' && !isMobile
@@ -45,7 +93,6 @@ function AppSidebarInner({
   return (
     <>
       <SidebarHeader className={cn('h-14', collapsed && 'items-center px-2')}>
-        {/* Collapsed: brand / section + hover expand (hiknow pattern) */}
         <div
           className={cn(
             'absolute inset-0 flex items-center justify-center transition-opacity duration-300',
@@ -62,7 +109,7 @@ function AppSidebarInner({
                   'group-hover/header:pointer-events-none group-hover/header:opacity-0'
               )}
             >
-              <TeamSwitcher teams={sidebarData.teams} collapsed />
+              <TeamSwitcher teams={teams} collapsed />
             </div>
             {!isMobile && (
               <button
@@ -77,7 +124,6 @@ function AppSidebarInner({
           </div>
         </div>
 
-        {/* Expanded: brand switcher + collapse */}
         <div
           className={cn(
             'flex w-full items-center justify-between gap-1 transition-opacity duration-300',
@@ -87,7 +133,7 @@ function AppSidebarInner({
           )}
         >
           <div className='min-w-0 flex-1'>
-            <TeamSwitcher teams={sidebarData.teams} />
+            <TeamSwitcher teams={teams} />
           </div>
           <SidebarTrigger />
         </div>
@@ -105,7 +151,7 @@ function AppSidebarInner({
       <SidebarFooter
         className={cn(collapsed && 'flex items-center justify-center')}
       >
-        <NavUser user={sidebarData.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </>
   )

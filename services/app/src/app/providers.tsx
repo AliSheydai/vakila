@@ -10,6 +10,7 @@ import {
 import { toast, Toaster } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import { handleServerError } from '@/lib/handle-server-error'
+import { AuthBootstrap } from '@/components/auth-bootstrap'
 import { DirectionProvider } from '@/context/direction-provider'
 import { FontProvider } from '@/context/font-provider'
 import { ThemeProvider } from '@/context/theme-provider'
@@ -61,7 +62,7 @@ export function Providers({ children }: ProvidersProps) {
                 useAuthStore.getState().auth.reset()
                 if (typeof window !== 'undefined') {
                   const currentPath = window.location.pathname + window.location.search
-                  window.location.href = `/sign-in?redirect=${encodeURIComponent(currentPath)}`
+                  window.location.href = `/sign-in?next=${encodeURIComponent(currentPath)}`
                 }
               }
               if (error.response?.status === 500) {
@@ -81,8 +82,10 @@ export function Providers({ children }: ProvidersProps) {
       <ThemeProvider>
         <FontProvider>
           <DirectionProvider>
-            {children}
-            <Toaster position='top-right' richColors duration={4000} />
+            <AuthBootstrap>
+              {children}
+              <Toaster position='top-right' richColors duration={4000} />
+            </AuthBootstrap>
           </DirectionProvider>
         </FontProvider>
       </ThemeProvider>

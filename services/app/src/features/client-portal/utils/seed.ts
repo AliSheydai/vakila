@@ -1,4 +1,5 @@
 import type { PortalData } from '../types'
+import { plainTextToHtml } from './html'
 
 /** شناسه‌های پایدار برای لینک‌پذیری و تست UI */
 export const DEMO_CLIENT_ID = 'client_ali_rezaei'
@@ -21,6 +22,11 @@ export function buildDemoPortalData(): PortalData {
     d.setHours(hour, minute, 0, 0)
     return d.toISOString()
   }
+
+  const desc = (text: string) => ({
+    description: text,
+    descriptionHtml: plainTextToHtml(text),
+  })
 
   return {
     profile: {
@@ -54,11 +60,34 @@ export function buildDemoPortalData(): PortalData {
         id: CASE_KHAL,
         caseNumber: '۱۴۰۴-۰۰۱۲۸',
         title: 'دعوای خلع ید ملک مسکونی',
-        description:
-          'مطالبه خلع ید از ملک مسکونی واقع در منطقه ۳ تهران. مدارک مالکیت و گزارش کارشناسی تکمیل شده و پرونده در مرحله پیگیری دادگاه است.',
+        ...desc(
+          'مطالبه خلع ید از ملک مسکونی واقع در منطقه ۳ تهران. مدارک مالکیت و گزارش کارشناسی تکمیل شده و پرونده در مرحله پیگیری دادگاه است.'
+        ),
         legalArea: 'civil',
         status: 'active',
         lawyerId: DEMO_LAWYER_KARIMI,
+        createdBy: 'lawyer',
+        lawyerSynced: true,
+        comments: [
+          {
+            id: 'cmt_khal_1',
+            authorRole: 'lawyer',
+            authorName: 'دکتر مریم کریمی',
+            bodyHtml:
+              '<p>مدارک مالکیت بررسی شد. لطفاً در صورت امکان <strong>قبض آب و برق</strong> سال جاری را هم بارگذاری کنید.</p>',
+            attachments: [],
+            createdAt: iso(-20, 14, 0),
+          },
+          {
+            id: 'cmt_khal_2',
+            authorRole: 'client',
+            authorName: 'علی رضایی',
+            bodyHtml:
+              '<p>حتماً؛ فردا قبض‌ها را اسکن و ارسال می‌کنم.</p>',
+            attachments: [],
+            createdAt: iso(-19, 9, 30),
+          },
+        ],
         documents: [
           {
             id: 'doc_sanad',
@@ -136,11 +165,25 @@ export function buildDemoPortalData(): PortalData {
         id: CASE_TALAGH,
         caseNumber: '۱۴۰۴-۰۰۲۰۱',
         title: 'پرونده طلاق توافقی',
-        description:
-          'درخواست طلاق توافقی. جلسات مشاوره خانواده در جریان است و مدارک تکمیلی در انتظار بررسی وکیل است.',
+        ...desc(
+          'درخواست طلاق توافقی. جلسات مشاوره خانواده در جریان است و مدارک تکمیلی در انتظار بررسی وکیل است.'
+        ),
         legalArea: 'family',
         status: 'under_review',
         lawyerId: DEMO_LAWYER_HOSSEINI,
+        createdBy: 'lawyer',
+        lawyerSynced: true,
+        comments: [
+          {
+            id: 'cmt_talagh_1',
+            authorRole: 'lawyer',
+            authorName: 'امیرحسین حسینی',
+            bodyHtml:
+              '<p>فرم درخواست دریافت شد. یک جلسه مشاوره دیگر برای تکمیل توافقات لازم است.</p>',
+            attachments: [],
+            createdAt: iso(-5, 11, 0),
+          },
+        ],
         documents: [
           {
             id: 'doc_aghd',
@@ -189,11 +232,15 @@ export function buildDemoPortalData(): PortalData {
         id: CASE_PEYMAN,
         caseNumber: '۱۴۰۳-۰۱۱۸',
         title: 'اختلاف قرارداد پیمانکاری',
-        description:
-          'مطالبه وجه قرارداد و خسارت تأخیر تأدیه. رأی نهایی صادر و پرونده مختومه شده است.',
+        ...desc(
+          'مطالبه وجه قرارداد و خسارت تأخیر تأدیه. رأی نهایی صادر و پرونده مختومه شده است.'
+        ),
         legalArea: 'commercial',
         status: 'closed',
         lawyerId: DEMO_LAWYER_KARIMI,
+        createdBy: 'lawyer',
+        lawyerSynced: true,
+        comments: [],
         documents: [
           {
             id: 'doc_contract',
@@ -247,11 +294,15 @@ export function buildDemoPortalData(): PortalData {
         id: CASE_KALAH,
         caseNumber: '۱۴۰۴-۰۰۰۴۵',
         title: 'شکایت کلاهبرداری رایانه‌ای',
-        description:
-          'پرونده به درخواست موکل لغو شد؛ پیگیری از طریق مرجع دیگری انجام می‌شود.',
+        ...desc(
+          'پرونده به درخواست موکل لغو شد؛ پیگیری از طریق مرجع دیگری انجام می‌شود.'
+        ),
         legalArea: 'criminal',
         status: 'cancelled',
         lawyerId: DEMO_LAWYER_HOSSEINI,
+        createdBy: 'lawyer',
+        lawyerSynced: true,
+        comments: [],
         documents: [],
         timeline: [
           {

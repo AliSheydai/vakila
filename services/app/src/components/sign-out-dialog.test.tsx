@@ -4,14 +4,47 @@ import { userEvent } from 'vitest/browser'
 import { SignOutDialog } from './sign-out-dialog'
 
 const navigate = vi.fn()
-const reset = vi.fn()
+const logout = vi.fn(async () => undefined)
+const resetCases = vi.fn()
+const resetEvents = vi.fn()
+const resetPortal = vi.fn()
 
 const MOCK_PATH = '/dashboard?tab=1'
 
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: () => ({
-    auth: { reset },
-  }),
+  useAuthStore: (
+    selector?: (state: { auth: { logout: typeof logout } }) => unknown
+  ) => {
+    const state = { auth: { logout } }
+    return selector ? selector(state) : state
+  },
+}))
+
+vi.mock('@/features/cases/stores/cases-store', () => ({
+  useCasesStore: (
+    selector?: (state: { reset: typeof resetCases }) => unknown
+  ) => {
+    const state = { reset: resetCases }
+    return selector ? selector(state) : state
+  },
+}))
+
+vi.mock('@/features/events/stores/events-store', () => ({
+  useEventsStore: (
+    selector?: (state: { reset: typeof resetEvents }) => unknown
+  ) => {
+    const state = { reset: resetEvents }
+    return selector ? selector(state) : state
+  },
+}))
+
+vi.mock('@/features/client-portal/stores/portal-store', () => ({
+  usePortalStore: (
+    selector?: (state: { reset: typeof resetPortal }) => unknown
+  ) => {
+    const state = { reset: resetPortal }
+    return selector ? selector(state) : state
+  },
 }))
 
 vi.mock('next/navigation', () => ({
@@ -27,27 +60,30 @@ describe('SignOutDialog', () => {
     vi.clearAllMocks()
   })
 
-  it('calls auth.reset and navigates to sign-in with current location as redirect', async () => {
+  it('calls logout and navigates to sign-in with next param', async () => {
     const { getByRole } = await render(
       <SignOutDialog open onOpenChange={vi.fn()} />
     )
 
-    await userEvent.click(getByRole('button', { name: /^Sign out$/i }))
+    await userEvent.click(getByRole('button', { name: /^خروج$/i }))
 
-    expect(reset).toHaveBeenCalledOnce()
+    expect(logout).toHaveBeenCalledOnce()
+    expect(resetCases).toHaveBeenCalledOnce()
+    expect(resetEvents).toHaveBeenCalledOnce()
+    expect(resetPortal).toHaveBeenCalledOnce()
     expect(navigate).toHaveBeenCalledWith(
-      `/sign-in?redirect=${encodeURIComponent(MOCK_PATH)}`
+      `/sign-in?next=${encodeURIComponent(MOCK_PATH)}`
     )
   })
 
-  it('does not call reset or navigate when Cancel is clicked', async () => {
+  it('does not call logout or navigate when Cancel is clicked', async () => {
     const { getByRole } = await render(
       <SignOutDialog open onOpenChange={vi.fn()} />
     )
 
-    await userEvent.click(getByRole('button', { name: /^Cancel$/i }))
+    await userEvent.click(getByRole('button', { name: /^انصراف$/i }))
 
-    expect(reset).not.toHaveBeenCalled()
+    expect(logout).not.toHaveBeenCalled()
     expect(navigate).not.toHaveBeenCalled()
   })
 })

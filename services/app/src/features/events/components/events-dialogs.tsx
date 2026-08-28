@@ -64,14 +64,16 @@ export function EventsDialogs() {
               setTimeout(() => setCurrentRow(null), 500)
             }}
             handleConfirm={() => {
-              const result = deleteEvent(currentRow.id)
-              if (!result.ok) {
-                toast.error(result.error)
-                return
-              }
-              toast.success('رویداد حذف شد.')
-              setOpen(null)
-              setTimeout(() => setCurrentRow(null), 500)
+              void (async () => {
+                const result = await deleteEvent(currentRow.id)
+                if (!result.ok) {
+                  toast.error(result.error)
+                  return
+                }
+                toast.success('رویداد حذف شد.')
+                setOpen(null)
+                setTimeout(() => setCurrentRow(null), 500)
+              })()
             }}
             className='max-w-md'
             title='حذف رویداد'

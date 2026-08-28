@@ -158,8 +158,8 @@ export function CaseFinanceTab({ caseItem }: CaseFinanceTabProps) {
     setFeeOpen(true)
   }
 
-  function onFeeSubmit(values: FeeValues) {
-    const result = upsertFee(caseItem.id, {
+  async function onFeeSubmit(values: FeeValues) {
+    const result = await upsertFee(caseItem.id, {
       amount: values.amount,
       description: values.description,
       dueDate: values.dueDate ? dateInputToIso(values.dueDate) : null,
@@ -172,8 +172,8 @@ export function CaseFinanceTab({ caseItem }: CaseFinanceTabProps) {
     setFeeOpen(false)
   }
 
-  function onPaymentSubmit(values: PaymentValues) {
-    const result = addPayment(caseItem.id, {
+  async function onPaymentSubmit(values: PaymentValues) {
+    const result = await addPayment(caseItem.id, {
       amount: values.amount,
       date: dateInputToIso(values.date),
       method: values.method,
@@ -195,8 +195,8 @@ export function CaseFinanceTab({ caseItem }: CaseFinanceTabProps) {
     })
   }
 
-  function onExpenseSubmit(values: ExpenseValues) {
-    const result = addExpense(caseItem.id, {
+  async function onExpenseSubmit(values: ExpenseValues) {
+    const result = await addExpense(caseItem.id, {
       title: values.title,
       category: values.category,
       amount: values.amount,
@@ -708,13 +708,18 @@ export function CaseFinanceTab({ caseItem }: CaseFinanceTabProps) {
         }}
         handleConfirm={() => {
           if (!paymentToDelete) return
-          const result = deletePayment(caseItem.id, paymentToDelete.id)
-          if (!result.ok) {
-            toast.error(result.error)
-            return
-          }
-          toast.success('پرداخت حذف شد.')
-          setPaymentToDelete(null)
+          void (async () => {
+            const result = await deletePayment(
+              caseItem.id,
+              paymentToDelete.id
+            )
+            if (!result.ok) {
+              toast.error(result.error)
+              return
+            }
+            toast.success('پرداخت حذف شد.')
+            setPaymentToDelete(null)
+          })()
         }}
         className='max-w-md'
         title='حذف پرداخت'
@@ -739,13 +744,18 @@ export function CaseFinanceTab({ caseItem }: CaseFinanceTabProps) {
         }}
         handleConfirm={() => {
           if (!expenseToDelete) return
-          const result = deleteExpense(caseItem.id, expenseToDelete.id)
-          if (!result.ok) {
-            toast.error(result.error)
-            return
-          }
-          toast.success('هزینه حذف شد.')
-          setExpenseToDelete(null)
+          void (async () => {
+            const result = await deleteExpense(
+              caseItem.id,
+              expenseToDelete.id
+            )
+            if (!result.ok) {
+              toast.error(result.error)
+              return
+            }
+            toast.success('هزینه حذف شد.')
+            setExpenseToDelete(null)
+          })()
         }}
         className='max-w-md'
         title='حذف هزینه'

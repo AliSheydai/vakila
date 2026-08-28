@@ -52,9 +52,19 @@ export function NavUser({ user }: NavUserProps) {
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <span className='flex-1 truncate text-start text-sm font-medium whitespace-nowrap'>
-                {user.name}
-              </span>
+              <div className='grid min-w-0 flex-1 text-start leading-tight'>
+                <span className='truncate text-sm font-medium whitespace-nowrap'>
+                  {user.name}
+                </span>
+                {user.phone ? (
+                  <span
+                    className='truncate text-[11px] text-muted-foreground'
+                    dir='ltr'
+                  >
+                    {user.phone}
+                  </span>
+                ) : null}
+              </div>
               <ChevronLeft className='ms-auto size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/menu-item:-rotate-90' />
             </SidebarMenuButton>
           </DropdownMenuTrigger>

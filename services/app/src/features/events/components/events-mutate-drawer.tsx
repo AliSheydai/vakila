@@ -233,8 +233,8 @@ export function EventsMutateDrawer({
       }
 
       const result = isUpdate
-        ? updateEvent(currentRow.id, payload)
-        : addEvent(payload)
+        ? await updateEvent(currentRow.id, payload)
+        : await addEvent(payload)
 
       if (!result.ok) {
         toast.error(result.error)

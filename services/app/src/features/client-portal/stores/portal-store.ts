@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import * as portalService from '../services/portal-service'
+import * as apiPortal from '../services/api-portal-service'
 import type {
+  CaseDocument,
   ClientCase,
   ClientPayment,
   ClientProfile,
@@ -9,7 +10,10 @@ import type {
   PortalData,
   ServiceResult,
 } from '../types'
-import { DEMO_CLIENT_ID } from '../utils/seed'
+import type {
+  AddCaseCommentInput,
+  CreateCaseInput,
+} from '../services/portal-service'
 
 type PortalState = {
   clientId: string | null
@@ -21,7 +25,7 @@ type PortalState = {
   hydrated: boolean
   error: string | null
 
-  hydrate: (clientId?: string) => ServiceResult<void>
+  hydrate: (clientId?: string) => Promise<ServiceResult<void>>
   reset: () => void
 
   getLawyer: (lawyerId: string) => Lawyer | null
@@ -29,8 +33,19 @@ type PortalState = {
   getSession: (sessionId: string) => ClientSession | null
   getPayment: (paymentId: string) => ClientPayment | null
 
-  cancelSession: (sessionId: string) => ServiceResult<void>
-  retryPayment: (paymentId: string) => ServiceResult<void>
+  createCase: (
+    input: CreateCaseInput
+  ) => Promise<ServiceResult<ClientCase>>
+  addCaseComment: (
+    caseId: string,
+    input: AddCaseCommentInput
+  ) => Promise<ServiceResult<void>>
+  addCaseDocument: (
+    caseId: string,
+    input: Omit<CaseDocument, 'id' | 'uploadedAt' | 'status'>
+  ) => Promise<ServiceResult<CaseDocument>>
+  cancelSession: (sessionId: string) => Promise<ServiceResult<void>>
+  retryPayment: (paymentId: string) => Promise<ServiceResult<void>>
 }
 
 function applyData(
@@ -50,6 +65,19 @@ function applyData(
   })
 }
 
+async function reloadPortal(
+  set: (partial: Partial<PortalState>) => void,
+  clientId: string
+): Promise<ServiceResult<PortalData>> {
+  const result = await apiPortal.fetchPortal()
+  if (!result.ok) {
+    set({ error: result.error })
+    return result
+  }
+  applyData(set, clientId, result.data)
+  return result
+}
+
 export const usePortalStore = create<PortalState>()((set, get) => ({
   clientId: null,
   profile: null,
@@ -60,23 +88,24 @@ export const usePortalStore = create<PortalState>()((set, get) => ({
   hydrated: false,
   error: null,
 
-  hydrate: (clientId = DEMO_CLIENT_ID) => {
-    const seeded = portalService.seedDemoIfEmpty(clientId)
-    if (!seeded.ok) {
+  hydrate: async (clientId) => {
+    const result = await apiPortal.fetchPortal()
+    if (!result.ok) {
       set({
-        clientId,
+        clientId: clientId ?? null,
         hydrated: true,
-        error: seeded.error,
+        error: result.error,
         profile: null,
         lawyers: [],
         cases: [],
         sessions: [],
         payments: [],
       })
-      return seeded
+      return result
     }
 
-    applyData(set, clientId, seeded.data)
+    const resolvedId = clientId ?? result.data.profile.id
+    applyData(set, resolvedId, result.data)
     return { ok: true, data: undefined as void }
   },
 
@@ -103,29 +132,55 @@ export const usePortalStore = create<PortalState>()((set, get) => ({
   getPayment: (paymentId) =>
     get().payments.find((item) => item.id === paymentId) ?? null,
 
-  cancelSession: (sessionId) => {
+  createCase: async (input) => {
     const clientId = get().clientId
     if (!clientId) {
       return { ok: false, error: 'شناسه موکل مشخص نیست.' }
     }
 
-    const result = portalService.cancelSession(clientId, sessionId)
+    const result = await apiPortal.createPortalCase(input)
     if (!result.ok) return result
 
-    applyData(set, clientId, result.data)
-    return { ok: true, data: undefined as void }
+    const reloaded = await reloadPortal(set, clientId)
+    if (!reloaded.ok) return reloaded
+
+    return { ok: true, data: result.data }
   },
 
-  retryPayment: (paymentId) => {
+  addCaseComment: async (caseId, input) => {
     const clientId = get().clientId
     if (!clientId) {
       return { ok: false, error: 'شناسه موکل مشخص نیست.' }
     }
 
-    const result = portalService.retryPayment(clientId, paymentId)
+    const result = await apiPortal.addPortalComment(caseId, input)
     if (!result.ok) return result
 
-    applyData(set, clientId, result.data)
+    const reloaded = await reloadPortal(set, clientId)
+    if (!reloaded.ok) return reloaded
+
     return { ok: true, data: undefined as void }
   },
+
+  addCaseDocument: async (caseId, input) => {
+    const result = await apiPortal.addCaseDocument(caseId, input)
+    return result
+  },
+
+  cancelSession: async (sessionId) => {
+    const clientId = get().clientId
+    if (!clientId) {
+      return { ok: false, error: 'شناسه موکل مشخص نیست.' }
+    }
+
+    const result = await apiPortal.cancelPortalSession(sessionId)
+    if (!result.ok) return result
+
+    const reloaded = await reloadPortal(set, clientId)
+    if (!reloaded.ok) return reloaded
+
+    return { ok: true, data: undefined as void }
+  },
+
+  retryPayment: async (paymentId) => apiPortal.retryPayment(paymentId),
 }))
