@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       legalArea?: LegalArea
       descriptionHtml?: string
       lawyerId?: string
-      documents?: { name: string; mimeType: string; size: number }[]
+      documentIds?: string[]
     }>(request)
 
     if (!body?.title?.trim() || !body?.legalArea) {
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         legalArea: body.legalArea,
         descriptionHtml: body.descriptionHtml,
         lawyerId: body.lawyerId,
-        documents: body.documents,
+        documentIds: body.documentIds,
       })
       return ok(caseItem, { status: 201 })
     } catch (error) {

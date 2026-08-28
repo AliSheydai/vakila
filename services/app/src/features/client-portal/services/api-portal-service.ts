@@ -9,6 +9,19 @@ import type {
   AddCaseCommentInput,
   CreateCaseInput,
 } from './portal-service'
+import { uploadPortalCaseDocument } from '@/features/cases/services/api-attachments-service'
+import type { Attachment } from '@/features/cases/types'
+
+function toCaseDocument(att: Attachment): CaseDocument {
+  return {
+    id: att.id,
+    name: att.name,
+    mimeType: att.mimeType,
+    size: att.size,
+    uploadedAt: att.uploadedAt,
+    status: 'available',
+  }
+}
 
 export async function fetchPortal(): Promise<ApiResult<PortalData>> {
   return api<PortalData>('/api/portal')
@@ -24,11 +37,7 @@ export async function createPortalCase(
       legalArea: input.legalArea,
       descriptionHtml: input.descriptionHtml,
       lawyerId: input.lawyerId,
-      documents: input.documents?.map((d) => ({
-        name: d.name,
-        mimeType: d.mimeType,
-        size: d.size,
-      })),
+      documentIds: input.documentIds,
     },
   })
 }
@@ -41,11 +50,7 @@ export async function addPortalComment(
     method: 'POST',
     body: {
       bodyHtml: input.bodyHtml,
-      attachments: input.attachments?.map((d) => ({
-        name: d.name,
-        mimeType: d.mimeType,
-        size: d.size,
-      })),
+      attachmentIds: input.attachmentIds,
     },
   })
 }
@@ -61,15 +66,13 @@ export async function cancelPortalSession(
   return { ok: true, data: undefined }
 }
 
-/** Not yet exposed by API — kept for UI compatibility. */
 export async function addCaseDocument(
-  _caseId: string,
-  _input: Omit<CaseDocument, 'id' | 'uploadedAt' | 'status'>
+  caseId: string,
+  file: File
 ): Promise<ApiResult<CaseDocument>> {
-  return {
-    ok: false,
-    error: 'آپلود مدرک از پنل موکل هنوز به سرور متصل نشده است.',
-  }
+  const result = await uploadPortalCaseDocument(caseId, file)
+  if (!result.ok) return result
+  return { ok: true, data: toCaseDocument(result.data) }
 }
 
 export async function retryPayment(

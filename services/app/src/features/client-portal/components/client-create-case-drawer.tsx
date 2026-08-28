@@ -37,7 +37,7 @@ import { usePortalStore } from '../stores/portal-store'
 import { LEGAL_AREAS, LEGAL_AREA_LABELS } from '../types'
 import { isEmptyHtml } from '../utils/html'
 import { formatFileSize } from '../utils/format'
-import { setDocumentSessionUrl } from '../utils/document-session'
+import { uploadPortalCaseDocument } from '@/features/cases/services/api-attachments-service'
 
 const ACCEPTED_EXTENSIONS = [
   '.pdf',
@@ -136,11 +136,6 @@ export function ClientCreateCaseDrawer({
           ? ''
           : values.descriptionHtml,
         lawyerId: lawyers[0]?.id,
-        documents: files.map(({ file }) => ({
-          name: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          size: file.size,
-        })),
       })
 
       if (!result.ok) {
@@ -148,11 +143,16 @@ export function ClientCreateCaseDrawer({
         return
       }
 
-      // نگه‌داشتن Object URL برای دانلود در همین جلسه
-      result.data.documents.forEach((doc, index) => {
-        const pending = files[index]
-        if (pending) setDocumentSessionUrl(doc.id, pending.file)
-      })
+      for (const { file } of files) {
+        const upload = await uploadPortalCaseDocument(result.data.id, file)
+        if (!upload.ok) {
+          toast.error(upload.error)
+        }
+      }
+
+      if (files.length > 0) {
+        await usePortalStore.getState().hydrate()
+      }
 
       toast.success('پرونده ثبت شد و در انتظار بررسی وکیل است.')
       onOpenChange(false)

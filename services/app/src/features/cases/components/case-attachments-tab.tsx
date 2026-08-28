@@ -21,26 +21,11 @@ import {
   formatMimeTypeLabel,
 } from '../utils/format'
 import {
-  getAttachmentSessionUrl,
-  hasAttachmentSessionUrl,
-  revokeAttachmentSessionUrl,
-  setAttachmentSessionUrl,
-} from '../utils/attachment-session'
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB — فقط برای UX prototype
-
-const ACCEPTED_EXTENSIONS = [
-  '.pdf',
-  '.doc',
-  '.docx',
-  '.xls',
-  '.xlsx',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.webp',
-  '.txt',
-]
+  ALLOWED_EXTENSIONS,
+  DEFAULT_MAX_FILE_BYTES,
+  validateAttachmentMeta,
+} from '@/lib/attachment-validation'
+import { downloadCaseAttachment } from '../services/api-attachments-service'
 
 type PendingUpload = {
   id: string
@@ -56,15 +41,12 @@ type CaseAttachmentsTabProps = {
 }
 
 function validateFile(file: File): string | null {
-  if (file.size > MAX_FILE_SIZE) {
-    return `حجم فایل «${file.name}» بیشتر از ۱۰ مگابایت است.`
-  }
-  const lower = file.name.toLowerCase()
-  const okExt = ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))
-  if (!okExt && file.type === '') {
-    return `نوع فایل «${file.name}» پشتیبانی نمی‌شود.`
-  }
-  return null
+  return validateAttachmentMeta({
+    name: file.name,
+    mimeType: file.type || 'application/octet-stream',
+    size: file.size,
+    maxBytes: DEFAULT_MAX_FILE_BYTES,
+  })
 }
 
 export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
@@ -76,6 +58,7 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
   const [dragging, setDragging] = useState(false)
   const [pending, setPending] = useState<PendingUpload[]>([])
   const [toDelete, setToDelete] = useState<Attachment | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const processFiles = useCallback(
     async (fileList: FileList | File[]) => {
@@ -113,18 +96,8 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
           },
         ])
 
-        // شبیه‌سازی آپلود برای UX
-        await new Promise((resolve) => setTimeout(resolve, 450))
-
-        const beforeIds = new Set(
-          (
-            useCasesStore.getState().getCase(caseItem.id)?.attachments ?? []
-          ).map((item) => item.id)
-        )
         const result = await addAttachment(caseItem.id, {
-          name: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          size: file.size,
+          file,
           uploadedBy: ownerId ?? undefined,
         })
 
@@ -138,13 +111,6 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
           )
           toast.error(result.error)
           continue
-        }
-
-        const created = result.data.attachments.find(
-          (item) => !beforeIds.has(item.id)
-        )
-        if (created) {
-          setAttachmentSessionUrl(created.id, file)
         }
 
         setPending((prev) => prev.filter((item) => item.id !== tempId))
@@ -162,32 +128,28 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
     }
   }
 
-  function handleDownload(attachment: Attachment) {
-    const url = getAttachmentSessionUrl(attachment.id)
-    if (!url) {
-      toast.message('دانلود فقط برای فایل‌های همین جلسه در دسترس است.', {
-        description:
-          'محتوای فایل در حافظه مرورگر ذخیره نمی‌شود؛ پس از رفرش فقط مشخصات باقی می‌ماند.',
-      })
+  async function handleDownload(attachment: Attachment) {
+    setDownloadingId(attachment.id)
+    const result = await downloadCaseAttachment(caseItem.id, attachment.id)
+    setDownloadingId(null)
+    if (!result.ok) {
+      toast.error(result.error)
       return
     }
-
     const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = attachment.name
+    anchor.href = result.data.url
+    anchor.download = result.data.name
+    anchor.rel = 'noopener noreferrer'
     anchor.click()
   }
 
-  async function handleDeleteConfirm() {
+  async function confirmDelete() {
     if (!toDelete) return
-
     const result = await deleteAttachment(caseItem.id, toDelete.id)
     if (!result.ok) {
       toast.error(result.error)
       return
     }
-
-    revokeAttachmentSessionUrl(toDelete.id)
     toast.success('فایل حذف شد.')
     setToDelete(null)
   }
@@ -196,131 +158,83 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
     caseItem.attachments.length === 0 && pending.length === 0
 
   return (
-    <div className='space-y-6'>
-      <div>
-        <h3 className='text-base font-semibold tracking-tight'>
-          مدارک و ضمیمه‌ها
-        </h3>
-        <p className='text-sm text-muted-foreground'>
-          فایل‌ها به‌صورت Prototype مدیریت می‌شوند؛ فقط مشخصات در حافظه ذخیره
-          می‌شود و محتوای فایل برای همین جلسه نگه داشته می‌شود.
-        </p>
-      </div>
-
+    <div className='space-y-4'>
       <div
         role='button'
         tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            inputRef.current?.click()
-          }
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click()
         }}
-        onClick={() => inputRef.current?.click()}
-        onDragEnter={(event) => {
-          event.preventDefault()
+        onDragOver={(e) => {
+          e.preventDefault()
           setDragging(true)
         }}
-        onDragOver={(event) => {
-          event.preventDefault()
-          setDragging(true)
-        }}
-        onDragLeave={(event) => {
-          event.preventDefault()
-          setDragging(false)
-        }}
+        onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
+        onClick={() => inputRef.current?.click()}
         className={cn(
-          'flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center transition-colors',
+          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-8 transition-colors',
           dragging
             ? 'border-primary bg-primary/5'
-            : 'border-muted-foreground/25 hover:border-muted-foreground/40 hover:bg-muted/30'
+            : 'border-muted-foreground/25 hover:border-primary/50'
         )}
       >
-        <div className='mb-3 flex size-11 items-center justify-center rounded-full bg-muted'>
-          <UploadCloud className='size-5 text-muted-foreground' />
-        </div>
-        <p className='text-sm font-medium'>
-          فایل را اینجا رها کنید یا برای انتخاب کلیک کنید
-        </p>
-        <p className='mt-1 text-xs text-muted-foreground'>
-          حداکثر ۱۰ مگابایت — PDF، Word، Excel، تصویر و متن
-        </p>
         <input
           ref={inputRef}
           type='file'
           multiple
           className='hidden'
-          accept={ACCEPTED_EXTENSIONS.join(',')}
-          onChange={(event) => {
-            if (event.target.files) {
-              void processFiles(event.target.files)
-              event.target.value = ''
-            }
+          accept={ALLOWED_EXTENSIONS.join(',')}
+          onChange={(e) => {
+            if (e.target.files?.length) void processFiles(e.target.files)
+            e.target.value = ''
           }}
         />
+        <UploadCloud className='size-5 text-muted-foreground' />
+        <p className='text-sm text-muted-foreground'>
+          فایل را بکشید و رها کنید یا کلیک کنید
+        </p>
+        <p className='text-xs text-muted-foreground'>
+          PDF، Word، Excel، تصویر — حداکثر ۱۰ مگابایت
+        </p>
       </div>
 
       {isEmpty ? (
-        <div className='rounded-lg border border-dashed px-4 py-10 text-center'>
-          <FileText className='mx-auto size-8 text-muted-foreground/60' />
-          <p className='mt-3 text-sm font-medium'>هنوز مدرکی اضافه نشده است</p>
-          <p className='mt-1 text-xs text-muted-foreground'>
-            اولین فایل را با کشیدن یا انتخاب اضافه کنید.
-          </p>
-        </div>
+        <p className='text-center text-sm text-muted-foreground'>
+          هنوز فایلی پیوست نشده است.
+        </p>
       ) : (
         <ul className='divide-y rounded-lg border'>
           {pending.map((item) => (
             <li
               key={item.id}
-              className='flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+              className='flex items-center justify-between gap-3 px-4 py-3'
             >
-              <div className='min-w-0'>
-                <p className='truncate text-sm font-medium'>{item.name}</p>
-                <p className='text-xs text-muted-foreground'>
-                  {formatMimeTypeLabel(item.mimeType)} ·{' '}
-                  {formatFileSize(item.size)}
-                </p>
-                {item.status === 'failed' && item.error ? (
-                  <p className='mt-1 text-xs text-destructive'>{item.error}</p>
-                ) : null}
-              </div>
-              <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+              <div className='flex min-w-0 items-center gap-3'>
                 {item.status === 'uploading' ? (
-                  <>
-                    <Loader2 className='size-4 animate-spin' />
-                    در حال بارگذاری
-                  </>
+                  <Loader2 className='size-4 shrink-0 animate-spin text-muted-foreground' />
                 ) : (
-                  <>
-                    <XCircle className='size-4 text-destructive' />
-                    ناموفق
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7'
-                      onClick={() =>
-                        setPending((prev) =>
-                          prev.filter((row) => row.id !== item.id)
-                        )
-                      }
-                    >
-                      بستن
-                    </Button>
-                  </>
+                  <XCircle className='size-4 shrink-0 text-destructive' />
                 )}
+                <div className='min-w-0'>
+                  <p className='truncate text-sm font-medium'>{item.name}</p>
+                  <p className='text-xs text-muted-foreground'>
+                    {formatMimeTypeLabel(item.mimeType)} ·{' '}
+                    {formatFileSize(item.size)}
+                    {item.error ? ` · ${item.error}` : ''}
+                  </p>
+                </div>
               </div>
             </li>
           ))}
 
-          {caseItem.attachments.map((attachment) => {
-            const canDownload = hasAttachmentSessionUrl(attachment.id)
-            return (
-              <li
-                key={attachment.id}
-                className='flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
-              >
+          {caseItem.attachments.map((attachment) => (
+            <li
+              key={attachment.id}
+              className='flex items-center justify-between gap-3 px-4 py-3'
+            >
+              <div className='flex min-w-0 items-center gap-3'>
+                <FileText className='size-4 shrink-0 text-muted-foreground' />
                 <div className='min-w-0'>
                   <p className='truncate text-sm font-medium'>
                     {attachment.name}
@@ -331,56 +245,48 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
                     {formatDate(attachment.uploadedAt)}
                   </p>
                 </div>
-                <div className='flex items-center gap-1'>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-8'
-                    onClick={() => handleDownload(attachment)}
-                    title={
-                      canDownload
-                        ? 'دانلود'
-                        : 'فقط در جلسه فعلی قابل دانلود است'
-                    }
-                  >
+              </div>
+              <div className='flex shrink-0 items-center gap-1'>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='icon'
+                  disabled={downloadingId === attachment.id}
+                  onClick={() => void handleDownload(attachment)}
+                >
+                  {downloadingId === attachment.id ? (
+                    <Loader2 className='size-4 animate-spin' />
+                  ) : (
                     <Download className='size-4' />
-                    دانلود
-                  </Button>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-8 text-destructive hover:text-destructive'
-                    onClick={() => setToDelete(attachment)}
-                  >
-                    <Trash2 className='size-4' />
-                    حذف
-                  </Button>
-                </div>
-              </li>
-            )
-          })}
+                  )}
+                </Button>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='icon'
+                  className='text-destructive hover:text-destructive'
+                  onClick={() => setToDelete(attachment)}
+                >
+                  <Trash2 className='size-4' />
+                </Button>
+              </div>
+            </li>
+          ))}
         </ul>
       )}
 
       <ConfirmDialog
-        destructive
-        open={!!toDelete}
-        onOpenChange={(open) => {
-          if (!open) setToDelete(null)
-        }}
-        handleConfirm={handleDeleteConfirm}
-        className='max-w-md'
-        title='حذف مدرک'
+        open={Boolean(toDelete)}
+        onOpenChange={(open) => !open && setToDelete(null)}
+        title='حذف فایل'
         desc={
-          toDelete ? (
-            <>
-              فایل «<strong>{toDelete.name}</strong>» حذف خواهد شد.
-            </>
-          ) : (
-            ''
-          )
+          toDelete
+            ? `آیا از حذف «${toDelete.name}» مطمئن هستید؟ این عمل قابل بازگشت نیست.`
+            : ''
         }
-        confirmText='حذف فایل'
+        confirmText='حذف'
+        destructive
+        handleConfirm={() => void confirmDelete()}
       />
     </div>
   )

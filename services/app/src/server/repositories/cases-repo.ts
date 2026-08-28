@@ -357,7 +357,7 @@ export async function deleteExpense(
 export async function addAttachment(
   ownerId: string,
   caseId: string,
-  input: CreateAttachmentInput,
+  input: { name: string; mimeType: string; size: number; uploadedBy?: string },
   uploadedBy?: string
 ): Promise<Attachment | null> {
   const owned = await assertOwnedCase(ownerId, caseId)
@@ -404,7 +404,7 @@ export async function listComments(
     `SELECT * FROM case_comments WHERE case_id = $1 ORDER BY created_at ASC`,
     [caseId]
   )
-  return rows.map(mapCaseComment)
+  return rows.map((row) => mapCaseComment(row))
 }
 
 export async function addComment(

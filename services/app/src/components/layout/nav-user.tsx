@@ -1,15 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { BadgeCheck, ChevronLeft } from 'lucide-react'
+import { BadgeCheck, ChevronLeft, LogOut } from 'lucide-react'
+import useDialogState from '@/hooks/use-dialog-state'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { SignOutDialog } from '@/components/sign-out-dialog'
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -27,12 +30,14 @@ type NavUserProps = {
 }
 
 export function NavUser({ user }: NavUserProps) {
+  const [open, setOpen] = useDialogState()
   const { isMobile, state } = useSidebar()
   const collapsed = state === 'collapsed' && !isMobile
   const initials = user.name?.charAt(0) || 'ک'
 
   return (
-    <SidebarMenu>
+    <>
+      <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -87,9 +92,21 @@ export function NavUser({ user }: NavUserProps) {
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant='destructive'
+              className='h-10 gap-3 rounded-lg px-3'
+              onClick={() => setOpen(true)}
+            >
+              <LogOut className='size-4' />
+              <span>خروج از حساب</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
-    </SidebarMenu>
+      </SidebarMenu>
+
+      <SignOutDialog open={!!open} onOpenChange={setOpen} />
+    </>
   )
 }

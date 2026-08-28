@@ -113,9 +113,8 @@ export type AttachmentUploadStatus = (typeof ATTACHMENT_UPLOAD_STATUSES)[number]
 // ─── Zod schemas ───────────────────────────────────────────
 
 /**
- * فقط metadata — محتوای فایل در localStorage ذخیره نمی‌شود.
- * برای preview در جلسه فعلی می‌توان از Object URL در UI استفاده کرد.
- * همین schema برای ضمیمهٔ پرونده و ضمیمهٔ موکل استفاده می‌شود (جدا در هر موجودیت).
+ * Metadata + optional binary via RustFS.
+ * فایل واقعی در object storage (RustFS) نگهداری می‌شود.
  */
 export const attachmentSchema = z.object({
   id: z.string().min(1),
@@ -282,9 +281,7 @@ export type CreateExpenseInput = {
 }
 
 export type CreateAttachmentInput = {
-  name: string
-  mimeType: string
-  size: number
+  file: File
   uploadedBy?: string
 }
 

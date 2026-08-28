@@ -21,26 +21,11 @@ import {
   formatMimeTypeLabel,
 } from '@/features/cases/utils/format'
 import {
-  getAttachmentSessionUrl,
-  hasAttachmentSessionUrl,
-  revokeAttachmentSessionUrl,
-  setAttachmentSessionUrl,
-} from '@/features/cases/utils/attachment-session'
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB — فقط برای UX prototype
-
-const ACCEPTED_EXTENSIONS = [
-  '.pdf',
-  '.doc',
-  '.docx',
-  '.xls',
-  '.xlsx',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.webp',
-  '.txt',
-]
+  ALLOWED_EXTENSIONS,
+  DEFAULT_MAX_FILE_BYTES,
+  validateAttachmentMeta,
+} from '@/lib/attachment-validation'
+import { downloadClientAttachment } from '@/features/cases/services/api-attachments-service'
 
 type PendingUpload = {
   id: string
@@ -56,15 +41,12 @@ type ClientAttachmentsSectionProps = {
 }
 
 function validateFile(file: File): string | null {
-  if (file.size > MAX_FILE_SIZE) {
-    return `حجم فایل «${file.name}» بیشتر از ۱۰ مگابایت است.`
-  }
-  const lower = file.name.toLowerCase()
-  const okExt = ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))
-  if (!okExt && file.type === '') {
-    return `نوع فایل «${file.name}» پشتیبانی نمی‌شود.`
-  }
-  return null
+  return validateAttachmentMeta({
+    name: file.name,
+    mimeType: file.type || 'application/octet-stream',
+    size: file.size,
+    maxBytes: DEFAULT_MAX_FILE_BYTES,
+  })
 }
 
 export function ClientAttachmentsSection({
@@ -82,6 +64,7 @@ export function ClientAttachmentsSection({
   const [dragging, setDragging] = useState(false)
   const [pending, setPending] = useState<PendingUpload[]>([])
   const [toDelete, setToDelete] = useState<Attachment | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const attachments = client.attachments ?? []
 
@@ -121,19 +104,9 @@ export function ClientAttachmentsSection({
           },
         ])
 
-        // شبیه‌سازی آپلود برای UX prototype
-        await new Promise((resolve) => setTimeout(resolve, 450))
-
-        const beforeIds = new Set(
-          (
-            useCasesStore.getState().getClient(client.id)?.attachments ?? []
-          ).map((item) => item.id)
-        )
-
+        // آپلود واقعی به RustFS
         const result = await addClientAttachment(client.id, {
-          name: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          size: file.size,
+          file,
           uploadedBy: ownerId ?? undefined,
         })
 
@@ -147,13 +120,6 @@ export function ClientAttachmentsSection({
           )
           toast.error(result.error)
           continue
-        }
-
-        const created = result.data.attachments.find(
-          (item) => !beforeIds.has(item.id)
-        )
-        if (created) {
-          setAttachmentSessionUrl(created.id, file)
         }
 
         setPending((prev) => prev.filter((item) => item.id !== tempId))
@@ -171,19 +137,17 @@ export function ClientAttachmentsSection({
     }
   }
 
-  function handleDownload(attachment: Attachment) {
-    const url = getAttachmentSessionUrl(attachment.id)
-    if (!url) {
-      toast.message('دانلود فقط برای فایل‌های همین جلسه در دسترس است.', {
-        description:
-          'محتوای فایل در حافظه مرورگر ذخیره نمی‌شود؛ پس از رفرش فقط مشخصات باقی می‌ماند.',
-      })
+  async function handleDownload(attachment: Attachment) {
+    setDownloadingId(attachment.id)
+    const result = await downloadClientAttachment(client.id, attachment.id)
+    setDownloadingId(null)
+    if (!result.ok) {
+      toast.error(result.error)
       return
     }
-
     const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = attachment.name
+    anchor.href = result.data.url
+    anchor.download = result.data.name
     anchor.click()
   }
 
@@ -196,7 +160,6 @@ export function ClientAttachmentsSection({
       return
     }
 
-    revokeAttachmentSessionUrl(toDelete.id)
     toast.success('فایل حذف شد.')
     setToDelete(null)
   }
@@ -261,7 +224,7 @@ export function ClientAttachmentsSection({
           type='file'
           multiple
           className='hidden'
-          accept={ACCEPTED_EXTENSIONS.join(',')}
+          accept={ALLOWED_EXTENSIONS.join(',')}
           onChange={(event) => {
             if (event.target.files) {
               void processFiles(event.target.files)
@@ -324,9 +287,7 @@ export function ClientAttachmentsSection({
             </li>
           ))}
 
-          {attachments.map((attachment) => {
-            const canDownload = hasAttachmentSessionUrl(attachment.id)
-            return (
+          {attachments.map((attachment) => (
               <li
                 key={attachment.id}
                 className='flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
@@ -346,14 +307,15 @@ export function ClientAttachmentsSection({
                     variant='ghost'
                     size='sm'
                     className='h-8'
-                    onClick={() => handleDownload(attachment)}
-                    title={
-                      canDownload
-                        ? 'دانلود'
-                        : 'فقط در جلسه فعلی قابل دانلود است'
-                    }
+                    disabled={downloadingId === attachment.id}
+                    onClick={() => void handleDownload(attachment)}
+                    title='دانلود'
                   >
-                    <Download className='size-4' />
+                    {downloadingId === attachment.id ? (
+                      <Loader2 className='size-4 animate-spin' />
+                    ) : (
+                      <Download className='size-4' />
+                    )}
                     دانلود
                   </Button>
                   <Button
@@ -367,8 +329,7 @@ export function ClientAttachmentsSection({
                   </Button>
                 </div>
               </li>
-            )
-          })}
+          ))}
         </ul>
       )}
 

@@ -228,9 +228,9 @@ export function addAttachment(
   return updateClientById(ownerId, clientId, (current) => {
     const attachment: Attachment = {
       id: createId('att'),
-      name: input.name.trim(),
-      mimeType: input.mimeType,
-      size: input.size,
+      name: input.file.name.trim(),
+      mimeType: input.file.type || 'application/octet-stream',
+      size: input.file.size,
       uploadedAt: nowIso(),
       uploadedBy: input.uploadedBy,
     }

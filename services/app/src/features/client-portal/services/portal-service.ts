@@ -116,7 +116,8 @@ export type CreateCaseInput = {
   title: string
   legalArea: LegalArea
   descriptionHtml?: string
-  documents?: Omit<CaseDocument, 'id' | 'uploadedAt' | 'status'>[]
+  /** IDs of files already uploaded to RustFS for this case */
+  documentIds?: string[]
   lawyerId?: string
 }
 
@@ -149,14 +150,7 @@ export function createCase(
   }).format(new Date())
   const seq = String(loaded.data.cases.length + 1).padStart(4, '0')
 
-  const documents: CaseDocument[] = (input.documents ?? []).map((doc) => ({
-    id: createId('doc'),
-    name: doc.name,
-    mimeType: doc.mimeType,
-    size: doc.size,
-    uploadedAt: timestamp,
-    status: 'available' as const,
-  }))
+  const documents: CaseDocument[] = []
 
   const caseItem: ClientCase = {
     id: createId('case'),
@@ -197,7 +191,7 @@ export function createCase(
 
 export type AddCaseCommentInput = {
   bodyHtml: string
-  attachments?: Omit<CaseDocument, 'id' | 'uploadedAt' | 'status'>[]
+  attachmentIds?: string[]
 }
 
 export function addCaseComment(
@@ -215,20 +209,13 @@ export function addCaseComment(
 
   const bodyHtml = input.bodyHtml.trim()
   const plain = htmlToPlainText(bodyHtml)
-  const attachmentsMeta = input.attachments ?? []
-  if (!plain && attachmentsMeta.length === 0) {
+  const attachmentIds = input.attachmentIds ?? []
+  if (!plain && attachmentIds.length === 0) {
     return { ok: false, error: 'متن پیام یا پیوست الزامی است.' }
   }
 
   const timestamp = nowIso()
-  const attachments: CaseDocument[] = attachmentsMeta.map((doc) => ({
-    id: createId('doc'),
-    name: doc.name,
-    mimeType: doc.mimeType,
-    size: doc.size,
-    uploadedAt: timestamp,
-    status: 'available' as const,
-  }))
+  const attachments: CaseDocument[] = []
 
   const next: PortalData = {
     ...loaded.data,

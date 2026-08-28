@@ -13,33 +13,18 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { usePortalStore } from '../../stores/portal-store'
 import type { ClientCase } from '../../types'
-import {
-  DocumentStatusBadge,
-} from '../status-badges'
+import { DocumentStatusBadge } from '../status-badges'
 import {
   formatDate,
   formatFileSize,
   formatMimeTypeLabel,
 } from '../../utils/format'
 import {
-  getDocumentSessionUrl,
-  hasDocumentSessionUrl,
-  setDocumentSessionUrl,
-} from '../../utils/document-session'
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024
-const ACCEPTED_EXTENSIONS = [
-  '.pdf',
-  '.doc',
-  '.docx',
-  '.xls',
-  '.xlsx',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.webp',
-  '.txt',
-]
+  ALLOWED_EXTENSIONS,
+  DEFAULT_MAX_FILE_BYTES,
+  validateAttachmentMeta,
+} from '@/lib/attachment-validation'
+import { downloadPortalCaseDocument } from '@/features/cases/services/api-attachments-service'
 
 type PendingUpload = {
   id: string
@@ -55,15 +40,12 @@ type CaseDocumentsTabProps = {
 }
 
 function validateFile(file: File): string | null {
-  if (file.size > MAX_FILE_SIZE) {
-    return `حجم فایل «${file.name}» بیشتر از ۱۰ مگابایت است.`
-  }
-  const lower = file.name.toLowerCase()
-  const okExt = ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))
-  if (!okExt) {
-    return `نوع فایل «${file.name}» پشتیبانی نمی‌شود.`
-  }
-  return null
+  return validateAttachmentMeta({
+    name: file.name,
+    mimeType: file.type || 'application/octet-stream',
+    size: file.size,
+    maxBytes: DEFAULT_MAX_FILE_BYTES,
+  })
 }
 
 export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
@@ -71,6 +53,7 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [pending, setPending] = useState<PendingUpload[]>([])
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const processFiles = useCallback(
     async (fileList: FileList | File[]) => {
@@ -108,13 +91,7 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
           },
         ])
 
-        await new Promise((resolve) => setTimeout(resolve, 400))
-
-        const result = await addCaseDocument(caseItem.id, {
-          name: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          size: file.size,
-        })
+        const result = await addCaseDocument(caseItem.id, file)
 
         if (!result.ok) {
           setPending((prev) =>
@@ -128,7 +105,6 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
           continue
         }
 
-        setDocumentSessionUrl(result.data.id, file)
         setPending((prev) => prev.filter((item) => item.id !== tempId))
         toast.success(`«${file.name}» بارگذاری شد.`)
       }
@@ -136,11 +112,27 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
     [addCaseDocument, caseItem.id]
   )
 
+  async function handleDownload(docId: string, name: string) {
+    setDownloadingId(docId)
+    const result = await downloadPortalCaseDocument(caseItem.id, docId)
+    setDownloadingId(null)
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+    const anchor = document.createElement('a')
+    anchor.href = result.data.url
+    anchor.download = name
+    anchor.click()
+  }
+
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragging(false)
     void processFiles(e.dataTransfer.files)
   }
+
+  const documents = caseItem.documents ?? []
 
   return (
     <div className='space-y-4'>
@@ -168,7 +160,7 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
           type='file'
           multiple
           className='hidden'
-          accept={ACCEPTED_EXTENSIONS.join(',')}
+          accept={ALLOWED_EXTENSIONS.join(',')}
           onChange={(e) => {
             void processFiles(e.target.files ?? [])
             if (inputRef.current) inputRef.current.value = ''
@@ -178,92 +170,71 @@ export function CaseDocumentsTab({ caseItem }: CaseDocumentsTabProps) {
           type='button'
           variant='outline'
           size='sm'
-          className='mt-2'
           onClick={() => inputRef.current?.click()}
         >
           انتخاب فایل
         </Button>
       </div>
 
-      {pending.length > 0 ? (
-        <ul className='space-y-2'>
-          {pending.map((item) => (
-            <li
-              key={item.id}
-              className='flex items-center justify-between gap-3 rounded-xl border px-4 py-3'
-            >
+      <ul className='divide-y rounded-lg border'>
+        {pending.map((item) => (
+          <li
+            key={item.id}
+            className='flex items-center gap-3 px-4 py-3 text-sm'
+          >
+            {item.status === 'uploading' ? (
+              <Loader2 className='size-4 animate-spin text-muted-foreground' />
+            ) : (
+              <XCircle className='size-4 text-destructive' />
+            )}
+            <div className='min-w-0 flex-1'>
+              <p className='truncate font-medium'>{item.name}</p>
+              <p className='text-xs text-muted-foreground'>
+                {formatMimeTypeLabel(item.mimeType)} · {formatFileSize(item.size)}
+                {item.error ? ` · ${item.error}` : ''}
+              </p>
+            </div>
+          </li>
+        ))}
+
+        {documents.map((doc) => (
+          <li
+            key={doc.id}
+            className='flex items-center justify-between gap-3 px-4 py-3'
+          >
+            <div className='flex min-w-0 items-center gap-3'>
+              <FileText className='size-4 shrink-0 text-muted-foreground' />
               <div className='min-w-0'>
-                <p className='truncate text-sm font-medium'>{item.name}</p>
+                <p className='truncate text-sm font-medium'>{doc.name}</p>
                 <p className='text-xs text-muted-foreground'>
-                  {formatFileSize(item.size)}
-                  {item.error ? ` · ${item.error}` : null}
+                  {formatMimeTypeLabel(doc.mimeType)} ·{' '}
+                  {formatFileSize(doc.size)} · {formatDate(doc.uploadedAt)}
                 </p>
               </div>
-              {item.status === 'uploading' ? (
-                <Loader2 className='size-4 animate-spin text-muted-foreground' />
+              <DocumentStatusBadge status={doc.status} />
+            </div>
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon'
+              disabled={downloadingId === doc.id}
+              onClick={() => void handleDownload(doc.id, doc.name)}
+            >
+              {downloadingId === doc.id ? (
+                <Loader2 className='size-4 animate-spin' />
               ) : (
-                <XCircle className='size-4 text-destructive' />
+                <Download className='size-4' />
               )}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+            </Button>
+          </li>
+        ))}
 
-      {(caseItem.documents?.length ?? 0) === 0 && pending.length === 0 ? (
-        <p className='rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground'>
-          مدرکی برای این پرونده ثبت نشده است.
-        </p>
-      ) : (
-        <ul className='divide-y rounded-xl border'>
-          {(caseItem.documents ?? []).map((doc) => {
-            const sessionAvailable = hasDocumentSessionUrl(doc.id)
-
-            return (
-              <li
-                key={doc.id}
-                className='flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between'
-              >
-                <div className='flex min-w-0 items-start gap-3'>
-                  <div className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted'>
-                    <FileText className='size-4 text-muted-foreground' />
-                  </div>
-                  <div className='min-w-0 space-y-1'>
-                    <p className='truncate font-medium'>{doc.name}</p>
-                    <p className='text-xs text-muted-foreground'>
-                      {formatMimeTypeLabel(doc.mimeType)} ·{' '}
-                      {formatFileSize(doc.size)} · {formatDate(doc.uploadedAt)}
-                    </p>
-                    <DocumentStatusBadge status={doc.status} />
-                  </div>
-                </div>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  disabled={doc.status !== 'available'}
-                  onClick={() => {
-                    const url = getDocumentSessionUrl(doc.id)
-                    if (url) {
-                      const a = document.createElement('a')
-                      a.href = url
-                      a.download = doc.name
-                      a.click()
-                      return
-                    }
-                    window.alert(
-                      sessionAvailable
-                        ? `دانلود «${doc.name}» آماده است.`
-                        : `در نسخه نمونه، دانلود «${doc.name}» فقط برای فایل‌های بارگذاری‌شده در همین جلسه ممکن است؛ فایل‌های نمونه شبیه‌سازی می‌شوند.`
-                    )
-                  }}
-                >
-                  <Download className='size-4' />
-                  دانلود
-                </Button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+        {documents.length === 0 && pending.length === 0 ? (
+          <li className='px-4 py-6 text-center text-sm text-muted-foreground'>
+            هنوز مدرکی بارگذاری نشده است.
+          </li>
+        ) : null}
+      </ul>
     </div>
   )
 }

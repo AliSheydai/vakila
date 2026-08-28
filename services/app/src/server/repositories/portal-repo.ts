@@ -21,6 +21,7 @@ type AttachmentRow = {
   size_bytes: string
   status: string
   created_at: Date
+  comment_id: string | null
 }
 
 type CommentRow = {
@@ -76,7 +77,7 @@ type PaymentRow = {
 async function loadPortalCase(row: CaseRow) {
   const [docs, comments, timeline] = await Promise.all([
     query<AttachmentRow>(
-      `SELECT id, name, mime_type, size_bytes, status, created_at
+      `SELECT id, name, mime_type, size_bytes, status, created_at, comment_id
        FROM attachments WHERE case_id = $1 ORDER BY created_at DESC`,
       [row.id]
     ),
@@ -94,8 +95,15 @@ async function loadPortalCase(row: CaseRow) {
 
   return mapClientCase({
     row,
-    documents: docs.rows.map(mapCaseDocument),
-    comments: comments.rows.map(mapCaseComment),
+    documents: docs.rows
+      .filter((d) => !d.comment_id)
+      .map(mapCaseDocument),
+    comments: comments.rows.map((c) => {
+      const commentAttachments = docs.rows
+        .filter((d) => d.comment_id === c.id)
+        .map(mapCaseDocument)
+      return mapCaseComment(c, commentAttachments)
+    }),
     timeline: timeline.rows.map(mapTimeline),
   })
 }
@@ -151,7 +159,7 @@ export async function createPortalCase(
     legalArea: string
     descriptionHtml?: string
     lawyerId?: string
-    documents?: { name: string; mimeType: string; size: number }[]
+    documentIds?: string[]
   }
 ) {
   const descriptionHtml = input.descriptionHtml?.trim() ?? ''
@@ -219,11 +227,12 @@ export async function createPortalCase(
       [caseRow.id]
     )
 
-    for (const doc of input.documents ?? []) {
+    for (const docId of input.documentIds ?? []) {
       await client.query(
-        `INSERT INTO attachments (case_id, name, mime_type, size_bytes, uploaded_by, status)
-         VALUES ($1,$2,$3,$4,$5,'available')`,
-        [caseRow.id, doc.name, doc.mimeType, doc.size, user.id]
+        `UPDATE attachments
+         SET status = 'available'
+         WHERE id = $1 AND case_id = $2 AND uploaded_by = $3 AND storage_key IS NOT NULL`,
+        [docId, caseRow.id, user.id]
       )
     }
 
@@ -236,7 +245,7 @@ export async function addPortalComment(
   caseId: string,
   input: {
     bodyHtml: string
-    attachments?: { name: string; mimeType: string; size: number }[]
+    attachmentIds?: string[]
   }
 ) {
   const { rows } = await query<CaseRow>(
@@ -248,8 +257,8 @@ export async function addPortalComment(
 
   const bodyHtml = input.bodyHtml?.trim() || '<p></p>'
   const plain = htmlToPlainText(bodyHtml)
-  const attachmentsMeta = input.attachments ?? []
-  if (!plain && attachmentsMeta.length === 0) {
+  const attachmentIds = input.attachmentIds ?? []
+  if (!plain && attachmentIds.length === 0) {
     throw new Error('متن پیام یا پیوست الزامی است.')
   }
 
@@ -259,12 +268,17 @@ export async function addPortalComment(
      RETURNING id, author_role, author_name, body_html, created_at`,
     [caseId, user.id, user.name || 'موکل', bodyHtml]
   )
+  const comment = comments[0]!
 
-  for (const doc of attachmentsMeta) {
+  if (attachmentIds.length > 0) {
     await query(
-      `INSERT INTO attachments (case_id, name, mime_type, size_bytes, uploaded_by, status)
-       VALUES ($1,$2,$3,$4,$5,'available')`,
-      [caseId, doc.name, doc.mimeType, doc.size, user.id]
+      `UPDATE attachments
+       SET comment_id = $1, status = 'available'
+       WHERE id = ANY($2::uuid[])
+         AND case_id = $3
+         AND uploaded_by = $4
+         AND storage_key IS NOT NULL`,
+      [comment.id, attachmentIds, caseId, user.id]
     )
   }
 
@@ -274,7 +288,13 @@ export async function addPortalComment(
     [caseId]
   )
 
-  return mapCaseComment(comments[0]!)
+  const { rows: linkedDocs } = await query<AttachmentRow>(
+    `SELECT id, name, mime_type, size_bytes, status, created_at, comment_id
+     FROM attachments WHERE comment_id = $1`,
+    [comment.id]
+  )
+
+  return mapCaseComment(comment, linkedDocs.map(mapCaseDocument))
 }
 
 export async function cancelPortalSession(

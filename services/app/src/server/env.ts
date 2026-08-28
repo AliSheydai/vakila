@@ -23,6 +23,23 @@ const envSchema = z
       .optional()
       .transform((v) => (v === undefined ? undefined : v === 'true')),
     PORT: z.coerce.number().int().positive().optional(),
+    RUSTFS_ENDPOINT: z.string().url().default('http://127.0.0.1:9000'),
+    RUSTFS_REGION: z.string().default('us-east-1'),
+    RUSTFS_ACCESS_KEY: z.string().min(1).default('vakila_rustfs_key'),
+    RUSTFS_SECRET_KEY: z.string().min(1).default('vakila_rustfs_secret_change_me'),
+    RUSTFS_BUCKET: z.string().min(1).default('vakila-attachments'),
+    /** Total storage quota for the whole system (bytes). 0 = unlimited. */
+    RUSTFS_STORAGE_LIMIT_BYTES: z.coerce
+      .number()
+      .int()
+      .nonnegative()
+      .default(10 * 1024 * 1024 * 1024),
+    /** Max single file size (bytes). */
+    RUSTFS_MAX_FILE_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(10 * 1024 * 1024),
   })
   .transform((data) => ({
     ...data,

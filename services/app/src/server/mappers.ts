@@ -263,19 +263,22 @@ export function mapCaseDocument(row: {
   }
 }
 
-export function mapCaseComment(row: {
-  id: string
-  author_role: string
-  author_name: string
-  body_html: string
-  created_at: Date | string
-}): CaseComment {
+export function mapCaseComment(
+  row: {
+    id: string
+    author_role: string
+    author_name: string
+    body_html: string
+    created_at: Date | string
+  },
+  attachments: CaseDocument[] = []
+): CaseComment {
   return {
     id: row.id,
     authorRole: row.author_role as CaseComment['authorRole'],
     authorName: row.author_name,
     bodyHtml: row.body_html,
-    attachments: [],
+    attachments,
     createdAt: toIsoRequired(row.created_at),
   }
 }

@@ -1,7 +1,9 @@
 import { create } from 'zustand'
+import * as apiAttachments from '../services/api-attachments-service'
 import * as apiCases from '../services/api-cases-service'
 import * as apiClients from '../services/api-clients-service'
 import type {
+  Attachment,
   Case,
   Client,
   CreateAttachmentInput,
@@ -94,6 +96,50 @@ function syncCaseIntoState(
   set({
     cases: get().cases.map((item) =>
       item.id === updated.id ? updated : item
+    ),
+    error: null,
+  })
+}
+
+function mergeAttachmentIntoCase(
+  set: (partial: Partial<CasesState>) => void,
+  get: () => CasesState,
+  caseId: string,
+  attachment: Attachment
+) {
+  set({
+    cases: get().cases.map((item) =>
+      item.id === caseId
+        ? {
+            ...item,
+            attachments: [
+              attachment,
+              ...item.attachments.filter((a) => a.id !== attachment.id),
+            ],
+          }
+        : item
+    ),
+    error: null,
+  })
+}
+
+function mergeAttachmentIntoClient(
+  set: (partial: Partial<CasesState>) => void,
+  get: () => CasesState,
+  clientId: string,
+  attachment: Attachment
+) {
+  set({
+    clients: get().clients.map((item) =>
+      item.id === clientId
+        ? {
+            ...item,
+            attachments: [
+              attachment,
+              ...(item.attachments ?? []).filter((a) => a.id !== attachment.id),
+            ],
+          }
+        : item
     ),
     error: null,
   })
@@ -235,15 +281,54 @@ export const useCasesStore = create<CasesState>((set, get) => ({
 
   getClientCases: (clientId) => getCasesForClient(get().cases, clientId),
 
-  addClientAttachment: async () => ({
-    ok: false,
-    error: 'آپلود مدرک موکل هنوز به سرور متصل نشده است.',
-  }),
+  addClientAttachment: async (clientId, input) => {
+    const file = input.file
+    if (!file) {
+      return { ok: false, error: 'فایل الزامی است.' }
+    }
+    const result = await apiAttachments.uploadClientAttachment(clientId, file)
+    if (!result.ok) {
+      set({ error: result.error })
+      return result
+    }
+    mergeAttachmentIntoClient(set, get, clientId, result.data)
+    void apiClients.getClient(clientId).then((refresh) => {
+      if (refresh.ok) {
+        set({
+          clients: get().clients.map((c) =>
+            c.id === clientId ? refresh.data : c
+          ),
+        })
+      }
+    })
+    return {
+      ok: true,
+      data: get().clients.find((c) => c.id === clientId)!,
+    }
+  },
 
-  deleteClientAttachment: async () => ({
-    ok: false,
-    error: 'حذف مدرک موکل هنوز به سرور متصل نشده است.',
-  }),
+  deleteClientAttachment: async (clientId, attachmentId) => {
+    const result = await apiAttachments.deleteClientAttachmentApi(
+      clientId,
+      attachmentId
+    )
+    if (!result.ok) {
+      set({ error: result.error })
+      return result
+    }
+    const refresh = await apiClients.getClient(clientId)
+    if (!refresh.ok) {
+      set({ error: refresh.error })
+      return refresh
+    }
+    set({
+      clients: get().clients.map((c) =>
+        c.id === clientId ? refresh.data : c
+      ),
+      error: null,
+    })
+    return { ok: true, data: refresh.data }
+  },
 
   addCase: async (input) => {
     const result = await apiCases.createCase(input)
@@ -332,16 +417,28 @@ export const useCasesStore = create<CasesState>((set, get) => ({
   },
 
   addAttachment: async (caseId, input) => {
-    const result = await apiCases.addAttachment(caseId, input)
+    const file = input.file
+    if (!file) {
+      return { ok: false, error: 'فایل الزامی است.' }
+    }
+    const result = await apiAttachments.uploadCaseAttachment(caseId, file)
     if (!result.ok) {
       set({ error: result.error })
       return result
     }
-    return refreshCase(set, get, caseId)
+    mergeAttachmentIntoCase(set, get, caseId, result.data)
+    void refreshCase(set, get, caseId)
+    return {
+      ok: true,
+      data: get().cases.find((c) => c.id === caseId)!,
+    }
   },
 
   deleteAttachment: async (caseId, attachmentId) => {
-    const result = await apiCases.deleteAttachment(caseId, attachmentId)
+    const result = await apiAttachments.deleteCaseAttachment(
+      caseId,
+      attachmentId
+    )
     if (!result.ok) {
       set({ error: result.error })
       return result

@@ -11,6 +11,7 @@ import {
   Scale,
   UserRound,
   Briefcase,
+  HardDrive,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -94,6 +95,11 @@ export const sidebarData: SidebarData = {
           title: 'کاربران',
           url: '/admin/users',
           icon: UserCog,
+        },
+        {
+          title: 'ذخیره‌سازی',
+          url: '/admin/storage',
+          icon: HardDrive,
         },
       ],
     },

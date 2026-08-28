@@ -18,22 +18,14 @@ import type { CaseComment, ClientCase } from '../../types'
 import { formatDateTime, formatFileSize } from '../../utils/format'
 import { isEmptyHtml } from '../../utils/html'
 import {
-  getDocumentSessionUrl,
-  hasDocumentSessionUrl,
-  setDocumentSessionUrl,
-} from '../../utils/document-session'
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024
-const ACCEPTED_EXTENSIONS = [
-  '.pdf',
-  '.doc',
-  '.docx',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.webp',
-  '.txt',
-]
+  ALLOWED_EXTENSIONS,
+  DEFAULT_MAX_FILE_BYTES,
+  validateAttachmentMeta,
+} from '@/lib/attachment-validation'
+import {
+  uploadPortalCaseDocument,
+  downloadPortalCaseDocument,
+} from '@/features/cases/services/api-attachments-service'
 
 type PendingFile = {
   key: string
@@ -49,6 +41,7 @@ export function CaseCommentsTab({ caseItem }: CaseCommentsTabProps) {
   const [bodyHtml, setBodyHtml] = useState('')
   const [files, setFiles] = useState<PendingFile[]>([])
   const [sending, setSending] = useState(false)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const comments = [...(caseItem.comments ?? [])].sort(
@@ -60,14 +53,14 @@ export function CaseCommentsTab({ caseItem }: CaseCommentsTabProps) {
     if (!list?.length) return
     const next: PendingFile[] = []
     for (const file of Array.from(list)) {
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error(`حجم فایل «${file.name}» بیشتر از ۱۰ مگابایت است.`)
-        continue
-      }
-      const lower = file.name.toLowerCase()
-      const ok = ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))
-      if (!ok) {
-        toast.error(`نوع فایل «${file.name}» پشتیبانی نمی‌شود.`)
+      const err = validateAttachmentMeta({
+        name: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+        maxBytes: DEFAULT_MAX_FILE_BYTES,
+      })
+      if (err) {
+        toast.error(err)
         continue
       }
       next.push({ key: `${file.name}-${file.size}-${file.lastModified}`, file })
@@ -87,27 +80,24 @@ export function CaseCommentsTab({ caseItem }: CaseCommentsTabProps) {
 
     setSending(true)
     try {
+      const attachmentIds: string[] = []
+      for (const { file } of files) {
+        const upload = await uploadPortalCaseDocument(caseItem.id, file)
+        if (!upload.ok) {
+          toast.error(upload.error)
+          return
+        }
+        attachmentIds.push(upload.data.id)
+      }
+
       const result = await addCaseComment(caseItem.id, {
         bodyHtml: isEmptyHtml(bodyHtml) ? '' : bodyHtml,
-        attachments: files.map(({ file }) => ({
-          name: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          size: file.size,
-        })),
+        attachmentIds,
       })
 
       if (!result.ok) {
         toast.error(result.error)
         return
-      }
-
-      const updated = usePortalStore.getState().getCase(caseItem.id)
-      const last = updated?.comments[updated.comments.length - 1]
-      if (last) {
-        last.attachments.forEach((doc, index) => {
-          const pending = files[index]
-          if (pending) setDocumentSessionUrl(doc.id, pending.file)
-        })
       }
 
       setBodyHtml('')
@@ -118,170 +108,162 @@ export function CaseCommentsTab({ caseItem }: CaseCommentsTabProps) {
     }
   }
 
-  return (
-    <div className='space-y-4'>
-      {comments.length === 0 ? (
-        <p className='rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground'>
-          هنوز پیامی در این پرونده ثبت نشده است. اولین پیام را بنویسید.
-        </p>
-      ) : (
-        <ul className='space-y-3'>
-          {comments.map((comment) => (
-            <CommentBubble key={comment.id} comment={comment} />
-          ))}
-        </ul>
-      )}
+  async function handleDownload(caseId: string, docId: string, name: string) {
+    setDownloadingId(docId)
+    const result = await downloadPortalCaseDocument(caseId, docId)
+    setDownloadingId(null)
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+    const anchor = document.createElement('a')
+    anchor.href = result.data.url
+    anchor.download = name
+    anchor.click()
+  }
 
-      <section className='space-y-3 rounded-xl border p-4 sm:p-5'>
-        <h2 className='text-sm font-semibold'>ارسال پیام</h2>
+  return (
+    <div className='flex flex-col gap-4'>
+      <div className='space-y-3'>
+        {comments.length === 0 ? (
+          <p className='text-sm text-muted-foreground'>
+            هنوز پیامی ثبت نشده است.
+          </p>
+        ) : (
+          comments.map((comment) => (
+            <CommentBubble
+              key={comment.id}
+              comment={comment}
+              caseId={caseItem.id}
+              downloadingId={downloadingId}
+              onDownload={handleDownload}
+            />
+          ))
+        )}
+      </div>
+
+      <div className='rounded-lg border bg-muted/30 p-3'>
         <RichTextEditor
           value={bodyHtml}
           onChange={setBodyHtml}
-          placeholder='پیام خود را برای وکیل بنویسید…'
-          disabled={sending}
-          minHeightClassName='min-h-24'
+          placeholder='پیام خود را بنویسید…'
+          minHeightClassName='min-h-[100px]'
         />
-
-        <input
-          ref={fileInputRef}
-          type='file'
-          multiple
-          className='hidden'
-          accept={ACCEPTED_EXTENSIONS.join(',')}
-          onChange={(e) => onPickFiles(e.target.files)}
-        />
-
         {files.length > 0 ? (
-          <ul className='space-y-2'>
+          <ul className='mt-2 space-y-1'>
             {files.map((item) => (
               <li
                 key={item.key}
-                className='flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm'
+                className='flex items-center justify-between gap-2 text-xs'
               >
-                <div className='min-w-0'>
-                  <p className='truncate font-medium'>{item.file.name}</p>
-                  <p className='text-xs text-muted-foreground'>
-                    {formatFileSize(item.file.size)}
-                  </p>
-                </div>
+                <span className='truncate'>{item.file.name}</span>
                 <Button
                   type='button'
                   variant='ghost'
                   size='icon'
-                  className='size-8 shrink-0'
-                  aria-label='حذف فایل'
-                  disabled={sending}
+                  className='size-6'
                   onClick={() =>
                     setFiles((prev) => prev.filter((f) => f.key !== item.key))
                   }
                 >
-                  <X className='size-4' />
+                  <X className='size-3' />
                 </Button>
               </li>
             ))}
           </ul>
         ) : null}
-
-        <div className='flex flex-col gap-2 sm:flex-row sm:justify-between'>
+        <div className='mt-2 flex items-center justify-between gap-2'>
+          <input
+            ref={fileInputRef}
+            type='file'
+            multiple
+            className='hidden'
+            accept={ALLOWED_EXTENSIONS.join(',')}
+            onChange={(e) => onPickFiles(e.target.files)}
+          />
           <Button
             type='button'
-            variant='outline'
-            disabled={sending}
+            variant='ghost'
+            size='sm'
             onClick={() => fileInputRef.current?.click()}
           >
             <Paperclip className='size-4' />
-            پیوست فایل
+            پیوست
           </Button>
-          <Button type='button' disabled={sending} onClick={handleSend}>
+          <Button
+            type='button'
+            size='sm'
+            disabled={sending}
+            onClick={() => void handleSend()}
+          >
             {sending ? (
-              <>
-                <Loader2 className='size-4 animate-spin' />
-                در حال ارسال…
-              </>
+              <Loader2 className='size-4 animate-spin' />
             ) : (
-              'ارسال پیام'
+              'ارسال'
             )}
           </Button>
         </div>
-      </section>
+      </div>
     </div>
   )
 }
 
-function CommentBubble({ comment }: { comment: CaseComment }) {
-  const isClient = comment.authorRole === 'client'
-
+function CommentBubble({
+  comment,
+  caseId,
+  downloadingId,
+  onDownload,
+}: {
+  comment: CaseComment
+  caseId: string
+  downloadingId: string | null
+  onDownload: (caseId: string, docId: string, name: string) => void
+}) {
   return (
-    <li
+    <article
       className={cn(
-        'rounded-xl border p-4',
-        isClient ? 'border-primary/20 bg-primary/5' : 'bg-muted/30'
+        'rounded-lg border px-3 py-2 text-sm',
+        comment.authorRole === 'client'
+          ? 'ms-8 bg-primary/5'
+          : 'me-8 bg-muted/50'
       )}
     >
-      <div className='flex flex-wrap items-center justify-between gap-2'>
-        <div className='flex flex-wrap items-center gap-2'>
-          <p className='font-medium'>{comment.authorName}</p>
-          <span className='rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground'>
-            {isClient ? 'موکل' : 'وکیل'}
-          </span>
-        </div>
-        <p className='text-xs text-muted-foreground'>
-          {formatDateTime(comment.createdAt)}
-        </p>
-      </div>
-      <div className='mt-2'>
-        <RichTextContent
-          html={comment.bodyHtml}
-          emptyLabel={
-            comment.attachments.length > 0
-              ? 'فقط فایل پیوست شده است.'
-              : 'متنی ثبت نشده است.'
-          }
-        />
-      </div>
+      <header className='mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground'>
+        <span className='font-medium text-foreground'>{comment.authorName}</span>
+        <time>{formatDateTime(comment.createdAt)}</time>
+      </header>
+      {!isEmptyHtml(comment.bodyHtml) ? (
+        <RichTextContent html={comment.bodyHtml} className='text-sm' />
+      ) : null}
       {comment.attachments.length > 0 ? (
-        <ul className='mt-3 space-y-2'>
-          {comment.attachments.map((doc) => {
-            const canDownload = hasDocumentSessionUrl(doc.id)
-            return (
-              <li
-                key={doc.id}
-                className='flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-sm'
+        <ul className='mt-2 space-y-1 border-t pt-2'>
+          {comment.attachments.map((doc) => (
+            <li key={doc.id} className='flex items-center justify-between gap-2'>
+              <div className='flex min-w-0 items-center gap-2'>
+                <FileText className='size-3.5 shrink-0' />
+                <span className='truncate text-xs'>{doc.name}</span>
+                <span className='text-xs text-muted-foreground'>
+                  {formatFileSize(doc.size)}
+                </span>
+              </div>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                className='size-7'
+                disabled={downloadingId === doc.id}
+                onClick={() => void onDownload(caseId, doc.id, doc.name)}
               >
-                <div className='flex min-w-0 items-center gap-2'>
-                  <FileText className='size-4 shrink-0 text-muted-foreground' />
-                  <div className='min-w-0'>
-                    <p className='truncate font-medium'>{doc.name}</p>
-                    <p className='text-xs text-muted-foreground'>
-                      {formatFileSize(doc.size)}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='sm'
-                  disabled={!canDownload}
-                  onClick={() => {
-                    const url = getDocumentSessionUrl(doc.id)
-                    if (!url) {
-                      toast.message('دانلود فقط برای فایل‌های همین جلسه ممکن است.')
-                      return
-                    }
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = doc.name
-                    a.click()
-                  }}
-                >
-                  <Download className='size-4' />
-                  دانلود
-                </Button>
-              </li>
-            )
-          })}
+                {downloadingId === doc.id ? (
+                  <Loader2 className='size-3.5 animate-spin' />
+                ) : (
+                  <Download className='size-3.5' />
+                )}
+              </Button>
+            </li>
+          ))}
         </ul>
       ) : null}
-    </li>
+    </article>
   )
 }

@@ -27,6 +27,10 @@ hub.startKeepalive()
 
 server.on('upgrade', (request, socket, head) => {
   const { pathname } = parse(request.url ?? '')
+  if (pathname === '/_next/webpack-hmr') {
+    app.getUpgradeHandler()(request, socket, head)
+    return
+  }
   if (pathname === '/api/ws') {
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request)

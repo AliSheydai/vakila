@@ -12,13 +12,13 @@ export async function POST(request: Request, ctx: Ctx) {
 
     const body = await readJson<{
       bodyHtml?: string
-      attachments?: { name: string; mimeType: string; size: number }[]
+      attachmentIds?: string[]
     }>(request)
 
     try {
       const comment = await addPortalComment(user, id, {
         bodyHtml: body?.bodyHtml ?? '',
-        attachments: body?.attachments,
+        attachmentIds: body?.attachmentIds,
       })
       return ok(comment, { status: 201 })
     } catch (error) {

@@ -42,7 +42,7 @@ type PortalState = {
   ) => Promise<ServiceResult<void>>
   addCaseDocument: (
     caseId: string,
-    input: Omit<CaseDocument, 'id' | 'uploadedAt' | 'status'>
+    file: File
   ) => Promise<ServiceResult<CaseDocument>>
   cancelSession: (sessionId: string) => Promise<ServiceResult<void>>
   retryPayment: (paymentId: string) => Promise<ServiceResult<void>>
@@ -162,8 +162,30 @@ export const usePortalStore = create<PortalState>()((set, get) => ({
     return { ok: true, data: undefined as void }
   },
 
-  addCaseDocument: async (caseId, input) => {
-    const result = await apiPortal.addCaseDocument(caseId, input)
+  addCaseDocument: async (caseId, file) => {
+    const result = await apiPortal.addCaseDocument(caseId, file)
+    if (!result.ok) return result
+
+    set({
+      cases: get().cases.map((item) =>
+        item.id === caseId
+          ? {
+              ...item,
+              documents: [
+                result.data,
+                ...item.documents.filter((doc) => doc.id !== result.data.id),
+              ],
+            }
+          : item
+      ),
+      error: null,
+    })
+
+    const clientId = get().clientId
+    if (clientId) {
+      void reloadPortal(set, clientId)
+    }
+
     return result
   },
 

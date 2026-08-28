@@ -43,7 +43,7 @@ ${CYAN}${BOLD}
  ╚██╗ ██╔╝██╔══██║██╔═██╗ ██║██║     ██╔══██║
   ╚████╔╝ ██║  ██║██║  ██╗██║███████╗██║  ██║
    ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═╝
-${RESET}${DIM}  سامانه مدیریت وکالت  ·  Postgres + OTP + Realtime${RESET}
+${RESET}${DIM}  سامانه مدیریت وکالت  ·  Postgres + RustFS + OTP + Realtime${RESET}
 
 EOF
 }
@@ -128,6 +128,21 @@ wait_postgres() {
   return 1
 }
 
+wait_rustfs() {
+  local tries=40
+  local port="${RUSTFS_PORT:-9000}"
+  step "انتظار برای آماده شدن RustFS…"
+  for ((i=1; i<=tries; i++)); do
+    if curl -fsS "http://127.0.0.1:${port}/rustfs/console/health" >/dev/null 2>&1; then
+      ok "RustFS آماده است"
+      return 0
+    fi
+    sleep 1
+  done
+  warn "RustFS هنوز پاسخ نمی‌دهد — ممکن است آپلود فایل با تأخیر کار کند"
+  return 0
+}
+
 start_postgres() {
   header "پایگاه‌داده (Docker)"
   need_cmd docker || exit 1
@@ -136,6 +151,21 @@ start_postgres() {
   step "بالا آوردن کانتینر Postgres…"
   compose up -d postgres
   wait_postgres
+}
+
+start_rustfs() {
+  header "ذخیره‌سازی RustFS (Docker)"
+  need_cmd docker || exit 1
+  ensure_env
+  load_root_env
+  step "بالا آوردن RustFS…"
+  compose up -d rustfs-perms rustfs
+  wait_rustfs
+}
+
+start_data_services() {
+  start_postgres
+  start_rustfs
 }
 
 run_migrations() {
@@ -155,7 +185,7 @@ run_migrations() {
 run_dev() {
   banner
   header "حالت Development"
-  say "Postgres در Docker + Next.js watch + WebSocket"
+  say "Postgres + RustFS در Docker + Next.js watch + WebSocket"
   say "آدرس: ${CYAN}http://localhost:${APP_PORT}${RESET}"
   echo
   ensure_env
@@ -167,11 +197,11 @@ run_dev() {
     pkg_install
   fi
 
-  start_postgres
+  start_data_services
   run_migrations
 
   header "سرور توسعه"
-  ok "در حال اجرا… (Ctrl+C برای توقف Next — Postgres روشن می‌ماند)"
+  ok "در حال اجرا… (Ctrl+C برای توقف Next — Postgres و RustFS روشن می‌مانند)"
   echo
   cd "${APP_DIR}"
   if command -v pnpm >/dev/null 2>&1; then
@@ -252,7 +282,7 @@ migrate_only() {
   banner
   ensure_env
   load_root_env
-  start_postgres
+  start_data_services
   run_migrations
 }
 
@@ -307,7 +337,7 @@ ${BOLD}Usage:${RESET} ./run.sh [command]
 
   بدون آرگومان → منوی تعاملی
 
-${DIM}Env: APP_PORT, DATABASE_URL, FERZZ_TOKEN, SESSION_SECRET (services/app/.env)${RESET}
+${DIM}Env: APP_PORT, DATABASE_URL, RUSTFS_* (see .env.example), FERZZ_TOKEN, SESSION_SECRET (services/app/.env)${RESET}
 EOF
 }
 
