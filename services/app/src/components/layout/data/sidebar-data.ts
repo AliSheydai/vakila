@@ -13,6 +13,7 @@ import {
   Briefcase,
   HardDrive,
   Inbox,
+  Settings,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -106,6 +107,11 @@ export const sidebarData: SidebarData = {
           title: 'ذخیره‌سازی',
           url: '/admin/storage',
           icon: HardDrive,
+        },
+        {
+          title: 'تنظیمات',
+          url: '/admin/settings',
+          icon: Settings,
         },
       ],
     },

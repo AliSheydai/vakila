@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { sidebarData } from './data/sidebar-data'
+import { filterAdminNav } from './filter-admin-nav'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
 import { TeamSwitcher } from './team-switcher'
@@ -92,21 +93,6 @@ function filterTeams(teams: Team[], role?: AuthRole): Team[] {
     return teams.filter((t) => t.url.startsWith('/admin'))
   }
   return teams.filter((t) => !t.url.startsWith('/admin'))
-}
-
-function filterAdminNav(
-  groups: NavGroupType[],
-  role?: AuthRole
-): NavGroupType[] {
-  return groups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => {
-      if ('url' in item && item.url === '/admin/users') {
-        return role === 'super_admin'
-      }
-      return true
-    }),
-  }))
 }
 
 function AppSidebarInner({

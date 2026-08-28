@@ -102,6 +102,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (pathname.startsWith('/admin/settings')) {
+    if (claims.role !== 'super_admin') {
+      return NextResponse.redirect(new URL(roleHome(claims.role), request.url))
+    }
+    return NextResponse.next()
+  }
+
   if (pathname.startsWith('/admin')) {
     if (!isLawyer(claims.role)) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
