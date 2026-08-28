@@ -1,16 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  formatIranianMobileLocal,
-  isValidIranianMobile,
-} from '@/lib/iranian-phone'
+import { formatIranianMobileLocal } from '@/lib/iranian-phone'
+import { api } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const profileSchema = z.object({
   name: z
@@ -30,46 +30,72 @@ const profileSchema = z.object({
     .min(1, 'لطفاً نام خود را وارد کنید.')
     .min(2, 'نام باید حداقل ۲ کاراکتر باشد.')
     .max(30, 'نام نباید بیشتر از ۳۰ کاراکتر باشد.'),
-  phone: z
-    .string()
-    .min(1, 'لطفاً شماره موبایل خود را وارد کنید.')
-    .refine(isValidIranianMobile, {
-      message: 'شماره موبایل ایران معتبر نیست. مثال: ۰۹۱۲۳۴۵۶۷۸۹',
-    })
-    .transform(formatIranianMobileLocal),
 })
 
 type ProfileValues = z.infer<typeof profileSchema>
 
-const INITIAL: ProfileValues = {
-  name: 'علی',
-  phone: '09123456789',
-}
-
 export function ProfileTab() {
-  const [profile, setProfile] = useState(INITIAL)
+  const user = useAuthStore((s) => s.auth.user)
+  const hydrated = useAuthStore((s) => s.auth.hydrated)
+  const setUser = useAuthStore((s) => s.auth.setUser)
 
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: profile,
+    defaultValues: { name: '' },
     mode: 'onChange',
   })
+
+  useEffect(() => {
+    if (!user) return
+    form.reset({ name: user.name?.trim() || '' })
+  }, [user, form])
 
   const watchedName = form.watch('name')
   const { isDirty, isSubmitting, isValid } = form.formState
 
   function onReset() {
-    form.reset(profile)
+    form.reset({ name: user?.name?.trim() || '' })
   }
 
-  function onSubmit(data: ProfileValues) {
-    setProfile(data)
-    form.reset(data)
+  async function onSubmit(data: ProfileValues) {
+    const result = await api<{ user: { name: string | null } }>(
+      '/api/auth/profile',
+      {
+        method: 'PATCH',
+        body: { name: data.name },
+      }
+    )
+
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+
+    if (user) {
+      setUser({ ...user, name: result.data.user.name })
+    }
+
+    form.reset({ name: result.data.user.name?.trim() || data.name })
     toast.success('اطلاعات پروفایل ذخیره شد.')
   }
 
-  const displayName = watchedName.trim() || profile.name
+  const displayName = watchedName.trim() || user?.name?.trim() || 'کاربر'
   const initials = displayName.slice(0, 2)
+  const phoneDisplay = user?.phone
+    ? formatIranianMobileLocal(user.phone)
+    : ''
+
+  if (!hydrated) {
+    return (
+      <div className='space-y-6'>
+        <div className='space-y-2'>
+          <Skeleton className='h-5 w-24' />
+          <Skeleton className='h-4 w-full max-w-md' />
+        </div>
+        <Skeleton className='h-72 w-full rounded-2xl' />
+      </div>
+    )
+  }
 
   return (
     <div className='space-y-6'>
@@ -127,32 +153,22 @@ export function ProfileTab() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name='phone'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className='text-sidebar-foreground'>
-                    شماره موبایل
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='tel'
-                      inputMode='tel'
-                      autoComplete='tel'
-                      placeholder='09123456789'
-                      dir='ltr'
-                      className='h-11 border-sidebar-border bg-background/80 text-left transition-[box-shadow,border-color] focus-visible:border-sidebar-ring focus-visible:ring-sidebar-ring/40'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    برای ورود و ارتباط با حساب استفاده می‌شود.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className='space-y-2'>
+              <p className='text-sm font-medium text-sidebar-foreground'>
+                شماره موبایل
+              </p>
+              <Input
+                type='tel'
+                value={phoneDisplay}
+                readOnly
+                disabled
+                dir='ltr'
+                className='h-11 border-sidebar-border bg-muted/50 text-left text-muted-foreground'
+              />
+              <p className='text-[0.8rem] text-muted-foreground'>
+                شماره ورود به حساب است و از طریق OTP تأیید شده؛ قابل تغییر نیست.
+              </p>
+            </div>
           </div>
 
           <div

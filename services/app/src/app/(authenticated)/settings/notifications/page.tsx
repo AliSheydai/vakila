@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
-export default function SettingsNotificationsRedirect() {
+export default function Page() {
   redirect('/notifications')
 }

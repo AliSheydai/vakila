@@ -124,7 +124,7 @@ export async function notifyClientInfoUpdated(params: {
     type: 'client_info_updated',
     title: 'به‌روزرسانی اطلاعات',
     body: 'وکیل اطلاعات حساب شما را ویرایش کرد.',
-    href: '/settings',
+    href: '/account',
     clientId: params.clientId,
   })
 }
@@ -138,13 +138,17 @@ export async function notifyEventScheduled(params: {
   title: string
   date: string
   startTime: string
+  eventType?: string
 }): Promise<void> {
+  const isOnline = params.eventType === 'online_meeting'
   await notifyIfRecipient(params.clientUserId, {
     actorId: params.actorId,
     type: 'event_scheduled',
-    title: 'جلسه جدید',
-    body: `وکیل جلسه «${params.title}» را برای ${formatEventDateTime(params.date, params.startTime)} تنظیم کرد.`,
-    href: '/sessions',
+    title: isOnline ? 'جلسه آنلاین جدید' : 'جلسه جدید',
+    body: isOnline
+      ? `وکیل جلسه آنلاین «${params.title}» را برای ${formatEventDateTime(params.date, params.startTime)} تنظیم کرد. برای ورود به تماس تصویری از بخش جلسات اقدام کنید.`
+      : `وکیل جلسه «${params.title}» را برای ${formatEventDateTime(params.date, params.startTime)} تنظیم کرد.`,
+    href: `/sessions/${params.eventId}`,
     caseId: params.caseId,
     clientId: params.clientId,
     eventId: params.eventId,
@@ -161,6 +165,7 @@ export async function notifyEventUpdated(params: {
   date: string
   startTime: string
   cancelled?: boolean
+  eventType?: string
 }): Promise<void> {
   if (params.cancelled) {
     await notifyIfRecipient(params.clientUserId, {
@@ -168,7 +173,7 @@ export async function notifyEventUpdated(params: {
       type: 'event_cancelled',
       title: 'لغو جلسه',
       body: `جلسه «${params.title}» لغو شد.`,
-      href: '/sessions',
+      href: `/sessions/${params.eventId}`,
       caseId: params.caseId,
       clientId: params.clientId,
       eventId: params.eventId,
@@ -176,12 +181,70 @@ export async function notifyEventUpdated(params: {
     return
   }
 
+  const isOnline = params.eventType === 'online_meeting'
   await notifyIfRecipient(params.clientUserId, {
     actorId: params.actorId,
     type: 'event_updated',
-    title: 'تغییر جلسه',
-    body: `جلسه «${params.title}» به ${formatEventDateTime(params.date, params.startTime)} تغییر یافت.`,
-    href: '/sessions',
+    title: isOnline ? 'تغییر جلسه آنلاین' : 'تغییر جلسه',
+    body: isOnline
+      ? `جلسه آنلاین «${params.title}» به ${formatEventDateTime(params.date, params.startTime)} تغییر یافت.`
+      : `جلسه «${params.title}» به ${formatEventDateTime(params.date, params.startTime)} تغییر یافت.`,
+    href: `/sessions/${params.eventId}`,
+    caseId: params.caseId,
+    clientId: params.clientId,
+    eventId: params.eventId,
+  })
+}
+
+export async function notifyVideoCallReady(params: {
+  clientUserId: string | null
+  actorId: string
+  eventId: string
+  caseId: string | null
+  clientId: string | null
+  title: string
+}): Promise<void> {
+  await notifyIfRecipient(params.clientUserId, {
+    actorId: params.actorId,
+    type: 'video_call_ready',
+    title: 'وکیل آماده جلسه است',
+    body: `وکیل برای جلسه «${params.title}» آماده است. هم‌اکنون می‌توانید وارد تماس شوید.`,
+    href: `/call/${params.eventId}/lobby`,
+    caseId: params.caseId,
+    clientId: params.clientId,
+    eventId: params.eventId,
+  })
+}
+
+export async function notifyEventReminder(params: {
+  clientUserId: string | null
+  lawyerId: string
+  eventId: string
+  caseId: string | null
+  clientId: string | null
+  title: string
+  minutesUntil: number
+}): Promise<void> {
+  const timeLabel =
+    params.minutesUntil <= 5 ? '۵ دقیقه دیگر' : '۱۵ دقیقه دیگر'
+
+  await notifyIfRecipient(params.clientUserId, {
+    actorId: params.lawyerId,
+    type: 'event_reminder',
+    title: 'یادآوری جلسه آنلاین',
+    body: `جلسه «${params.title}» ${timeLabel} آغاز می‌شود.`,
+    href: `/call/${params.eventId}/lobby`,
+    caseId: params.caseId,
+    clientId: params.clientId,
+    eventId: params.eventId,
+  })
+
+  await notifyIfRecipient(params.lawyerId, {
+    actorId: params.lawyerId,
+    type: 'event_reminder',
+    title: 'یادآوری جلسه آنلاین',
+    body: `جلسه «${params.title}» ${timeLabel} آغاز می‌شود.`,
+    href: `/call/${params.eventId}/lobby`,
     caseId: params.caseId,
     clientId: params.clientId,
     eventId: params.eventId,

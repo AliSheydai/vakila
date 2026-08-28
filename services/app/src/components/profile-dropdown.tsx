@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import useDialogState from '@/hooks/use-dialog-state'
+import { accountPath } from '@/lib/account-routes'
 import { useAuthStore } from '@/stores/auth-store'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ export function ProfileDropdown() {
   const displayName = user?.name?.trim() || 'کاربر'
   const initials = displayName.charAt(0) || 'ک'
   const phone = user?.phone || ''
+  const accountHref = accountPath(user?.role)
 
   return (
     <>
@@ -51,7 +53,7 @@ export function ProfileDropdown() {
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link href='/settings'>حساب کاربری</Link>
+              <Link href={accountHref}>حساب کاربری</Link>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

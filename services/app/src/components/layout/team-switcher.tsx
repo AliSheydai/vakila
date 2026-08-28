@@ -17,6 +17,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
+import { isAdminNavContext } from './nav-context'
 import { type Team } from './types'
 
 type TeamSwitcherProps = {
@@ -29,7 +30,7 @@ export function TeamSwitcher({ teams, collapsed }: TeamSwitcherProps) {
   const pathname = usePathname()
   const router = useRouter()
 
-  const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  const isAdmin = isAdminNavContext(pathname)
   const activeTeam =
     teams.find((team) =>
       isAdmin ? team.url.startsWith('/admin') : !team.url.startsWith('/admin')

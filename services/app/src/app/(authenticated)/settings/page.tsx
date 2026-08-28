@@ -1,5 +1,5 @@
-import { Settings } from '@/features/settings'
+import { redirect } from 'next/navigation'
 
-export default function SettingsPage() {
-  return <Settings />
+export default function Page() {
+  redirect('/account')
 }

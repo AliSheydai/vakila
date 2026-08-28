@@ -38,6 +38,22 @@ export async function updateUserRole(
   return toPublicUser(rows[0]!)
 }
 
+export async function updateUserProfile(
+  userId: string,
+  name: string
+): Promise<User> {
+  const trimmed = name.trim()
+  if (!trimmed) throw new Error('Name is required')
+  if (trimmed.length > 30) throw new Error('Name must be at most 30 characters')
+
+  const { rows } = await query<User>(
+    `UPDATE users SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    [trimmed, userId]
+  )
+  if (!rows[0]) throw new Error('User not found')
+  return rows[0]
+}
+
 export async function updateUserName(
   userId: string,
   name: string

@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronLeft, Laptop, Moon, Sun } from 'lucide-react'
 import { useSearch } from '@/context/search-provider'
 import { useTheme } from '@/context/theme-provider'
 import { useAuthStore } from '@/stores/auth-store'
+import { isAdminNavContext } from './layout/nav-context'
 import {
   CommandDialog,
   CommandEmpty,
@@ -26,7 +27,7 @@ export function CommandMenu() {
   const { open, setOpen } = useSearch()
 
   const user = useAuthStore((s) => s.auth.user)
-  const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  const isAdmin = isAdminNavContext(pathname)
   const navGroups = useMemo(() => {
     const groups = isAdmin
       ? sidebarData.adminNavGroups

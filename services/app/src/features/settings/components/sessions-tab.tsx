@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Laptop,
   Smartphone,
@@ -8,11 +8,15 @@ import {
   MapPin,
   LogOut,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api-client'
+import { formatRelativeTimeFa } from '@/lib/format-relative-time'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type DeviceKind = 'desktop' | 'mobile' | 'tablet'
 
@@ -20,39 +24,11 @@ type Session = {
   id: string
   device: string
   browser: string
-  location: string
-  lastActive: string
+  ipAddress: string | null
+  createdAt: string
   current?: boolean
   kind: DeviceKind
 }
-
-const INITIAL_SESSIONS: Session[] = [
-  {
-    id: '1',
-    device: 'Windows',
-    browser: 'Chrome',
-    location: 'تهران، ایران',
-    lastActive: 'اکنون فعال',
-    current: true,
-    kind: 'desktop',
-  },
-  {
-    id: '2',
-    device: 'iPhone',
-    browser: 'Safari',
-    location: 'تهران، ایران',
-    lastActive: '۲ ساعت پیش',
-    kind: 'mobile',
-  },
-  {
-    id: '3',
-    device: 'iPad',
-    browser: 'Safari',
-    location: 'اصفهان، ایران',
-    lastActive: '۳ روز پیش',
-    kind: 'tablet',
-  },
-]
 
 function DeviceIcon({ kind }: { kind: DeviceKind }) {
   const Icon =
@@ -60,20 +36,84 @@ function DeviceIcon({ kind }: { kind: DeviceKind }) {
   return <Icon className='size-5' strokeWidth={1.75} />
 }
 
-export function SessionsTab() {
-  const [sessions, setSessions] = useState(INITIAL_SESSIONS)
+function formatLocation(ip: string | null): string {
+  return ip?.trim() ? `آی‌پی: ${ip}` : 'موقعیت نامشخص'
+}
 
-  function revoke(id: string) {
+function formatLastActive(session: Session): string {
+  if (session.current) return 'اکنون فعال'
+  return formatRelativeTimeFa(session.createdAt)
+}
+
+export function SessionsTab() {
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [loading, setLoading] = useState(true)
+  const [revokingId, setRevokingId] = useState<string | null>(null)
+  const [revokingOthers, setRevokingOthers] = useState(false)
+
+  const loadSessions = useCallback(async () => {
+    setLoading(true)
+    const result = await api<{ sessions: Session[] }>('/api/auth/sessions')
+    setLoading(false)
+
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+
+    setSessions(result.data.sessions)
+  }, [])
+
+  useEffect(() => {
+    void loadSessions()
+  }, [loadSessions])
+
+  async function revoke(id: string) {
+    setRevokingId(id)
+    const result = await api<{ revoked: boolean }>(`/api/auth/sessions/${id}`, {
+      method: 'DELETE',
+    })
+    setRevokingId(null)
+
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+
     setSessions((prev) => prev.filter((s) => s.id !== id))
     toast.success('دستگاه از حساب خارج شد.')
   }
 
-  function revokeOthers() {
+  async function revokeOthers() {
+    setRevokingOthers(true)
+    const result = await api<{ revokedCount: number }>(
+      '/api/auth/sessions/revoke-others',
+      { method: 'POST' }
+    )
+    setRevokingOthers(false)
+
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+
     setSessions((prev) => prev.filter((s) => s.current))
     toast.success('از همه دستگاه‌های دیگر خارج شدید.')
   }
 
   const othersCount = sessions.filter((s) => !s.current).length
+
+  if (loading) {
+    return (
+      <div className='space-y-8'>
+        <div className='space-y-2'>
+          <Skeleton className='h-5 w-24' />
+          <Skeleton className='h-4 w-64' />
+        </div>
+        <Skeleton className='h-48 w-full rounded-2xl' />
+      </div>
+    )
+  }
 
   return (
     <div className='space-y-8'>
@@ -92,9 +132,14 @@ export function SessionsTab() {
             variant='outline'
             size='sm'
             className='shrink-0 gap-1.5 border-sidebar-border bg-sidebar text-destructive hover:bg-destructive/5 hover:text-destructive'
-            onClick={revokeOthers}
+            onClick={() => void revokeOthers()}
+            disabled={revokingOthers}
           >
-            <LogOut className='size-3.5' />
+            {revokingOthers ? (
+              <Loader2 className='size-3.5 animate-spin' />
+            ) : (
+              <LogOut className='size-3.5' />
+            )}
             خروج از بقیه دستگاه‌ها
           </Button>
         ) : null}
@@ -142,10 +187,10 @@ export function SessionsTab() {
               <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground'>
                 <span className='inline-flex items-center gap-1'>
                   <MapPin className='size-3.5' />
-                  {session.location}
+                  {formatLocation(session.ipAddress)}
                 </span>
                 <span className='size-1 rounded-full bg-border' />
-                <span>{session.lastActive}</span>
+                <span>{formatLastActive(session)}</span>
               </div>
             </div>
 
@@ -155,9 +200,14 @@ export function SessionsTab() {
                 variant='ghost'
                 size='sm'
                 className='shrink-0 text-muted-foreground hover:text-destructive'
-                onClick={() => revoke(session.id)}
+                onClick={() => void revoke(session.id)}
+                disabled={revokingId === session.id}
               >
-                خروج
+                {revokingId === session.id ? (
+                  <Loader2 className='size-4 animate-spin' />
+                ) : (
+                  'خروج'
+                )}
               </Button>
             ) : null}
           </li>

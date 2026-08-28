@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils'
 import { sidebarData } from './data/sidebar-data'
 import { filterAdminNav } from './filter-admin-nav'
+import { isAdminNavContext } from './nav-context'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
 import { TeamSwitcher } from './team-switcher'
@@ -27,7 +28,7 @@ export function AppSidebar() {
   const { collapsible, variant } = useLayout()
   const pathname = usePathname()
   const user = useAuthStore((s) => s.auth.user)
-  const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  const isAdmin = isAdminNavContext(pathname)
   const newRequestsCount = useConsultationRequestsBadge()
   const clientUnseenTotal = useTotalClientUnseenActivity()
   const caseContentTotal = useTotalCaseContentActivity()

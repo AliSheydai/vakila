@@ -109,6 +109,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) {
+    const target = isLawyer(claims.role) ? '/admin/account' : '/account'
+    return NextResponse.redirect(new URL(target, request.url))
+  }
+
+  if (
+    isLawyer(claims.role) &&
+    (pathname === '/account' ||
+      pathname.startsWith('/account/') ||
+      pathname === '/notifications' ||
+      pathname.startsWith('/notifications/'))
+  ) {
+    const target =
+      pathname === '/notifications' || pathname.startsWith('/notifications/')
+        ? '/admin/notifications'
+        : '/admin/account'
+    return NextResponse.redirect(new URL(target, request.url))
+  }
+
   if (pathname.startsWith('/admin')) {
     if (!isLawyer(claims.role)) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
