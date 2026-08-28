@@ -36,6 +36,8 @@ import {
 } from '../types'
 import { useEventsStore } from '../stores/events-store'
 import { formatEventDate, toDateKey } from '../utils/datetime'
+import { EventsDatePicker } from './events-date-picker'
+import { EventsTimePicker } from './events-time-picker'
 import type { EventCreateDefaults } from './events-provider'
 
 const NONE = '__none__'
@@ -345,18 +347,12 @@ export function EventsMutateDrawer({
                   <FormItem>
                     <FormLabel>تاریخ *</FormLabel>
                     <FormControl>
-                      <Input
-                        type='date'
-                        dir='ltr'
-                        className={
-                          isDateLocked
-                            ? 'pointer-events-none cursor-not-allowed bg-muted text-start opacity-90'
-                            : 'text-start'
-                        }
-                        readOnly={isDateLocked}
-                        tabIndex={isDateLocked ? -1 : undefined}
-                        aria-readonly={isDateLocked}
-                        {...field}
+                      <EventsDatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={isDateLocked}
+                        placeholder='انتخاب تاریخ'
+                        aria-label='تاریخ رویداد'
                       />
                     </FormControl>
                     {isDateLocked ? (
@@ -381,11 +377,11 @@ export function EventsMutateDrawer({
                     <FormItem>
                       <FormLabel>ساعت شروع *</FormLabel>
                       <FormControl>
-                        <Input
-                          type='time'
-                          dir='ltr'
-                          className='text-start'
-                          {...field}
+                        <EventsTimePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder='انتخاب ساعت شروع'
+                          aria-label='ساعت شروع'
                         />
                       </FormControl>
                       <FormMessage />
@@ -399,11 +395,11 @@ export function EventsMutateDrawer({
                     <FormItem>
                       <FormLabel>ساعت پایان *</FormLabel>
                       <FormControl>
-                        <Input
-                          type='time'
-                          dir='ltr'
-                          className='text-start'
-                          {...field}
+                        <EventsTimePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder='انتخاب ساعت پایان'
+                          aria-label='ساعت پایان'
                         />
                       </FormControl>
                       <FormMessage />

@@ -18,7 +18,7 @@ type LandingHeroProps = {
 }
 
 export function LandingHero({ profile }: LandingHeroProps) {
-  const { openRequest } = useLandingActions()
+  const { openRequest, startCaseIntake } = useLandingActions()
   const rootRef = useRef<HTMLElement>(null)
   useHeroIntro(rootRef)
 
@@ -93,7 +93,7 @@ export function LandingHero({ profile }: LandingHeroProps) {
               type='button'
               data-hero='cta'
               className='lp-btn-ghost w-full opacity-0 sm:w-auto'
-              onClick={() => openRequest('case')}
+              onClick={() => startCaseIntake()}
             >
               درخواست پذیرش پرونده
             </button>

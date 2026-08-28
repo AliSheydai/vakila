@@ -15,6 +15,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
+import { roleHome, useAuthStore } from '@/stores/auth-store'
 import { useLandingActions } from './landing-actions'
 
 const NAV_LINKS = [
@@ -24,6 +25,43 @@ const NAV_LINKS = [
   { href: '#contact', label: 'راه‌های تماس' },
   { href: '#faq', label: 'سؤالات متداول' },
 ] as const
+
+function AuthButton({
+  className,
+  variant = 'ghost',
+  onNavigate,
+}: {
+  className?: string
+  variant?: 'ghost' | 'outline'
+  onNavigate?: () => void
+}) {
+  const user = useAuthStore((state) => state.auth.user)
+  const hydrated = useAuthStore((state) => state.auth.hydrated)
+
+  if (hydrated && user) {
+    const label = user.name?.trim() || 'پنل کاربری'
+    return (
+      <Button
+        variant={variant}
+        size='sm'
+        className={className}
+        asChild
+      >
+        <Link href={roleHome(user.role)} onClick={onNavigate}>
+          {label}
+        </Link>
+      </Button>
+    )
+  }
+
+  return (
+    <Button variant={variant} size='sm' className={className} asChild>
+      <Link href='/sign-in' onClick={onNavigate}>
+        ورود
+      </Link>
+    </Button>
+  )
+}
 
 export function LandingHeader() {
   const { openRequest } = useLandingActions()
@@ -75,14 +113,7 @@ export function LandingHeader() {
           <div className='[&_button]:text-[#a8c0c6]'>
             <ThemeSwitch />
           </div>
-          <Button
-            variant='ghost'
-            size='sm'
-            className='hidden text-[#a8c0c6] hover:bg-white/5 hover:text-[#f3efe6] sm:inline-flex'
-            asChild
-          >
-            <Link href='/login'>ورود</Link>
-          </Button>
+          <AuthButton className='hidden text-[#a8c0c6] hover:bg-white/5 hover:text-[#f3efe6] sm:inline-flex' />
           <button
             type='button'
             className='lp-btn-primary hidden !min-h-9 !px-4 !text-sm sm:inline-flex'
@@ -125,15 +156,11 @@ export function LandingHeader() {
                 ))}
               </div>
               <div className='mt-6 flex flex-col gap-2 px-4'>
-                <Button
+                <AuthButton
                   variant='outline'
-                  className='border-[color:var(--lp-line)] bg-transparent text-[var(--lp-on-ink)]'
-                  asChild
-                >
-                  <Link href='/login' onClick={() => setSheetOpen(false)}>
-                    ورود
-                  </Link>
-                </Button>
+                  className='w-full border-[color:var(--lp-line)] bg-transparent text-[var(--lp-on-ink)]'
+                  onNavigate={() => setSheetOpen(false)}
+                />
                 <button
                   type='button'
                   className='lp-btn-primary w-full'

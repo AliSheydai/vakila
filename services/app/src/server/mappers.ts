@@ -6,6 +6,7 @@ import type {
   Fee,
   Payment,
 } from '@/features/cases/types'
+import type { ConsultationRequest } from '@/features/consultation-requests/types'
 import type { Event } from '@/features/events/types'
 import type {
   CaseComment,
@@ -473,6 +474,34 @@ export function mapClientPayment(row: {
     transactionId: row.external_transaction_id ?? undefined,
     paidAt: toIso(row.paid_at),
     description: row.description ?? undefined,
+    createdAt: toIsoRequired(row.created_at),
+    updatedAt: toIsoRequired(row.updated_at),
+  }
+}
+
+export function mapConsultationRequest(row: {
+  id: string
+  owner_id: string
+  requester_user_id: string | null
+  name: string
+  phone: string
+  message: string
+  status: string
+  lawyer_notes: string | null
+  contacted_at: Date | string | null
+  created_at: Date | string
+  updated_at: Date | string
+}): ConsultationRequest {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    requesterUserId: row.requester_user_id,
+    name: row.name,
+    phone: row.phone,
+    message: row.message,
+    status: row.status as ConsultationRequest['status'],
+    lawyerNotes: row.lawyer_notes,
+    contactedAt: toIso(row.contacted_at),
     createdAt: toIsoRequired(row.created_at),
     updatedAt: toIsoRequired(row.updated_at),
   }

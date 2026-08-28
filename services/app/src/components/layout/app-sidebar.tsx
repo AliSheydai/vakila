@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import { PanelLeft } from 'lucide-react'
 import { useLayout } from '@/context/layout-provider'
 import { useAuthStore, isLawyerRole, type AuthRole } from '@/stores/auth-store'
+import { useConsultationRequestsBadge } from '@/features/consultation-requests/hooks/use-consultation-requests-hydration'
 import {
   Sidebar,
   SidebarContent,
@@ -25,15 +26,32 @@ export function AppSidebar() {
   const pathname = usePathname()
   const user = useAuthStore((s) => s.auth.user)
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  const newRequestsCount = useConsultationRequestsBadge()
 
   const teams = useMemo(() => filterTeams(sidebarData.teams, user?.role), [user?.role])
 
   const navGroups = useMemo(() => {
-    if (isAdmin) {
-      return filterAdminNav(sidebarData.adminNavGroups, user?.role)
+    const groups = isAdmin
+      ? filterAdminNav(sidebarData.adminNavGroups, user?.role)
+      : sidebarData.userNavGroups
+
+    if (!isAdmin || newRequestsCount <= 0) {
+      return groups
     }
-    return sidebarData.userNavGroups
-  }, [isAdmin, user?.role])
+
+    return groups.map((group) => ({
+      ...group,
+      items: group.items.map((item) => {
+        if ('url' in item && item.url === '/admin/requests') {
+          return {
+            ...item,
+            badge: String(newRequestsCount),
+          }
+        }
+        return item
+      }),
+    }))
+  }, [isAdmin, newRequestsCount, user?.role])
 
   const displayUser = {
     name: user?.name?.trim() || 'کاربر',

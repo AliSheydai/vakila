@@ -12,7 +12,7 @@ type ContactCtaProps = {
 }
 
 export function ContactCta({ availability, contact }: ContactCtaProps) {
-  const { openRequest } = useLandingActions()
+  const { openRequest, startCaseIntake } = useLandingActions()
   const rootRef = useRef<HTMLElement>(null)
   useLandingReveal(rootRef)
 
@@ -51,7 +51,7 @@ export function ContactCta({ availability, contact }: ContactCtaProps) {
               <button
                 type='button'
                 className='lp-btn-ghost w-full sm:w-auto'
-                onClick={() => openRequest('case')}
+                onClick={() => startCaseIntake()}
               >
                 <PhoneCall className='size-4' />
                 درخواست پذیرش پرونده

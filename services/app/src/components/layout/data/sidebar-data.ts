@@ -12,6 +12,7 @@ import {
   UserRound,
   Briefcase,
   HardDrive,
+  Inbox,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -75,6 +76,11 @@ export const sidebarData: SidebarData = {
           title: 'موکل‌ها',
           url: '/admin/clients',
           icon: Users,
+        },
+        {
+          title: 'درخواست‌ها',
+          url: '/admin/requests',
+          icon: Inbox,
         },
         {
           title: 'رویدادها',

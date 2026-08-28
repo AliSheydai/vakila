@@ -38,6 +38,27 @@ function isLawyer(role: string): boolean {
   return role === 'lawyer' || role === 'super_admin'
 }
 
+function resolvePostAuthRedirect(role: string, next: string | null): string {
+  if (!next || !next.startsWith('/') || next.startsWith('//')) {
+    return roleHome(role)
+  }
+
+  const isAdminPath = next === '/admin' || next.startsWith('/admin/')
+  const isClientPath =
+    next === '/dashboard' ||
+    next.startsWith('/dashboard/') ||
+    next.startsWith('/cases') ||
+    next.startsWith('/sessions') ||
+    next.startsWith('/payments')
+
+  if (role === 'client' && isAdminPath) return '/dashboard'
+  if (isLawyer(role) && isClientPath) {
+    if (next.startsWith('/cases')) return '/admin/cases'
+    return '/admin'
+  }
+  return next
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -59,9 +80,11 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthPage) {
     if (claims) {
-      return NextResponse.redirect(
-        new URL(roleHome(claims.role), request.url)
-      )
+      const next =
+        request.nextUrl.searchParams.get('next') ||
+        request.nextUrl.searchParams.get('redirect')
+      const target = resolvePostAuthRedirect(claims.role, next)
+      return NextResponse.redirect(new URL(target, request.url))
     }
     return NextResponse.next()
   }

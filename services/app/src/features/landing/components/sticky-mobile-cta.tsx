@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { useLandingActions } from './landing-actions'
 
 export function StickyMobileCta() {
-  const { openRequest } = useLandingActions()
+  const { openRequest, startCaseIntake } = useLandingActions()
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function StickyMobileCta() {
         <button
           type='button'
           className='lp-btn-ghost h-11 flex-1'
-          onClick={() => openRequest('case')}
+          onClick={() => startCaseIntake()}
         >
           پذیرش پرونده
         </button>

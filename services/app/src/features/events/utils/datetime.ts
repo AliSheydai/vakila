@@ -19,6 +19,14 @@ const timeFormatter = new Intl.DateTimeFormat('fa-IR', {
   minute: '2-digit',
 })
 
+export type PersianTimePeriod = 'am' | 'pm'
+
+export type PersianTimeParts = {
+  hour12: number
+  minute: number
+  period: PersianTimePeriod
+}
+
 const weekdayFormatter = new Intl.DateTimeFormat('fa-IR', {
   weekday: 'long',
 })
@@ -91,6 +99,42 @@ export function formatEventTime(time: string): string {
   } catch {
     return time
   }
+}
+
+export function timeToPersianParts(time: string): PersianTimeParts | null {
+  if (!/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time)) return null
+  const [hourText, minuteText] = time.split(':')
+  const hour24 = Number(hourText)
+  const minute = Number(minuteText)
+  if (Number.isNaN(hour24) || Number.isNaN(minute)) return null
+  return {
+    hour12: hour24 % 12 || 12,
+    minute,
+    period: hour24 >= 12 ? 'pm' : 'am',
+  }
+}
+
+export function persianPartsToTime(parts: PersianTimeParts): string {
+  let hour24 = parts.hour12 % 12
+  if (parts.period === 'pm') hour24 += 12
+  return `${String(hour24).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}`
+}
+
+export function formatEventTimePersian(time: string): string {
+  const parts = timeToPersianParts(time)
+  if (!parts) return time
+
+  const hourLabel = parts.hour12.toLocaleString('fa-IR')
+  const periodLabel = parts.period === 'pm' ? 'بعد از ظهر' : 'قبل از ظهر'
+
+  if (parts.minute === 0) {
+    return `${hourLabel} ${periodLabel}`
+  }
+
+  const minuteLabel = parts.minute.toLocaleString('fa-IR', {
+    minimumIntegerDigits: 2,
+  })
+  return `${hourLabel}:${minuteLabel} ${periodLabel}`
 }
 
 export function formatEventDateTime(event: Pick<Event, 'date' | 'startTime'>): string {
