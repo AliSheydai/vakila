@@ -40,6 +40,18 @@ const envSchema = z
       .int()
       .positive()
       .default(10 * 1024 * 1024),
+    /** LiveKit server WebSocket URL (server-side, e.g. docker network). */
+    LIVEKIT_URL: z.string().default('ws://127.0.0.1:7880'),
+    /** LiveKit WebSocket URL exposed to browsers. */
+    LIVEKIT_PUBLIC_URL: z.string().default('ws://127.0.0.1:7880'),
+    LIVEKIT_API_KEY: z.string().default('devkey'),
+    LIVEKIT_API_SECRET: z
+      .string()
+      .default('vakila_livekit_secret_change_in_production'),
+    TURN_HOST: z.string().optional(),
+    TURN_SECRET: z
+      .string()
+      .default('vakila_turn_secret_change_in_production'),
   })
   .transform((data) => ({
     ...data,

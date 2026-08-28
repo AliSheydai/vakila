@@ -21,7 +21,7 @@ import type {
 } from '@/features/client-portal/types'
 import { num, toIso, toIsoRequired } from './serialize'
 
-function hhmm(time: string | Date): string {
+export function hhmm(time: string | Date): string {
   if (typeof time === 'string') {
     // "HH:MM:SS" or "HH:MM"
     return time.slice(0, 5)
@@ -31,9 +31,12 @@ function hhmm(time: string | Date): string {
   return `${h}:${m}`
 }
 
-function ymd(date: string | Date): string {
+export function ymd(date: string | Date): string {
   if (typeof date === 'string') return date.slice(0, 10)
-  return date.toISOString().slice(0, 10)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export function mapAttachment(row: {
@@ -201,11 +204,17 @@ export function mapEvent(row: {
   start_time: string | Date
   end_time: string | Date
   location: string
+  meeting_url?: string | null
   description: string
   client_id: string | null
   case_id: string | null
   status: string
   owner_id: string
+  call_status?: string
+  recording_url?: string | null
+  recorded_at?: Date | string | null
+  recording_consent_lawyer?: boolean
+  recording_consent_client?: boolean
   created_at: Date | string
   updated_at: Date | string
 }): Event {
@@ -237,14 +246,28 @@ export function mapEvent(row: {
     startTime: hhmm(row.start_time),
     endTime: hhmm(row.end_time),
     location: row.location ?? '',
+    meetingUrl: row.meeting_url ?? '',
     description: row.description ?? '',
     clientId: row.client_id,
     caseId: row.case_id,
     status,
+    callStatus: normalizeCallStatus(row.call_status),
+    recordingUrl: row.recording_url ?? null,
+    recordedAt: row.recorded_at ? toIsoRequired(row.recorded_at) : null,
+    recordingConsentLawyer: row.recording_consent_lawyer ?? false,
+    recordingConsentClient: row.recording_consent_client ?? false,
     ownerId: row.owner_id,
     createdAt: toIsoRequired(row.created_at),
     updatedAt: toIsoRequired(row.updated_at),
   }
+}
+
+function normalizeCallStatus(value: string | undefined): Event['callStatus'] {
+  const statuses = ['idle', 'lobby', 'waiting', 'in_call', 'ended'] as const
+  if (value && statuses.includes(value as (typeof statuses)[number])) {
+    return value as Event['callStatus']
+  }
+  return 'idle'
 }
 
 export function mapCaseDocument(row: {
@@ -413,16 +436,18 @@ export function mapClientSession(row: {
   created_at: Date | string
   updated_at: Date | string
 }): ClientSession {
-  const sessionTypes = [
-    'consultation',
-    'court',
-    'online',
-    'in_person',
-    'follow_up',
-  ] as const
-  const type = sessionTypes.includes(row.type as (typeof sessionTypes)[number])
-    ? (row.type as ClientSession['type'])
-    : 'consultation'
+  const typeMap: Record<string, ClientSession['type']> = {
+    consultation: 'consultation',
+    court: 'court',
+    online: 'online',
+    in_person: 'in_person',
+    follow_up: 'follow_up',
+    online_meeting: 'online',
+    client_meeting: 'consultation',
+    court_hearing: 'court',
+  }
+
+  const type = typeMap[row.type] ?? 'consultation'
 
   let startsAt = toIso(row.starts_at)
   if (!startsAt) {

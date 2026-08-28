@@ -93,6 +93,17 @@ const formSchema = z
         path: ['endTime'],
       })
     }
+    if (data.type === 'online_meeting') {
+      const hasClient = data.clientId !== NONE
+      const hasCase = data.caseId !== NONE
+      if (!hasClient && !hasCase) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'برای جلسه آنلاین، انتخاب موکل یا پرونده الزامی است.',
+          path: ['clientId'],
+        })
+      }
+    }
   })
 
 type FormValues = z.infer<typeof formSchema>
@@ -157,6 +168,7 @@ export function EventsMutateDrawer({
 
   const selectedCaseId = form.watch('caseId')
   const selectedClientId = form.watch('clientId')
+  const selectedType = form.watch('type')
 
   const selectedCase = useMemo(
     () =>
@@ -314,6 +326,12 @@ export function EventsMutateDrawer({
                         }))}
                         placeholder='نوع را انتخاب کنید'
                       />
+                      {selectedType === 'online_meeting' ? (
+                        <FormDescription>
+                          لینک تماس تصویری پس از ذخیره به‌صورت خودکار ساخته می‌شود. موکل
+                          باید به حساب کاربری متصل باشد.
+                        </FormDescription>
+                      ) : null}
                       <FormMessage />
                     </FormItem>
                   )}

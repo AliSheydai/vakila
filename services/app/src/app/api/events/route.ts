@@ -50,6 +50,10 @@ export async function POST(request: Request) {
       clientId: body.clientId,
       caseId: body.caseId,
       status: body.status,
+    }).catch((error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : 'ایجاد رویداد ناموفق بود.'
+      throw new Error(message)
     })
     return ok(event, { status: 201 })
   })

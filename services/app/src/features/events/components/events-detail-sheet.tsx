@@ -1,6 +1,6 @@
 'use client'
 
-import { MapPin, Pencil, Trash2 } from 'lucide-react'
+import { MapPin, Pencil, Trash2, Video } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -27,6 +27,8 @@ import {
   isImportantEventType,
 } from '../utils/datetime'
 import { EventTypeBadge } from './event-type-badge'
+import { JoinCallButton } from '@/features/video-call/components/join-call-button'
+import { CALL_STATUS_LABELS } from '@/features/video-call/types'
 
 type EventsDetailSheetProps = {
   open: boolean
@@ -111,6 +113,21 @@ export function EventsDetailSheet({
             <DetailRow label='وضعیت'>
               {EVENT_STATUS_LABELS[event.status]}
             </DetailRow>
+            {event.type === 'online_meeting' && event.meetingUrl ? (
+              <>
+                <DetailRow label='تماس تصویری'>
+                  <span className='inline-flex items-center gap-1.5 text-primary'>
+                    <Video className='size-3.5 shrink-0' />
+                    فعال
+                  </span>
+                </DetailRow>
+                {event.callStatus && event.callStatus !== 'idle' ? (
+                  <DetailRow label='وضعیت تماس'>
+                    {CALL_STATUS_LABELS[event.callStatus]}
+                  </DetailRow>
+                ) : null}
+              </>
+            ) : null}
             <DetailRow label='مکان'>
               {event.location ? (
                 <span className='inline-flex items-center gap-1.5'>
@@ -153,7 +170,17 @@ export function EventsDetailSheet({
           ) : null}
         </div>
 
-        <SheetFooter className='border-t px-4 py-4 sm:flex-row'>
+        <SheetFooter className='border-t px-4 py-4 sm:flex-row sm:flex-wrap'>
+          {event.type === 'online_meeting' && event.meetingUrl ? (
+            <JoinCallButton
+              eventId={event.id}
+              date={event.date}
+              startTime={event.startTime}
+              endTime={event.endTime}
+              status={event.status}
+              className='w-full sm:w-auto'
+            />
+          ) : null}
           <Button
             type='button'
             variant='outline'

@@ -20,6 +20,11 @@ import { ErrorState } from './components/error-state'
 import { CaseStatusBadge, PaymentStatusBadge, SessionStatusBadge } from './components/status-badges'
 import { formatDate, formatMoney, formatTime } from './utils/format'
 import { SESSION_TYPE_LABELS } from './types'
+import { JoinCallButton } from '@/features/video-call/components/join-call-button'
+import {
+  isOnlineVideoSession,
+  sessionToCallTimes,
+} from '@/features/video-call/utils'
 
 function isUpcoming(startsAt: string): boolean {
   return new Date(startsAt).getTime() >= Date.now()
@@ -218,16 +223,17 @@ export function ClientDashboardPage() {
                         </p>
                       </div>
                       <div className='flex shrink-0 gap-2'>
-                        {item.meetingUrl ? (
-                          <Button size='sm' asChild>
-                            <a
-                              href={item.meetingUrl}
-                              target='_blank'
-                              rel='noreferrer'
-                            >
-                              ورود
-                            </a>
-                          </Button>
+                        {isOnlineVideoSession(item) && isUpcoming(item.startsAt) ? (
+                          <JoinCallButton
+                            eventId={item.id}
+                            {...sessionToCallTimes(item)}
+                            status={
+                              item.status === 'confirmed'
+                                ? 'scheduled'
+                                : item.status
+                            }
+                            size='sm'
+                          />
                         ) : null}
                         <Button variant='outline' size='sm' asChild>
                           <Link href={`/sessions/${item.id}`}>جزئیات</Link>

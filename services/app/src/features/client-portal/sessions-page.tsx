@@ -16,6 +16,11 @@ import {
   formatDuration,
   formatTime,
 } from './utils/format'
+import { JoinCallButton } from '@/features/video-call/components/join-call-button'
+import {
+  isOnlineVideoSession,
+  sessionToCallTimes,
+} from '@/features/video-call/utils'
 
 function isUpcoming(session: ClientSession): boolean {
   return (
@@ -98,12 +103,15 @@ function SessionCard({
           </dl>
         </div>
         <div className='flex shrink-0 flex-wrap gap-2'>
-          {session.meetingUrl && isUpcoming(session) ? (
-            <Button size='sm' asChild>
-              <a href={session.meetingUrl} target='_blank' rel='noreferrer'>
-                ورود به جلسه
-              </a>
-            </Button>
+          {isOnlineVideoSession(session) && isUpcoming(session) ? (
+            <JoinCallButton
+              eventId={session.id}
+              {...sessionToCallTimes(session)}
+              status={
+                session.status === 'confirmed' ? 'scheduled' : session.status
+              }
+              size='sm'
+            />
           ) : null}
           <Button variant='outline' size='sm' asChild>
             <Link href={`/sessions/${session.id}`}>جزئیات</Link>

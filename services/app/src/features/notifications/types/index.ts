@@ -16,6 +16,8 @@ export const NOTIFICATION_TYPES = [
   'client_document',
   'client_comment_with_files',
   'session_cancelled_by_client',
+  'video_call_ready',
+  'event_reminder',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
@@ -72,4 +74,6 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   client_document: 'فایل موکل',
   client_comment_with_files: 'پیام و فایل موکل',
   session_cancelled_by_client: 'لغو جلسه توسط موکل',
+  video_call_ready: 'آماده تماس',
+  event_reminder: 'یادآوری جلسه',
 }

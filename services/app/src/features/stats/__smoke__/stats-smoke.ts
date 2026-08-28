@@ -137,6 +137,10 @@ const events: Event[] = [
     ownerId,
     createdAt: isoDaysAgo(1),
     updatedAt: isoDaysAgo(1),
+    meetingUrl: '',
+    callStatus: 'idle',
+    recordingConsentLawyer: false,
+    recordingConsentClient: false,
   },
   {
     id: 'e2',
@@ -153,6 +157,10 @@ const events: Event[] = [
     ownerId,
     createdAt: isoDaysAgo(2),
     updatedAt: isoDaysAgo(2),
+    meetingUrl: '',
+    callStatus: 'idle',
+    recordingConsentLawyer: false,
+    recordingConsentClient: false,
   },
   {
     id: 'e3',
@@ -169,6 +177,10 @@ const events: Event[] = [
     ownerId,
     createdAt: isoDaysAgo(3),
     updatedAt: isoDaysAgo(3),
+    meetingUrl: '',
+    callStatus: 'idle',
+    recordingConsentLawyer: false,
+    recordingConsentClient: false,
   },
 ]
 

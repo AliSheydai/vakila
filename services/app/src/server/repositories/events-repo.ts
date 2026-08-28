@@ -3,11 +3,13 @@ import type {
   Event,
   UpdateEventInput,
 } from '@/features/events/types'
+import type { CallStatus } from '@/features/video-call/types'
 import { query } from '../db'
 import { mapEvent } from '../mappers'
+import { buildMeetingUrl } from '../livekit/token'
 import * as notificationService from '../services/notification-service'
 
-type EventRow = {
+export type EventRow = {
   id: string
   owner_id: string
   client_user_id: string | null
@@ -26,6 +28,12 @@ type EventRow = {
   case_id: string | null
   can_cancel: boolean
   can_reschedule: boolean
+  call_status: string
+  recording_url: string | null
+  recorded_at: Date | null
+  recording_consent_lawyer: boolean
+  recording_consent_client: boolean
+  reminder_sent_at: Date | null
   created_at: Date
   updated_at: Date
 }
@@ -65,6 +73,19 @@ async function resolveEventClientUser(
   return null
 }
 
+async function ensureOnlineMeetingUrl(
+  eventId: string,
+  type: string
+): Promise<string | null> {
+  if (type !== 'online_meeting') return null
+  const meetingUrl = buildMeetingUrl(eventId)
+  await query(`UPDATE events SET meeting_url = $1 WHERE id = $2`, [
+    meetingUrl,
+    eventId,
+  ])
+  return meetingUrl
+}
+
 export async function listEvents(ownerId: string): Promise<Event[]> {
   const { rows } = await query<EventRow>(
     `SELECT * FROM events WHERE owner_id = $1
@@ -85,6 +106,75 @@ export async function getEvent(
   return rows[0] ? mapEvent(rows[0]) : null
 }
 
+export async function getEventRowById(id: string): Promise<EventRow | null> {
+  const { rows } = await query<EventRow>(
+    `SELECT * FROM events WHERE id = $1 LIMIT 1`,
+    [id]
+  )
+  return rows[0] ?? null
+}
+
+export async function getEventForParticipant(
+  eventId: string,
+  userId: string,
+  role: string
+): Promise<EventRow | null> {
+  const row = await getEventRowById(eventId)
+  if (!row) return null
+
+  const isOwner = row.owner_id === userId
+  const isClient = row.client_user_id === userId
+  const isAdmin = role === 'super_admin'
+
+  if (isOwner || isClient || (isAdmin && isOwner)) {
+    return row
+  }
+
+  if (isAdmin) {
+    return row
+  }
+
+  return null
+}
+
+export async function updateCallStatus(
+  eventId: string,
+  callStatus: CallStatus
+): Promise<void> {
+  await query(`UPDATE events SET call_status = $1 WHERE id = $2`, [
+    callStatus,
+    eventId,
+  ])
+}
+
+export async function setRecordingConsent(
+  eventId: string,
+  role: 'lawyer' | 'client',
+  consent: boolean
+): Promise<void> {
+  const column =
+    role === 'lawyer'
+      ? 'recording_consent_lawyer'
+      : 'recording_consent_client'
+  await query(
+    `UPDATE events SET ${column} = $1 WHERE id = $2`,
+    [consent, eventId]
+  )
+}
+
+export async function markEventCompleted(
+  ownerId: string,
+  eventId: string
+): Promise<Event | null> {
+  const { rows } = await query<EventRow>(
+    `UPDATE events SET status = 'completed', call_status = 'ended'
+     WHERE id = $1 AND owner_id = $2
+     RETURNING *`,
+    [eventId, ownerId]
+  )
+  return rows[0] ? mapEvent(rows[0]) : null
+}
+
 export async function createEvent(
   ownerId: string,
   input: CreateEventInput
@@ -95,6 +185,12 @@ export async function createEvent(
     input.caseId
   )
 
+  if (input.type === 'online_meeting' && !clientUserId) {
+    throw new Error(
+      'برای جلسه آنلاین، موکل باید به حساب کاربری متصل باشد. ابتدا موکل را انتخاب کنید یا پرونده‌ای با موکل لینک‌شده انتخاب کنید.'
+    )
+  }
+
   const startsAt = computeStartsAt(input.date, input.startTime)
   const duration = durationMinutes(input.startTime, input.endTime)
 
@@ -102,8 +198,8 @@ export async function createEvent(
     `INSERT INTO events (
        owner_id, client_user_id, title, type, status,
        event_date, start_time, end_time, starts_at, duration_minutes,
-       location, description, client_id, case_id
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       location, description, client_id, case_id, can_cancel
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, TRUE)
      RETURNING *`,
     [
       ownerId,
@@ -122,9 +218,15 @@ export async function createEvent(
       input.caseId ?? null,
     ]
   )
-  const event = mapEvent(rows[0]!)
+
+  const row = rows[0]!
+  if (input.type === 'online_meeting') {
+    row.meeting_url = await ensureOnlineMeetingUrl(row.id, input.type)
+  }
+
+  const event = mapEvent(row)
   await notificationService.notifyEventScheduled({
-    clientUserId: clientUserId,
+    clientUserId,
     actorId: ownerId,
     eventId: event.id,
     caseId: event.caseId,
@@ -132,6 +234,7 @@ export async function createEvent(
     title: event.title,
     date: event.date,
     startTime: event.startTime,
+    eventType: event.type,
   })
   return event
 }
@@ -149,6 +252,7 @@ export async function updateEvent(
   const endTime = input.endTime ?? existing.endTime
   const startsAt = computeStartsAt(date, startTime)
   const duration = durationMinutes(startTime, endTime)
+  const nextType = input.type ?? existing.type
 
   let clientUserId: string | null | undefined
   if (input.clientId !== undefined) {
@@ -158,6 +262,18 @@ export async function updateEvent(
   } else if (input.caseId !== undefined && input.caseId) {
     clientUserId =
       (await resolveEventClientUser(ownerId, null, input.caseId)) ?? null
+  }
+
+  if (nextType === 'online_meeting') {
+    const resolvedClient =
+      clientUserId !== undefined
+        ? clientUserId
+        : (await getEventRowById(id))?.client_user_id ?? null
+    if (!resolvedClient) {
+      throw new Error(
+        'برای جلسه آنلاین، موکل باید به حساب کاربری متصل باشد.'
+      )
+    }
   }
 
   const { rows } = await query<EventRow>(
@@ -201,7 +317,17 @@ export async function updateEvent(
     ]
   )
   if (!rows[0]) return null
-  const event = mapEvent(rows[0])
+
+  let row = rows[0]
+  if (nextType === 'online_meeting') {
+    const meetingUrl = await ensureOnlineMeetingUrl(row.id, nextType)
+    row = { ...row, meeting_url: meetingUrl }
+  } else if (input.type !== undefined && input.type !== 'online_meeting') {
+    await query(`UPDATE events SET meeting_url = NULL WHERE id = $1`, [id])
+    row = { ...row, meeting_url: null }
+  }
+
+  const event = mapEvent(row)
   const cancelled =
     event.status === 'cancelled' && existing.status !== 'cancelled'
   const changed =
@@ -219,7 +345,7 @@ export async function updateEvent(
 
   if (changed) {
     await notificationService.notifyEventUpdated({
-      clientUserId: rows[0].client_user_id,
+      clientUserId: row.client_user_id,
       actorId: ownerId,
       eventId: event.id,
       caseId: event.caseId,
@@ -228,6 +354,7 @@ export async function updateEvent(
       date: event.date,
       startTime: event.startTime,
       cancelled,
+      eventType: event.type,
     })
   }
   return event
@@ -261,8 +388,39 @@ export async function deleteEvent(
       date: existing.date,
       startTime: existing.startTime,
       cancelled: true,
+      eventType: existing.type,
     })
   }
 
   return (rowCount ?? 0) > 0
+}
+
+export async function listUpcomingEventsForReminders(
+  withinMinutes: number
+): Promise<EventRow[]> {
+  const { rows } = await query<EventRow>(
+    `SELECT e.* FROM events e
+     LEFT JOIN event_reminder_log rl
+       ON rl.event_id = e.id AND rl.reminder_type = $1
+     WHERE e.type = 'online_meeting'
+       AND e.status = 'scheduled'
+       AND rl.event_id IS NULL
+       AND e.starts_at IS NOT NULL
+       AND e.starts_at > NOW()
+       AND e.starts_at <= NOW() + ($2 || ' minutes')::interval`,
+    [`${withinMinutes}m`, String(withinMinutes)]
+  )
+  return rows
+}
+
+export async function logReminderSent(
+  eventId: string,
+  reminderType: string
+): Promise<void> {
+  await query(
+    `INSERT INTO event_reminder_log (event_id, reminder_type)
+     VALUES ($1, $2)
+     ON CONFLICT DO NOTHING`,
+    [eventId, reminderType]
+  )
 }

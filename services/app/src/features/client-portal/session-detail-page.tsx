@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, CalendarClock, MapPin, Video } from 'lucide-react'
+import { ArrowRight, CalendarClock, MapPin } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -22,6 +22,11 @@ import {
   formatDuration,
   formatTime,
 } from './utils/format'
+import { JoinCallButton } from '@/features/video-call/components/join-call-button'
+import {
+  isOnlineVideoSession,
+  sessionToCallTimes,
+} from '@/features/video-call/utils'
 
 type ClientSessionDetailPageProps = {
   sessionId: string
@@ -103,19 +108,16 @@ export function ClientSessionDetailPage({
             </p>
           </div>
           <div className='flex flex-wrap gap-2'>
-            {session.meetingUrl &&
+            {isOnlineVideoSession(session) &&
             (session.status === 'scheduled' ||
               session.status === 'confirmed') ? (
-              <Button asChild>
-                <a
-                  href={session.meetingUrl}
-                  target='_blank'
-                  rel='noreferrer'
-                >
-                  <Video className='size-4' />
-                  ورود به جلسه
-                </a>
-              </Button>
+              <JoinCallButton
+                eventId={session.id}
+                {...sessionToCallTimes(session)}
+                status={
+                  session.status === 'confirmed' ? 'scheduled' : session.status
+                }
+              />
             ) : null}
             {session.canCancel ? (
               <Button variant='outline' onClick={() => setCancelOpen(true)}>
@@ -185,14 +187,12 @@ export function ClientSessionDetailPage({
               </p>
             ) : null}
             {session.meetingUrl ? (
-              <a
-                href={session.meetingUrl}
-                target='_blank'
-                rel='noreferrer'
+              <Link
+                href={`/call/${session.id}/lobby`}
                 className='mt-2 inline-block text-sm text-primary hover:underline'
               >
-                {session.meetingUrl}
-              </a>
+                ورود به لابی تماس تصویری
+              </Link>
             ) : null}
           </section>
         )}

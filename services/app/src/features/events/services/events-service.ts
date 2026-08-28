@@ -139,6 +139,10 @@ export function createEvent(
     ownerId,
     createdAt: timestamp,
     updatedAt: timestamp,
+    meetingUrl: '',
+    callStatus: 'idle',
+    recordingConsentLawyer: false,
+    recordingConsentClient: false,
   }
 
   const parsed = eventsCollectionSchema.safeParse([...list.data, event])

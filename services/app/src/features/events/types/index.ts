@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CALL_STATUSES } from '@/features/video-call/types'
 
 /** انواع رویداد — نسخه اولیه */
 export const EVENT_TYPES = [
@@ -69,10 +70,16 @@ export const eventSchema = z.object({
   startTime: timeHHmmSchema,
   endTime: timeHHmmSchema,
   location: z.string().default(''),
+  meetingUrl: z.string().default(''),
   description: z.string().default(''),
   clientId: z.string().nullable(),
   caseId: z.string().nullable(),
   status: z.enum(EVENT_STATUSES),
+  callStatus: z.enum(CALL_STATUSES).default('idle'),
+  recordingUrl: z.string().nullable().optional(),
+  recordedAt: z.string().datetime().nullable().optional(),
+  recordingConsentLawyer: z.boolean().default(false),
+  recordingConsentClient: z.boolean().default(false),
   ownerId: z.string().min(1),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),

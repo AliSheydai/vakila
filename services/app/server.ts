@@ -5,6 +5,7 @@ import { WebSocketServer } from 'ws'
 import { getEnv } from './src/server/env'
 import { PgListener } from './src/server/realtime/pg-listener'
 import { WsHub } from './src/server/realtime/ws-hub'
+import { startEventReminderScheduler } from './src/server/services/event-reminder-service'
 
 const env = getEnv()
 const port = Number(process.env.PORT) || 4000
@@ -53,6 +54,7 @@ try {
 
 server.listen(port, hostname, () => {
   console.log(`> Ready on http://${hostname}:${port}`)
+  startEventReminderScheduler()
 })
 
 async function shutdown(): Promise<void> {

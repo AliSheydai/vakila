@@ -1,7 +1,15 @@
 import type { Case, Client } from '@/features/cases/types'
 import type { Event } from '../types'
+import type { CallStatus } from '@/features/video-call/types'
 import { toDateKey } from './datetime'
 import { createId, nowIso } from './id'
+
+const eventVideoDefaults = {
+  meetingUrl: '',
+  callStatus: 'idle' as CallStatus,
+  recordingConsentLawyer: false,
+  recordingConsentClient: false,
+}
 
 type SeedLinks = {
   clients: Client[]
@@ -48,6 +56,7 @@ export function buildDemoEvents(
       ownerId,
       createdAt: timestamp,
       updatedAt: timestamp,
+      ...eventVideoDefaults,
     },
     {
       id: createId('event'),
@@ -64,6 +73,7 @@ export function buildDemoEvents(
       ownerId,
       createdAt: timestamp,
       updatedAt: timestamp,
+      ...eventVideoDefaults,
     },
     {
       id: createId('event'),
@@ -80,6 +90,7 @@ export function buildDemoEvents(
       ownerId,
       createdAt: timestamp,
       updatedAt: timestamp,
+      ...eventVideoDefaults,
     },
     {
       id: createId('event'),
@@ -96,6 +107,8 @@ export function buildDemoEvents(
       ownerId,
       createdAt: timestamp,
       updatedAt: timestamp,
+      ...eventVideoDefaults,
+      meetingUrl: '/call/demo-online/lobby',
     },
     {
       id: createId('event'),
@@ -112,6 +125,7 @@ export function buildDemoEvents(
       ownerId,
       createdAt: timestamp,
       updatedAt: timestamp,
+      ...eventVideoDefaults,
     },
   ]
 }

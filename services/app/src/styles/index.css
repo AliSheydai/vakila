@@ -98,3 +98,21 @@
   pointer-events: none;
   color: var(--muted-foreground);
 }
+
+/* LiveKit video call — mobile-friendly layout */
+@media (max-width: 640px) {
+  .video-call-room .lk-grid-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .video-call-room .lk-participant-tile {
+    min-height: 40vh;
+  }
+
+  .video-call-room .lk-control-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+  }
+}
