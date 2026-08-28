@@ -57,7 +57,7 @@ describe('UserAuthForm', () => {
       <UserAuthForm />
     )
 
-    await userEvent.type(getByPlaceholder('0912…'), '09123456789')
+    await userEvent.type(getByPlaceholder('912 345 6789'), '9123456789')
     await userEvent.click(getByRole('button', { name: /دریافت کد تأیید/i }))
 
     await expect

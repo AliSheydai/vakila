@@ -72,7 +72,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
                   {...field}
                   containerClassName='justify-between sm:[&>[data-slot="input-otp-group"]>div]:w-12'
                 >
-                  <InputOTPGroup>
+                  <InputOTPGroup dir='ltr'>
                     <InputOTPSlot index={0} />
                     <InputOTPSlot index={1} />
                   </InputOTPGroup>

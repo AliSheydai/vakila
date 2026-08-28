@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { Loader2, ArrowRight, Smartphone, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  isValidIranianMobile,
-  normalizeIranianPhone,
+  formatIranianMobileInputDisplay,
   formatIranianMobileLocal,
+  fromIranianMobileInputDigits,
+  isValidIranianMobile,
+  toIranianMobileInputDigits,
 } from '@/lib/iranian-phone'
 import { api } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
@@ -83,6 +85,7 @@ export function UserAuthForm({
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [phoneTouched, setPhoneTouched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [visible, setVisible] = useState(true)
@@ -119,10 +122,25 @@ export function UserAuthForm({
     [redirectTo, router, setUser]
   )
 
+  const phoneLocal = fromIranianMobileInputDigits(phone)
+  const phoneValid = isValidIranianMobile(phoneLocal)
+  const phoneDisplay = formatIranianMobileInputDisplay(phone)
+
+  function phoneValidationMessage(): string | null {
+    if (error) return error
+    if (!phoneTouched) return null
+    if (!phone) return 'شماره موبایل را وارد کنید.'
+    if (!phoneValid) return 'شماره موبایل معتبر نیست. مثال: ۹۱۲ ۳۴۵ ۶۷۸۹'
+    return null
+  }
+
+  const phoneError = phoneValidationMessage()
+
   async function requestOtp(resend = false) {
+    setPhoneTouched(true)
     setError(null)
-    const normalized = formatIranianMobileLocal(phone)
-    if (!isValidIranianMobile(phone)) {
+    const normalized = formatIranianMobileLocal(phoneLocal)
+    if (!isValidIranianMobile(phoneLocal)) {
       setError('شماره موبایل معتبر نیست.')
       return
     }
@@ -230,31 +248,56 @@ export function UserAuthForm({
           >
             <div className='grid gap-2'>
               <Label htmlFor='phone'>شماره موبایل</Label>
-              <div className='relative'>
-                <Smartphone className='pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
-                <Input
+              <div
+                dir='ltr'
+                className={cn(
+                  'flex h-10 overflow-hidden rounded-md border bg-transparent shadow-xs transition-[color,box-shadow]',
+                  'focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50',
+                  phoneError && 'border-destructive ring-destructive/20'
+                )}
+              >
+                <span className='flex items-center gap-1.5 border-e bg-muted/50 px-3 text-sm font-medium tabular-nums text-muted-foreground'>
+                  <Smartphone className='size-4 shrink-0' aria-hidden />
+                  +98
+                </span>
+                <input
                   id='phone'
-                  dir='ltr'
-                  inputMode='tel'
-                  autoComplete='tel'
-                  placeholder='0912…'
-                  className='ps-9 text-left tracking-wide'
-                  value={phone}
+                  type='tel'
+                  inputMode='numeric'
+                  autoComplete='tel-national'
+                  placeholder='912 345 6789'
+                  aria-invalid={!!phoneError}
+                  aria-describedby={phoneError ? 'phone-error' : 'phone-hint'}
+                  className='min-w-0 flex-1 bg-transparent px-3 text-base tabular-nums outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm'
+                  value={phoneDisplay}
                   onChange={(e) => {
-                    setPhone(normalizeIranianPhone(e.target.value))
+                    setPhone(toIranianMobileInputDigits(e.target.value))
                     setError(null)
                   }}
+                  onBlur={() => setPhoneTouched(true)}
                   disabled={loading}
                 />
               </div>
-              {error && (
-                <p className='text-sm text-destructive' role='alert'>
-                  {error}
+              {phoneError ? (
+                <p
+                  id='phone-error'
+                  className='text-sm text-destructive'
+                  role='alert'
+                >
+                  {phoneError}
+                </p>
+              ) : (
+                <p id='phone-hint' className='text-xs text-muted-foreground'>
+                  شماره موبایل ایران — بدون صفر ابتدایی وارد کنید
                 </p>
               )}
             </div>
 
-            <Button type='submit' disabled={loading} className='mt-1'>
+            <Button
+              type='submit'
+              disabled={loading || !phoneValid}
+              className='mt-1'
+            >
               {loading ? (
                 <Loader2 className='size-4 animate-spin' />
               ) : null}
@@ -284,7 +327,7 @@ export function UserAuthForm({
               </p>
             </div>
 
-            <div className='flex flex-col items-center gap-3'>
+            <div className='flex flex-col items-center gap-3' dir='ltr'>
               <InputOTP
                 maxLength={OTP_LENGTH}
                 value={code}
@@ -299,12 +342,12 @@ export function UserAuthForm({
                 containerClassName='justify-center'
                 autoFocus
               >
-                <InputOTPGroup className='gap-2'>
+                <InputOTPGroup dir='ltr' className='gap-2'>
                   {Array.from({ length: OTP_LENGTH }).map((_, index) => (
                     <InputOTPSlot
                       key={index}
                       index={index}
-                      className='size-11 rounded-lg border text-base sm:size-12'
+                      className='size-11 rounded-lg border text-base tabular-nums sm:size-12'
                     />
                   ))}
                 </InputOTPGroup>
