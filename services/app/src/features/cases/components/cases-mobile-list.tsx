@@ -14,6 +14,7 @@ import { LEGAL_AREA_LABELS } from '../types'
 import { getCaseFinancialSummary } from '../utils/finance'
 import { formatDate, formatMoneyCompact } from '../utils/format'
 import { CaseStatusBadge } from './case-status-badge'
+import { CaseClientNameCell } from './case-client-name-cell'
 import { useCasesDialogs } from './cases-provider'
 import type { CaseTableRow } from './cases-columns'
 
@@ -98,7 +99,12 @@ export function CasesMobileList({ rows }: CasesMobileListProps) {
             <dl className='mt-3 grid grid-cols-2 gap-2 text-xs'>
               <div>
                 <dt className='text-muted-foreground'>موکل</dt>
-                <dd className='mt-0.5 truncate font-medium'>{item.clientName}</dd>
+                <dd className='mt-0.5'>
+                  <CaseClientNameCell
+                    caseId={item.id}
+                    clientName={item.clientName}
+                  />
+                </dd>
               </div>
               <div>
                 <dt className='text-muted-foreground'>آخرین تغییر</dt>

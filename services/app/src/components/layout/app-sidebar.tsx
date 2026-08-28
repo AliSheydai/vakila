@@ -6,6 +6,7 @@ import { PanelLeft } from 'lucide-react'
 import { useLayout } from '@/context/layout-provider'
 import { useAuthStore, isLawyerRole, type AuthRole } from '@/stores/auth-store'
 import { useConsultationRequestsBadge } from '@/features/consultation-requests/hooks/use-consultation-requests-hydration'
+import { useTotalClientUnseenActivity, useTotalCaseContentActivity } from '@/features/notifications/hooks/use-unseen-activity-hydration'
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +28,8 @@ export function AppSidebar() {
   const user = useAuthStore((s) => s.auth.user)
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
   const newRequestsCount = useConsultationRequestsBadge()
+  const clientUnseenTotal = useTotalClientUnseenActivity()
+  const caseContentTotal = useTotalCaseContentActivity()
 
   const teams = useMemo(() => filterTeams(sidebarData.teams, user?.role), [user?.role])
 
@@ -35,23 +38,35 @@ export function AppSidebar() {
       ? filterAdminNav(sidebarData.adminNavGroups, user?.role)
       : sidebarData.userNavGroups
 
-    if (!isAdmin || newRequestsCount <= 0) {
+    if (!isAdmin) {
       return groups
     }
 
     return groups.map((group) => ({
       ...group,
       items: group.items.map((item) => {
-        if ('url' in item && item.url === '/admin/requests') {
+        if ('url' in item && item.url === '/admin/requests' && newRequestsCount > 0) {
           return {
             ...item,
-            badge: String(newRequestsCount),
+            badge: newRequestsCount.toLocaleString('fa-IR'),
+          }
+        }
+        if ('url' in item && item.url === '/admin/clients' && clientUnseenTotal > 0) {
+          return {
+            ...item,
+            badge: clientUnseenTotal.toLocaleString('fa-IR'),
+          }
+        }
+        if ('url' in item && item.url === '/admin/cases' && caseContentTotal > 0) {
+          return {
+            ...item,
+            badge: caseContentTotal.toLocaleString('fa-IR'),
           }
         }
         return item
       }),
     }))
-  }, [isAdmin, newRequestsCount, user?.role])
+  }, [isAdmin, newRequestsCount, clientUnseenTotal, caseContentTotal, user?.role])
 
   const displayUser = {
     name: user?.name?.trim() || 'کاربر',

@@ -5,6 +5,7 @@ import type {
 } from '@/features/cases/types'
 import { query } from '../db'
 import { mapAttachment, mapClient } from '../mappers'
+import * as notificationService from '../services/notification-service'
 import { toLocalDisplay } from '../phone'
 import type { ClientRow } from '../types'
 
@@ -226,6 +227,24 @@ export async function updateClient(
   )
   const row = rows[0]
   if (!row) return null
+
+  const changed =
+    row.name !== existing.name ||
+    row.phone !== existing.phone ||
+    (row.email ?? '') !== (existing.email ?? '') ||
+    (row.citizenship ?? null) !== (existing.citizenship ?? null) ||
+    (row.national_id ?? '') !== (existing.nationalId ?? '') ||
+    (row.avatar_data_url ?? '') !== (existing.avatarDataUrl ?? '') ||
+    (row.notes ?? '') !== (existing.notes ?? '')
+
+  if (changed && row.linked_user_id) {
+    await notificationService.notifyClientInfoUpdated({
+      linkedUserId: row.linked_user_id,
+      actorId: ownerId,
+      clientId: row.id,
+    })
+  }
+
   return mapClient(row, await attachmentsForClient(row.id))
 }
 

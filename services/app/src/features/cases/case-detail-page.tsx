@@ -1,6 +1,7 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Header } from '@/components/layout/header'
@@ -24,7 +25,26 @@ import { CaseAttachmentsTab } from './components/case-attachments-tab'
 import { CaseCommentsTab } from './components/case-comments-tab'
 import { CaseFinanceTab } from './components/case-finance-tab'
 import { useUnseenCommentsCount } from './hooks/use-unseen-comments-count'
+import { useUnseenDocumentsCount } from './hooks/use-unseen-documents-count'
 import { RelatedEventsSection } from '@/features/events/components/related-events-section'
+
+const ADMIN_CASE_TABS = [
+  'info',
+  'comments',
+  'attachments',
+  'finance',
+  'client',
+  'events',
+] as const
+
+type AdminCaseTab = (typeof ADMIN_CASE_TABS)[number]
+
+function parseAdminCaseTab(value: string | null): AdminCaseTab {
+  if (value && ADMIN_CASE_TABS.includes(value as AdminCaseTab)) {
+    return value as AdminCaseTab
+  }
+  return 'info'
+}
 
 type CaseDetailPageProps = {
   caseId: string
@@ -36,7 +56,6 @@ function CaseDetailDialogs({ caseId }: { caseId: string }) {
   const deleteCase = useCasesStore((state) => state.deleteCase)
   const getCase = useCasesStore((state) => state.getCase)
 
-  // همگام‌سازی currentRow با آخرین نسخه پرونده در store
   const liveCase = currentRow ? getCase(currentRow.id) : null
   const activeCase = liveCase ?? currentRow
 
@@ -94,10 +113,45 @@ function CaseDetailDialogs({ caseId }: { caseId: string }) {
 }
 
 function CaseDetailContent({ caseId }: CaseDetailPageProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { hydrated } = useCasesHydration()
   useEventsHydration()
+
+  const initialTab = useMemo(
+    () => parseAdminCaseTab(searchParams.get('tab')),
+    [searchParams]
+  )
+  const [activeTab, setActiveTab] = useState<AdminCaseTab>(initialTab)
+
+  useEffect(() => {
+    setActiveTab(parseAdminCaseTab(searchParams.get('tab')))
+  }, [searchParams])
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      const tab = parseAdminCaseTab(value)
+      setActiveTab(tab)
+      const params = new URLSearchParams(searchParams.toString())
+      if (tab === 'info') {
+        params.delete('tab')
+      } else {
+        params.set('tab', tab)
+      }
+      const qs = params.toString()
+      router.replace(
+        qs ? `/admin/cases/${caseId}?${qs}` : `/admin/cases/${caseId}`,
+        { scroll: false }
+      )
+    },
+    [caseId, router, searchParams]
+  )
+
   const { count: unseenComments, reload: reloadUnseenCount } =
-    useUnseenCommentsCount(caseId, hydrated)
+    useUnseenCommentsCount(caseId, hydrated && activeTab === 'comments')
+  const { count: unseenDocuments, reload: reloadUnseenDocuments } =
+    useUnseenDocumentsCount(caseId, hydrated && activeTab === 'attachments')
+
   const caseItem = useCasesStore((state) =>
     state.cases.find((item) => item.id === caseId)
   )
@@ -161,7 +215,11 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
       <Main className='flex flex-1 flex-col gap-6'>
         <CaseDetailHeader caseItem={caseItem} client={client} />
 
-        <Tabs defaultValue='info' className='flex flex-1 flex-col gap-4'>
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className='flex flex-1 flex-col gap-4'
+        >
           <div className='-mx-1 overflow-x-auto px-1'>
             <TabsList className='h-auto w-max min-w-full justify-start gap-1 sm:w-fit'>
               <TabsTrigger value='info' className='px-3'>
@@ -177,6 +235,11 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
               </TabsTrigger>
               <TabsTrigger value='attachments' className='px-3'>
                 مدارک
+                {unseenDocuments > 0 && (
+                  <span className='ms-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums'>
+                    {unseenDocuments.toLocaleString('fa-IR')}
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value='finance' className='px-3'>
                 مالی
@@ -196,34 +259,47 @@ function CaseDetailContent({ caseId }: CaseDetailPageProps) {
           </div>
 
           <TabsContent value='info' className='flex-1 outline-none'>
-            <CaseInfoTab caseItem={caseItem} />
+            {activeTab === 'info' ? <CaseInfoTab caseItem={caseItem} /> : null}
           </TabsContent>
 
           <TabsContent value='comments' className='outline-none'>
-            <CaseCommentsTab
-              caseItem={caseItem}
-              onSeen={() => void reloadUnseenCount()}
-            />
+            {activeTab === 'comments' ? (
+              <CaseCommentsTab
+                caseItem={caseItem}
+                onSeen={() => void reloadUnseenCount()}
+              />
+            ) : null}
           </TabsContent>
 
           <TabsContent value='attachments' className='outline-none'>
-            <CaseAttachmentsTab caseItem={caseItem} />
+            {activeTab === 'attachments' ? (
+              <CaseAttachmentsTab
+                caseItem={caseItem}
+                onSeen={() => void reloadUnseenDocuments()}
+              />
+            ) : null}
           </TabsContent>
 
           <TabsContent value='finance' className='outline-none'>
-            <CaseFinanceTab caseItem={caseItem} />
+            {activeTab === 'finance' ? (
+              <CaseFinanceTab caseItem={caseItem} />
+            ) : null}
           </TabsContent>
 
           <TabsContent value='client' className='outline-none'>
-            <CaseClientTab caseItem={caseItem} client={client} />
+            {activeTab === 'client' ? (
+              <CaseClientTab caseItem={caseItem} client={client} />
+            ) : null}
           </TabsContent>
 
           <TabsContent value='events' className='outline-none'>
-            <RelatedEventsSection
-              caseId={caseItem.id}
-              defaultClientId={caseItem.clientId}
-              description='جلسات، دادگاه‌ها و مهلت‌های مرتبط با این پرونده.'
-            />
+            {activeTab === 'events' ? (
+              <RelatedEventsSection
+                caseId={caseItem.id}
+                defaultClientId={caseItem.clientId}
+                description='جلسات، دادگاه‌ها و مهلت‌های مرتبط با این پرونده.'
+              />
+            ) : null}
           </TabsContent>
         </Tabs>
       </Main>

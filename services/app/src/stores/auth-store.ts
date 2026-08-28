@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api-client'
+import { useNotificationsStore } from '@/features/notifications/stores/notifications-store'
+import { useUnseenActivityStore } from '@/features/notifications/stores/unseen-activity-store'
 
 export type AuthRole = 'super_admin' | 'lawyer' | 'client'
 
@@ -76,6 +78,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     },
     logout: async () => {
       await api('/api/auth/logout', { method: 'POST' })
+      useNotificationsStore.getState().reset()
+      useUnseenActivityStore.getState().reset()
       get().auth.reset()
     },
   },

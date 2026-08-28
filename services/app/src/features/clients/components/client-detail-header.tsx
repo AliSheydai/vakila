@@ -19,6 +19,7 @@ import {
 import type { Client } from '@/features/cases/types'
 import { formatDate } from '@/features/cases/utils/format'
 import { ClientAvatar } from './client-avatar'
+import { ClientUnseenBadge } from './client-unseen-badge'
 import { useClientsDialogs } from './clients-provider'
 
 type ClientDetailHeaderProps = {
@@ -61,6 +62,7 @@ export function ClientDetailHeader({
               <h1 className='font-display text-xl font-bold tracking-tight sm:text-2xl'>
                 {client.name}
               </h1>
+              <ClientUnseenBadge clientId={client.id} />
               {hasActiveCase ? (
                 <Badge variant='secondary'>پرونده فعال</Badge>
               ) : caseCount > 0 ? (

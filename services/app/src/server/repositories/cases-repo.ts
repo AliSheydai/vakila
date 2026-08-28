@@ -12,6 +12,7 @@ import type {
   UpsertFeeInput,
 } from '@/features/cases/types'
 import type { CaseComment } from '@/features/client-portal/types'
+import type { CaseStatus } from '@/features/cases/types'
 import { query, withTransaction } from '../db'
 import {
   mapAttachment,
@@ -22,6 +23,7 @@ import {
   mapFee,
   mapPayment,
 } from '../mappers'
+import * as notificationService from '../services/notification-service'
 import type { CaseRow } from '../types'
 
 type FeeRow = {
@@ -82,6 +84,28 @@ type CommentRow = {
   body_html: string
   created_at: Date
   seen_by_lawyer_at: Date | null
+}
+
+type CaseNotifyRow = {
+  id: string
+  case_number: string
+  title: string
+  status: string
+  owner_id: string
+  client_id: string | null
+  client_user_id: string | null
+}
+
+async function getCaseNotifyRow(
+  ownerId: string,
+  caseId: string
+): Promise<CaseNotifyRow | null> {
+  const { rows } = await query<CaseNotifyRow>(
+    `SELECT id, case_number, title, status, owner_id, client_id, client_user_id
+     FROM cases WHERE id = $1 AND owner_id = $2 LIMIT 1`,
+    [caseId, ownerId]
+  )
+  return rows[0] ?? null
 }
 
 async function loadCaseBundle(
@@ -185,6 +209,17 @@ export async function createCase(
   )
 
   const refreshed = await getCase(ownerId, caseRow.id)
+  const notifyRow = await getCaseNotifyRow(ownerId, caseRow.id)
+  if (notifyRow) {
+    await notificationService.notifyCaseCreatedForClient({
+      clientUserId: notifyRow.client_user_id,
+      actorId: ownerId,
+      caseId: notifyRow.id,
+      clientId: notifyRow.client_id,
+      title: notifyRow.title,
+      caseNumber: notifyRow.case_number,
+    })
+  }
   return refreshed!
 }
 
@@ -195,6 +230,19 @@ export async function updateCase(
 ): Promise<Case | null> {
   const existing = await assertOwnedCase(ownerId, id)
   if (!existing) return null
+
+  const statusChanged =
+    input.status !== undefined && input.status !== existing.status
+
+  const fieldsChanged =
+    statusChanged ||
+    (input.title !== undefined && input.title.trim() !== existing.title) ||
+    (input.caseNumber !== undefined &&
+      input.caseNumber.trim() !== existing.case_number) ||
+    (input.legalArea !== undefined && input.legalArea !== existing.legal_area) ||
+    (input.description !== undefined &&
+      (input.description?.trim() ?? '') !== existing.description) ||
+    (input.clientId !== undefined && input.clientId !== existing.client_id)
 
   await query(
     `UPDATE cases SET
@@ -236,6 +284,19 @@ export async function updateCase(
     }
   }
 
+  const notifyRow = await getCaseNotifyRow(ownerId, id)
+  if (notifyRow && fieldsChanged) {
+    await notificationService.notifyCaseUpdatedForClient({
+      clientUserId: notifyRow.client_user_id,
+      actorId: ownerId,
+      caseId: notifyRow.id,
+      clientId: notifyRow.client_id,
+      title: notifyRow.title,
+      statusChanged,
+      newStatus: input.status as CaseStatus | undefined,
+    })
+  }
+
   return getCase(ownerId, id)
 }
 
@@ -258,6 +319,12 @@ export async function upsertFee(
   const owned = await assertOwnedCase(ownerId, caseId)
   if (!owned) return null
 
+  const { rows: existingFeeRows } = await query<FeeRow>(
+    `SELECT * FROM case_fees WHERE case_id = $1 LIMIT 1`,
+    [caseId]
+  )
+  const existingFee = existingFeeRows[0]
+
   const { rows } = await query<FeeRow>(
     `INSERT INTO case_fees (case_id, amount, description, due_date)
      VALUES ($1, $2, $3, $4)
@@ -273,7 +340,27 @@ export async function upsertFee(
       input.dueDate ?? null,
     ]
   )
-  return mapFee(rows[0]!)
+  const fee = mapFee(rows[0]!)
+  const feeChanged =
+    !existingFee ||
+    Number(existingFee.amount) !== fee.amount ||
+    (existingFee.description ?? '') !== (fee.description ?? '') ||
+    String(existingFee.due_date ?? '') !== String(input.dueDate ?? '')
+
+  if (feeChanged) {
+    const notifyRow = await getCaseNotifyRow(ownerId, caseId)
+    if (notifyRow) {
+      await notificationService.notifyFeeUpdated({
+        clientUserId: notifyRow.client_user_id,
+        actorId: ownerId,
+        caseId,
+        clientId: notifyRow.client_id,
+        title: notifyRow.title,
+        amount: fee.amount,
+      })
+    }
+  }
+  return fee
 }
 
 export async function addPayment(
@@ -304,7 +391,19 @@ export async function addPayment(
       'پرداخت',
     ]
   )
-  return mapPayment(rows[0]!)
+  const payment = mapPayment(rows[0]!)
+  const notifyRow = await getCaseNotifyRow(ownerId, caseId)
+  if (notifyRow) {
+    await notificationService.notifyPaymentRecorded({
+      clientUserId: notifyRow.client_user_id,
+      actorId: ownerId,
+      caseId,
+      clientId: notifyRow.client_id,
+      title: notifyRow.title,
+      amount: payment.amount,
+    })
+  }
+  return payment
 }
 
 export async function deletePayment(
@@ -314,10 +413,32 @@ export async function deletePayment(
 ): Promise<boolean> {
   const owned = await assertOwnedCase(ownerId, caseId)
   if (!owned) return false
+
+  const { rows: paymentRows } = await query<{ amount: string }>(
+    `SELECT amount FROM case_payments WHERE id = $1 AND case_id = $2 AND owner_id = $3`,
+    [paymentId, caseId, ownerId]
+  )
+  const paymentRow = paymentRows[0]
+
   const { rowCount } = await query(
     `DELETE FROM case_payments WHERE id = $1 AND case_id = $2 AND owner_id = $3`,
     [paymentId, caseId, ownerId]
   )
+
+  if ((rowCount ?? 0) > 0 && paymentRow) {
+    const notifyRow = await getCaseNotifyRow(ownerId, caseId)
+    if (notifyRow) {
+      await notificationService.notifyPaymentDeleted({
+        clientUserId: notifyRow.client_user_id,
+        actorId: ownerId,
+        caseId,
+        clientId: notifyRow.client_id,
+        title: notifyRow.title,
+        amount: Number(paymentRow.amount),
+      })
+    }
+  }
+
   return (rowCount ?? 0) > 0
 }
 
@@ -526,6 +647,17 @@ export async function addComment(
      VALUES ($1, 'note', 'پاسخ وکیل', 'وکیل در گفتگوی پرونده پاسخ داد.')`,
     [caseId]
   )
+
+  const notifyRow = await getCaseNotifyRow(ownerId, caseId)
+  if (notifyRow) {
+    await notificationService.notifyLawyerComment({
+      clientUserId: notifyRow.client_user_id,
+      actorId: input.authorId,
+      caseId,
+      clientId: notifyRow.client_id,
+      title: notifyRow.title,
+    })
+  }
 
   return mapCaseComment(rows[0]!)
 }

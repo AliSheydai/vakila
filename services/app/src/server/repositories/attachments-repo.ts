@@ -1,6 +1,7 @@
 import type { Attachment } from '@/features/cases/types'
 import { query } from '../db'
 import { mapAttachment } from '../mappers'
+import * as notificationService from '../services/notification-service'
 import { sanitizeFileName, validateAttachmentMeta } from '../storage/config'
 import { assertStorageQuota } from '../storage/quota'
 import {
@@ -255,11 +256,63 @@ export async function completeAttachment(
 
   const { rows } = await query<AttachmentRow>(
     `UPDATE attachments SET status = 'available'
-     WHERE id = $1
+     WHERE id = $1 AND status = 'processing'
      RETURNING *`,
     [attachmentId]
   )
-  return rows[0] ? mapAttachment(rows[0]) : null
+  if (!rows[0]) {
+    const existing = await getAttachmentRow(attachmentId)
+    return existing?.status === 'available' ? mapAttachment(existing) : null
+  }
+
+  const updated = rows[0]
+  if (updated.case_id) {
+    const { rows: caseRows } = await query<{
+      title: string
+      owner_id: string
+      client_id: string | null
+      client_user_id: string | null
+    }>(
+      `SELECT title, owner_id, client_id, client_user_id
+       FROM cases WHERE id = $1 LIMIT 1`,
+      [updated.case_id]
+    )
+    const caseInfo = caseRows[0]
+    if (caseInfo) {
+      if (
+        (role === 'lawyer' || role === 'super_admin') &&
+        caseInfo.client_user_id
+      ) {
+        await notificationService.notifyLawyerDocument({
+          clientUserId: caseInfo.client_user_id,
+          actorId: userId,
+          caseId: updated.case_id,
+          clientId: caseInfo.client_id,
+          title: caseInfo.title,
+          fileName: updated.name,
+        })
+      } else if (role === 'client' && !updated.comment_id) {
+        // Standalone document uploads only; comment files notify via addPortalComment.
+        await notificationService.notifyClientDocument({
+          lawyerId: caseInfo.owner_id,
+          actorId: userId,
+          caseId: updated.case_id,
+          clientId: caseInfo.client_id,
+          clientName:
+            (
+              await query<{ name: string | null }>(
+                `SELECT name FROM users WHERE id = $1`,
+                [userId]
+              )
+            ).rows[0]?.name || 'موکل',
+          title: caseInfo.title,
+          fileName: updated.name,
+        })
+      }
+    }
+  }
+
+  return mapAttachment(updated)
 }
 
 export async function getAttachmentDownloadUrl(

@@ -12,6 +12,7 @@ import {
   mapLawyer,
   mapTimeline,
 } from '../mappers'
+import * as notificationService from '../services/notification-service'
 import type { CaseRow, User } from '../types'
 
 type AttachmentRow = {
@@ -242,6 +243,16 @@ export async function createPortalCase(
       )
     }
 
+    return { caseRow, clientId }
+  }).then(async ({ caseRow, clientId: crmClientId }) => {
+    await notificationService.notifyCaseCreatedByClient({
+      lawyerId: lawyerId!,
+      actorId: user.id,
+      caseId: caseRow.id,
+      clientId: crmClientId,
+      clientName: user.name || 'موکل',
+      title: caseRow.title,
+    })
     return loadPortalCase(caseRow)
   })
 }
@@ -302,6 +313,16 @@ export async function addPortalComment(
     [comment.id]
   )
 
+  await notificationService.notifyClientComment({
+    lawyerId: caseRow.owner_id,
+    actorId: user.id,
+    caseId,
+    clientId: caseRow.client_id,
+    clientName: user.name || 'موکل',
+    title: caseRow.title,
+    attachmentCount: linkedDocs.length,
+  })
+
   return mapCaseComment(comment, linkedDocs.map(mapCaseDocument))
 }
 
@@ -343,8 +364,13 @@ export async function cancelPortalSession(
     id: string
     status: string
     can_cancel: boolean
+    owner_id: string
+    title: string
+    case_id: string | null
+    client_id: string | null
   }>(
-    `SELECT id, status, can_cancel FROM events
+    `SELECT id, status, can_cancel, owner_id, title, case_id, client_id
+     FROM events
      WHERE id = $1 AND client_user_id = $2 LIMIT 1`,
     [sessionId, user.id]
   )
@@ -361,4 +387,14 @@ export async function cancelPortalSession(
      WHERE id = $1 AND client_user_id = $2`,
     [sessionId, user.id]
   )
+
+  await notificationService.notifySessionCancelledByClient({
+    lawyerId: session.owner_id,
+    actorId: user.id,
+    eventId: session.id,
+    caseId: session.case_id,
+    clientId: session.client_id,
+    clientName: user.name || 'موکل',
+    title: session.title,
+  })
 }

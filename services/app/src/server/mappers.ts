@@ -7,6 +7,7 @@ import type {
   Payment,
 } from '@/features/cases/types'
 import type { ConsultationRequest } from '@/features/consultation-requests/types'
+import type { Notification } from '@/features/notifications/types'
 import type { Event } from '@/features/events/types'
 import type {
   CaseComment,
@@ -476,6 +477,36 @@ export function mapClientPayment(row: {
     description: row.description ?? undefined,
     createdAt: toIsoRequired(row.created_at),
     updatedAt: toIsoRequired(row.updated_at),
+  }
+}
+
+export function mapNotification(row: {
+  id: string
+  recipient_id: string
+  actor_id: string | null
+  type: string
+  title: string
+  body: string
+  href: string | null
+  case_id: string | null
+  client_id: string | null
+  event_id: string | null
+  read_at: Date | string | null
+  created_at: Date | string
+}): Notification {
+  return {
+    id: row.id,
+    recipientId: row.recipient_id,
+    actorId: row.actor_id,
+    type: row.type as Notification['type'],
+    title: row.title,
+    body: row.body,
+    href: row.href,
+    caseId: row.case_id,
+    clientId: row.client_id,
+    eventId: row.event_id,
+    readAt: toIso(row.read_at),
+    createdAt: toIsoRequired(row.created_at),
   }
 }
 

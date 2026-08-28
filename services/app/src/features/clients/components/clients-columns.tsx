@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { type ColumnDef } from '@tanstack/react-table'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
@@ -12,6 +11,7 @@ import {
 } from '@/features/cases/utils/clients'
 import { formatDate } from '@/features/cases/utils/format'
 import { ClientAvatar, getClientInitials } from './client-avatar'
+import { ClientNameWithBadge } from './client-name-with-badge'
 import { ClientsRowActions } from './clients-row-actions'
 
 export type ClientActivity = 'with_active_case' | 'without_active_case'
@@ -54,18 +54,12 @@ export const clientsColumns: ColumnDef<ClientTableRow>[] = [
     cell: ({ row }) => {
       const client = row.original
       return (
-        <Link
+        <ClientNameWithBadge
+          clientId={client.id}
+          name={client.name}
+          avatarDataUrl={client.avatarDataUrl}
           href={`/admin/clients/${client.id}`}
-          className='flex min-w-0 items-center gap-3 hover:underline'
-        >
-          <ClientAvatar
-            name={client.name}
-            avatarDataUrl={client.avatarDataUrl}
-            className='size-8 shrink-0'
-            fallbackClassName='text-xs'
-          />
-          <LongText className='max-w-44 font-medium'>{client.name}</LongText>
-        </Link>
+        />
       )
     },
     meta: { label: 'موکل' },

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatDate } from '@/features/cases/utils/format'
 import { ClientAvatar } from './client-avatar'
+import { ClientUnseenBadge } from './client-unseen-badge'
 import { type ClientTableRow } from './clients-columns'
 import { useClientsDialogs } from './clients-provider'
 
@@ -67,9 +68,12 @@ export function ClientsMobileList({
                 fallbackClassName='text-sm'
               />
               <div className='min-w-0 space-y-0.5'>
-                <p className='truncate text-base font-semibold tracking-tight'>
-                  {client.name}
-                </p>
+                <div className='flex items-center gap-2'>
+                  <p className='truncate text-base font-semibold tracking-tight'>
+                    {client.name}
+                  </p>
+                  <ClientUnseenBadge clientId={client.id} />
+                </div>
                 <p className='text-xs tabular-nums text-muted-foreground' dir='ltr'>
                   {client.phone}
                 </p>

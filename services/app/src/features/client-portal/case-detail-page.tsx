@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowRight,
   Info,
@@ -38,6 +39,29 @@ import {
   formatMoney,
   formatTime,
 } from './utils/format'
+import * as apiNotifications from '@/features/notifications/services/api-notifications-service'
+import { useNotificationsStore } from '@/features/notifications/stores/notifications-store'
+import { useUnseenActivityStore } from '@/features/notifications/stores/unseen-activity-store'
+
+const CLIENT_CASE_TABS = [
+  'overview',
+  'comments',
+  'documents',
+  'timeline',
+  'sessions',
+  'payments',
+  'lawyer',
+] as const
+
+type ClientCaseTab = (typeof CLIENT_CASE_TABS)[number]
+
+function parseClientCaseTab(value: string | null): ClientCaseTab {
+  if (value === 'attachments') return 'documents'
+  if (value && CLIENT_CASE_TABS.includes(value as ClientCaseTab)) {
+    return value as ClientCaseTab
+  }
+  return 'overview'
+}
 
 const TIMELINE_LABELS: Record<TimelineEventType, string> = {
   created: 'ایجاد',
@@ -54,8 +78,56 @@ type ClientCaseDetailPageProps = {
 }
 
 export function ClientCaseDetailPage({ caseId }: ClientCaseDetailPageProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { hydrated } = usePortalHydration()
-  const [tab, setTab] = useState('overview')
+  const refreshUnreadCount = useNotificationsStore(
+    (state) => state.refreshUnreadCount
+  )
+  const refreshUnseen = useUnseenActivityStore((state) => state.refresh)
+
+  const initialTab = useMemo(
+    () => parseClientCaseTab(searchParams.get('tab')),
+    [searchParams]
+  )
+  const [tab, setTab] = useState<ClientCaseTab>(initialTab)
+
+  useEffect(() => {
+    setTab(parseClientCaseTab(searchParams.get('tab')))
+  }, [searchParams])
+
+  useEffect(() => {
+    if (tab !== 'comments' && tab !== 'documents') return
+    void apiNotifications.markCaseNotificationsRead(caseId).then(() => {
+      void refreshUnreadCount()
+      void refreshUnseen(false)
+    })
+  }, [caseId, refreshUnreadCount, refreshUnseen, tab])
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      const nextTab = parseClientCaseTab(value)
+      setTab(nextTab)
+      const params = new URLSearchParams(searchParams.toString())
+      if (nextTab === 'overview') {
+        params.delete('tab')
+      } else {
+        params.set('tab', nextTab)
+      }
+      const qs = params.toString()
+      router.replace(qs ? `/cases/${caseId}?${qs}` : `/cases/${caseId}`, {
+        scroll: false,
+      })
+
+      if (nextTab === 'comments' || nextTab === 'documents') {
+        void apiNotifications.markCaseNotificationsRead(caseId).then(() => {
+          void refreshUnreadCount()
+          void refreshUnseen(false)
+        })
+      }
+    },
+    [caseId, refreshUnreadCount, refreshUnseen, router, searchParams]
+  )
 
   const caseItem = usePortalStore((s) =>
     s.cases.find((item) => item.id === caseId)
@@ -173,7 +245,7 @@ export function ClientCaseDetailPage({ caseId }: ClientCaseDetailPageProps) {
           </AlertDescription>
         </Alert>
 
-        <Tabs value={tab} onValueChange={setTab} className='gap-4'>
+        <Tabs value={tab} onValueChange={handleTabChange} className='gap-4'>
           <TabsList className='flex h-auto w-full flex-wrap justify-start gap-1 sm:w-fit'>
             <TabsTrigger value='overview'>نمای کلی</TabsTrigger>
             <TabsTrigger value='comments'>

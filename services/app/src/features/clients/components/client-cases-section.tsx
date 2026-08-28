@@ -7,6 +7,7 @@ import type { Case } from '@/features/cases/types'
 import { LEGAL_AREA_LABELS } from '@/features/cases/types'
 import { formatDate } from '@/features/cases/utils/format'
 import { CaseStatusBadge } from '@/features/cases/components/case-status-badge'
+import { CaseUnseenBadge } from '@/features/cases/components/case-unseen-badge'
 
 type ClientCasesSectionProps = {
   cases: Case[]
@@ -48,6 +49,7 @@ export function ClientCasesSection({ cases }: ClientCasesSectionProps) {
                     <p className='truncate font-semibold tracking-tight'>
                       {item.title}
                     </p>
+                    <CaseUnseenBadge caseId={item.id} />
                     <CaseStatusBadge status={item.status} />
                   </div>
                   <p className='text-xs text-muted-foreground'>

@@ -5,6 +5,7 @@ import type {
 } from '@/features/events/types'
 import { query } from '../db'
 import { mapEvent } from '../mappers'
+import * as notificationService from '../services/notification-service'
 
 type EventRow = {
   id: string
@@ -40,6 +41,30 @@ function durationMinutes(startTime: string, endTime: string): number {
   return mins > 0 ? mins : 60
 }
 
+async function resolveEventClientUser(
+  ownerId: string,
+  clientId?: string | null,
+  caseId?: string | null
+): Promise<string | null> {
+  if (clientId) {
+    const { rows } = await query<{ linked_user_id: string | null }>(
+      `SELECT linked_user_id FROM clients WHERE id = $1 AND owner_id = $2`,
+      [clientId, ownerId]
+    )
+    if (rows[0]?.linked_user_id) return rows[0].linked_user_id
+  }
+
+  if (caseId) {
+    const { rows } = await query<{ client_user_id: string | null }>(
+      `SELECT client_user_id FROM cases WHERE id = $1 AND owner_id = $2`,
+      [caseId, ownerId]
+    )
+    return rows[0]?.client_user_id ?? null
+  }
+
+  return null
+}
+
 export async function listEvents(ownerId: string): Promise<Event[]> {
   const { rows } = await query<EventRow>(
     `SELECT * FROM events WHERE owner_id = $1
@@ -64,14 +89,11 @@ export async function createEvent(
   ownerId: string,
   input: CreateEventInput
 ): Promise<Event> {
-  let clientUserId: string | null = null
-  if (input.clientId) {
-    const { rows } = await query<{ linked_user_id: string | null }>(
-      `SELECT linked_user_id FROM clients WHERE id = $1 AND owner_id = $2`,
-      [input.clientId, ownerId]
-    )
-    clientUserId = rows[0]?.linked_user_id ?? null
-  }
+  const clientUserId = await resolveEventClientUser(
+    ownerId,
+    input.clientId,
+    input.caseId
+  )
 
   const startsAt = computeStartsAt(input.date, input.startTime)
   const duration = durationMinutes(input.startTime, input.endTime)
@@ -100,7 +122,18 @@ export async function createEvent(
       input.caseId ?? null,
     ]
   )
-  return mapEvent(rows[0]!)
+  const event = mapEvent(rows[0]!)
+  await notificationService.notifyEventScheduled({
+    clientUserId: clientUserId,
+    actorId: ownerId,
+    eventId: event.id,
+    caseId: event.caseId,
+    clientId: event.clientId,
+    title: event.title,
+    date: event.date,
+    startTime: event.startTime,
+  })
+  return event
 }
 
 export async function updateEvent(
@@ -119,15 +152,12 @@ export async function updateEvent(
 
   let clientUserId: string | null | undefined
   if (input.clientId !== undefined) {
-    if (input.clientId) {
-      const { rows } = await query<{ linked_user_id: string | null }>(
-        `SELECT linked_user_id FROM clients WHERE id = $1 AND owner_id = $2`,
-        [input.clientId, ownerId]
-      )
-      clientUserId = rows[0]?.linked_user_id ?? null
-    } else {
-      clientUserId = null
-    }
+    clientUserId = input.clientId
+      ? ((await resolveEventClientUser(ownerId, input.clientId, null)) ?? null)
+      : null
+  } else if (input.caseId !== undefined && input.caseId) {
+    clientUserId =
+      (await resolveEventClientUser(ownerId, null, input.caseId)) ?? null
   }
 
   const { rows } = await query<EventRow>(
@@ -170,16 +200,69 @@ export async function updateEvent(
       clientUserId ?? null,
     ]
   )
-  return rows[0] ? mapEvent(rows[0]) : null
+  if (!rows[0]) return null
+  const event = mapEvent(rows[0])
+  const cancelled =
+    event.status === 'cancelled' && existing.status !== 'cancelled'
+  const changed =
+    cancelled ||
+    event.title !== existing.title ||
+    event.type !== existing.type ||
+    event.status !== existing.status ||
+    event.date !== existing.date ||
+    event.startTime !== existing.startTime ||
+    event.endTime !== existing.endTime ||
+    event.location !== existing.location ||
+    event.description !== existing.description ||
+    event.clientId !== existing.clientId ||
+    event.caseId !== existing.caseId
+
+  if (changed) {
+    await notificationService.notifyEventUpdated({
+      clientUserId: rows[0].client_user_id,
+      actorId: ownerId,
+      eventId: event.id,
+      caseId: event.caseId,
+      clientId: event.clientId,
+      title: event.title,
+      date: event.date,
+      startTime: event.startTime,
+      cancelled,
+    })
+  }
+  return event
 }
 
 export async function deleteEvent(
   ownerId: string,
   id: string
 ): Promise<boolean> {
+  const { rows: eventRows } = await query<EventRow>(
+    `SELECT * FROM events WHERE id = $1 AND owner_id = $2 LIMIT 1`,
+    [id, ownerId]
+  )
+  const row = eventRows[0]
+  if (!row) return false
+
   const { rowCount } = await query(
     `DELETE FROM events WHERE id = $1 AND owner_id = $2`,
     [id, ownerId]
   )
+
+  if ((rowCount ?? 0) > 0) {
+    const existing = mapEvent(row)
+    await notificationService.notifyEventUpdated({
+      clientUserId: row.client_user_id,
+      actorId: ownerId,
+      eventId: existing.id,
+      caseId: existing.caseId,
+      clientId: existing.clientId,
+      title: existing.title,
+      date: existing.date,
+      startTime: existing.startTime,
+      cancelled: true,
+    })
+  }
+
   return (rowCount ?? 0) > 0
 }

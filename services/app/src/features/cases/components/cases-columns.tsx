@@ -8,6 +8,7 @@ import { LEGAL_AREA_LABELS, type Case, type Client } from '../types'
 import { getCaseFinancialSummary } from '../utils/finance'
 import { formatDate, formatMoneyCompact } from '../utils/format'
 import { CaseStatusBadge } from './case-status-badge'
+import { CaseClientNameCell } from './case-client-name-cell'
 import { DataTableRowActions } from './data-table-row-actions'
 
 export type CaseTableRow = Case & {
@@ -65,7 +66,10 @@ export const casesColumns: ColumnDef<CaseTableRow>[] = [
       <DataTableColumnHeader column={column} title='موکل' />
     ),
     cell: ({ row }) => (
-      <LongText className='max-w-36'>{row.getValue('clientName')}</LongText>
+      <CaseClientNameCell
+        caseId={row.original.id}
+        clientName={row.getValue('clientName') as string}
+      />
     ),
     meta: { label: 'موکل' },
   },

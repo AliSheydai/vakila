@@ -39,6 +39,7 @@ type PendingUpload = {
 
 type CaseAttachmentsTabProps = {
   caseItem: Case
+  onSeen?: () => void
 }
 
 function validateFile(file: File): string | null {
@@ -50,7 +51,7 @@ function validateFile(file: File): string | null {
   })
 }
 
-export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
+export function CaseAttachmentsTab({ caseItem, onSeen }: CaseAttachmentsTabProps) {
   const addAttachment = useCasesStore((state) => state.addAttachment)
   const deleteAttachment = useCasesStore((state) => state.deleteAttachment)
   const ownerId = useCasesStore((state) => state.ownerId)
@@ -62,8 +63,8 @@ export function CaseAttachmentsTab({ caseItem }: CaseAttachmentsTabProps) {
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   useEffect(() => {
-    void apiCases.markClientDocumentsSeen(caseItem.id)
-  }, [caseItem.id])
+    void apiCases.markClientDocumentsSeen(caseItem.id).then(() => onSeen?.())
+  }, [caseItem.id, onSeen])
 
   const processFiles = useCallback(
     async (fileList: FileList | File[]) => {

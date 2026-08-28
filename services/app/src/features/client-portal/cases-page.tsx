@@ -26,6 +26,7 @@ import { PageShell, PortalListSkeleton } from './components/page-shell'
 import { ErrorState } from './components/error-state'
 import { EmptyState } from './components/empty-state'
 import { CaseStatusBadge } from './components/status-badges'
+import { CaseNotificationBadge } from './components/case-notification-badge'
 import { ClientCreateCaseDrawer } from './components/client-create-case-drawer'
 import {
   CLIENT_CASE_STATUSES,
@@ -192,11 +193,14 @@ export function ClientCasesPage() {
                         onClick={() => openCase(item.id)}
                       >
                         <TableCell>
-                          <div className='space-y-0.5'>
-                            <p className='font-medium'>{item.title}</p>
-                            <p className='text-xs text-muted-foreground'>
-                              {LEGAL_AREA_LABELS[item.legalArea]}
-                            </p>
+                          <div className='flex items-center gap-2'>
+                            <div className='space-y-0.5'>
+                              <p className='font-medium'>{item.title}</p>
+                              <p className='text-xs text-muted-foreground'>
+                                {LEGAL_AREA_LABELS[item.legalArea]}
+                              </p>
+                            </div>
+                            <CaseNotificationBadge caseId={item.id} />
                           </div>
                         </TableCell>
                         <TableCell className='tabular-nums'>
@@ -232,13 +236,16 @@ export function ClientCasesPage() {
                   <li key={item.id} className='rounded-xl border p-4'>
                     <div className='flex items-start justify-between gap-3'>
                       <div className='min-w-0 space-y-1'>
-                        <button
-                          type='button'
-                          className='line-clamp-2 text-start font-semibold hover:underline'
-                          onClick={() => openCase(item.id)}
-                        >
-                          {item.title}
-                        </button>
+                        <div className='flex items-start gap-2'>
+                          <button
+                            type='button'
+                            className='line-clamp-2 text-start font-semibold hover:underline'
+                            onClick={() => openCase(item.id)}
+                          >
+                            {item.title}
+                          </button>
+                          <CaseNotificationBadge caseId={item.id} />
+                        </div>
                         <p className='text-xs tabular-nums text-muted-foreground'>
                           {item.caseNumber} · {LEGAL_AREA_LABELS[item.legalArea]}
                         </p>
