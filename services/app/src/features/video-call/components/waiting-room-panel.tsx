@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { useParticipants } from '@livekit/components-react'
-import { UserCheck, UserX } from 'lucide-react'
+import { Clock3, UserCheck, UserX } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { getDisplayName } from '../utils/participant'
 
 type WaitingRoomPanelProps = {
   eventId: string
@@ -52,16 +54,31 @@ export function WaitingRoomPanel({ eventId }: WaitingRoomPanelProps) {
   }
 
   return (
-    <div className='border-b bg-amber-50 px-4 py-3 dark:bg-amber-950/30'>
-      <p className='mb-2 text-sm font-medium'>در انتظار پذیرش</p>
+    <section className='border-b border-primary/20 bg-primary/5 px-4 py-3 sm:px-5'>
+      <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
+        <div className='flex items-center gap-2'>
+          <Clock3 className='size-4 text-primary' />
+          <p className='text-sm font-medium'>اتاق انتظار</p>
+        </div>
+        <Badge variant='outline' className='border-primary/30 bg-background/80'>
+          {waiting.length} نفر در انتظار
+        </Badge>
+      </div>
       <ul className='space-y-2'>
         {waiting.map((p) => (
           <li
             key={p.identity}
-            className='flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2'
+            className='flex flex-col gap-3 rounded-xl border border-border/60 bg-card/90 px-3 py-3 sm:flex-row sm:items-center sm:justify-between'
           >
-            <span className='text-sm'>{p.name || 'موکل'}</span>
-            <div className='flex gap-2'>
+            <div className='min-w-0 text-start'>
+              <p className='truncate text-sm font-medium'>
+                {getDisplayName(p)}
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                درخواست ورود به جلسه
+              </p>
+            </div>
+            <div className='flex shrink-0 gap-2'>
               <Button
                 size='sm'
                 disabled={loadingId === p.identity}
@@ -83,6 +100,6 @@ export function WaitingRoomPanel({ eventId }: WaitingRoomPanelProps) {
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   )
 }

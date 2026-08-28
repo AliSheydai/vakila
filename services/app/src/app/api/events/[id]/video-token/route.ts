@@ -1,5 +1,5 @@
 import { fail, ok, withApiHandler } from '@/server/api'
-import { requireUser } from '@/server/auth/require-user'
+import { isLawyerRole, requireUser } from '@/server/auth/require-user'
 import { isWithinCallWindow } from '@/server/livekit/call-window'
 import { checkRateLimit } from '@/server/livekit/rate-limit'
 import { ensureRoom } from '@/server/livekit/room'
@@ -64,22 +64,21 @@ export async function GET(request: Request, context: RouteContext) {
       )
     }
 
-    const isHost = row.owner_id === user.id
+    const isHost = row.owner_id === user.id || isLawyerRole(user.role)
     const isClient = row.client_user_id === user.id
-    const isAdmin = user.role === 'super_admin'
 
-    if (!isHost && !isClient && !isAdmin) {
+    if (!isHost && !isClient && user.role !== 'super_admin') {
       return fail('دسترسی به این جلسه ندارید.', 403)
     }
 
-    const role = isHost || isAdmin ? 'host' : 'client'
+    const role = isHost ? 'host' : 'client'
     const url = new URL(request.url)
     const skipWaiting = url.searchParams.get('skipWaiting') === '1'
-    const canPublish = isHost || skipWaiting
+    const canPublish = role === 'host' || skipWaiting
 
     await ensureRoom(id)
 
-    if (canPublish && isHost) {
+    if (canPublish && role === 'host') {
       await eventsRepo.updateCallStatus(id, 'in_call')
     } else if (!canPublish) {
       await eventsRepo.updateCallStatus(id, 'waiting')

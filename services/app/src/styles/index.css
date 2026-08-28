@@ -99,20 +99,50 @@
   color: var(--muted-foreground);
 }
 
-/* LiveKit video call — mobile-friendly layout */
+/* LiveKit video call — Persian RTL layout */
+.video-call-page {
+  font-family: var(--font-vazirmatn), 'Vazirmatn', system-ui, sans-serif;
+}
+
+.video-call-stage {
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(201, 162, 90, 0.08), transparent 55%),
+    linear-gradient(180deg, var(--background) 0%, var(--muted) 100%);
+}
+
+.dark .video-call-stage {
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(212, 176, 106, 0.1), transparent 55%),
+    linear-gradient(180deg, var(--background) 0%, #050f14 100%);
+}
+
+.video-call-stage-glow {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(201, 162, 90, 0.12),
+    transparent 45%
+  );
+}
+
+.video-call-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 @media (max-width: 640px) {
-  .video-call-room .lk-grid-layout {
+  .video-call-grid {
     grid-template-columns: 1fr !important;
   }
 
-  .video-call-room .lk-participant-tile {
-    min-height: 40vh;
+  .video-call-tile {
+    min-height: 42vh;
   }
 
-  .video-call-room .lk-control-bar {
+  .video-call-controls {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.25rem;
-    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+    gap: 0.5rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }

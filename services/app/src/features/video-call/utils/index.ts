@@ -22,3 +22,9 @@ export function isOnlineVideoSession(session: {
 export function getLobbyHref(eventId: string): string {
   return `/call/${eventId}/lobby`
 }
+
+export {
+  getDisplayName,
+  getParticipantRole,
+  getRoleLabel,
+} from './participant'

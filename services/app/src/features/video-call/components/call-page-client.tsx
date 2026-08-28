@@ -38,7 +38,8 @@ export function CallPageClient({ eventId }: CallPageClientProps) {
 
   if (role === null || loading) {
     return (
-      <div className='flex min-h-dvh items-center justify-center'>
+      <div className='video-call-page flex min-h-dvh flex-col items-center justify-center gap-3 font-sans'>
+        <div className='size-10 animate-spin rounded-full border-2 border-primary border-t-transparent' />
         <p className='text-sm text-muted-foreground'>در حال اتصال به جلسه…</p>
       </div>
     )

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Mic, MicOff, Video, VideoOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCallWindow, formatCountdown } from '../hooks/use-call-window'
+import { saveCallMediaPrefs } from '../utils/call-prefs'
 
 type VideoLobbyProps = {
   eventId: string
@@ -28,6 +29,7 @@ export function VideoLobby({
 }: VideoLobbyProps) {
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const [micEnabled, setMicEnabled] = useState(true)
   const [camEnabled, setCamEnabled] = useState(true)
   const [stream, setStream] = useState<MediaStream | null>(null)
@@ -49,6 +51,7 @@ export function VideoLobby({
           media.getTracks().forEach((t) => t.stop())
           return
         }
+        streamRef.current = media
         setStream(media)
         if (videoRef.current) {
           videoRef.current.srcObject = media
@@ -61,9 +64,9 @@ export function VideoLobby({
       })
     return () => {
       active = false
-      stream?.getTracks().forEach((t) => t.stop())
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -78,7 +81,10 @@ export function VideoLobby({
   }, [stream, camEnabled, micEnabled])
 
   const handleJoin = () => {
-    stream?.getTracks().forEach((t) => t.stop())
+    saveCallMediaPrefs(eventId, { mic: micEnabled, cam: camEnabled })
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    setStream(null)
     router.push(`/call/${eventId}`)
   }
 
