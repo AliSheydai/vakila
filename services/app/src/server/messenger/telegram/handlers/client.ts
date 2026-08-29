@@ -18,7 +18,7 @@ import {
   editReply,
   reply,
 } from '../context'
-import { esc, formatDate, formatMoney, pageSlice, stripHtml, truncate } from '../format'
+import { esc, formatDate, formatMoney, formatChatbotNotificationHtml, formatNotificationDateTime, pageSlice, stripHtml, truncate } from '../format'
 import {
   BTN,
   cancelOnlyKeyboard,
@@ -208,20 +208,66 @@ async function showNotifications(ctx: BotContext, user: User): Promise<void> {
     await reply(ctx, 'اعلان خوانده‌نشده‌ای ندارید.', clientMainKeyboard())
     return
   }
-  const lines = items.map(
-    (n, i) => `${i + 1}. <b>${esc(n.title)}</b>\n   ${esc(truncate(n.body, 100))}`
-  )
+  const lines = items.map((n, i) => {
+    const when = formatNotificationDateTime(n.createdAt)
+    const preview = truncate(n.body.replace(/\s+/g, ' ').trim(), 80)
+    return (
+      `${i + 1}. <b>${esc(n.title)}</b>\n` +
+      `   <i>${esc(when)}</i>\n` +
+      `   ${esc(preview)}`
+    )
+  })
   const buttons = [
-    ...items.map((n) => [
-      { text: truncate(n.title, 40), callback_data: cb('cnr', n.id) },
+    ...items.map((n, i) => [
+      {
+        text: `${i + 1}. ${truncate(n.title, 36)}`,
+        callback_data: cb('cnr', n.id),
+      },
     ]),
     [{ text: 'همه خوانده شد', callback_data: cb('cnra') }],
   ]
   await reply(
     ctx,
-    `اعلان‌ها\n\n${lines.join('\n\n')}`,
+    `اعلان‌های خوانده‌نشده (${items.length})\nبرای خواندن متن کامل، روی اعلان بزنید.\n\n${lines.join('\n\n')}`,
     inlineKeyboard(buttons)
   )
+}
+
+async function showNotificationDetail(
+  ctx: BotContext,
+  user: User,
+  notificationId: string,
+  messageId?: number
+): Promise<void> {
+  const notification =
+    (await notificationsRepo.markNotificationRead(user.id, notificationId)) ??
+    (await notificationsRepo.getNotification(user.id, notificationId))
+  if (!notification) {
+    await reply(ctx, 'اعلان یافت نشد.', clientMainKeyboard())
+    return
+  }
+
+  const text = formatChatbotNotificationHtml({
+    heading: 'اعلان',
+    title: notification.title,
+    body: notification.body,
+    createdAt: notification.createdAt,
+  })
+
+  const buttons: { text: string; callback_data: string }[][] = []
+  if (notification.caseId) {
+    buttons.push([
+      {
+        text: 'مشاهده پرونده',
+        callback_data: cb('cc', notification.caseId),
+      },
+    ])
+  }
+  buttons.push([{ text: 'بازگشت به اعلان‌ها', callback_data: cb('cnl') }])
+
+  const markup = inlineKeyboard(buttons)
+  if (messageId) await editReply(ctx, messageId, text, markup)
+  else await reply(ctx, text, markup)
 }
 
 async function startNewCase(ctx: BotContext): Promise<void> {
@@ -423,10 +469,10 @@ export async function handleClientCallback(
       }
       return true
     case 'cnr':
-      if (a) {
-        await notificationsRepo.markNotificationRead(user.id, a)
-        await showNotifications(ctx, user)
-      }
+      if (a) await showNotificationDetail(ctx, user, a, messageId)
+      return true
+    case 'cnl':
+      await showNotifications(ctx, user)
       return true
     case 'cnra':
       await notificationsRepo.markAllNotificationsRead(user.id)

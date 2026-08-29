@@ -5,7 +5,7 @@ import * as settingsRepo from '@/server/repositories/settings-repo'
 import { sendMessage } from '@/server/messenger/telegram/api'
 import * as rubikaApi from '@/server/messenger/rubika/api'
 import { telegramMarkupToRubika } from '@/server/messenger/rubika/keyboards'
-import { esc, stripHtml, truncate } from '@/server/messenger/telegram/format'
+import { stripHtml, formatChatbotNotificationHtml } from '@/server/messenger/telegram/format'
 import { cb, inlineKeyboard } from '@/server/messenger/telegram/keyboards'
 import type { UserRole } from '@/server/types'
 import { query } from '@/server/db'
@@ -88,14 +88,16 @@ export async function pushBotNotification(
     const token = await settingsRepo.getDecryptedMessengerToken(platform)
     if (!token) return
 
-    const html =
-      `<b>${esc(params.title)}</b>\n${esc(truncate(params.body, 500))}`
+    const html = formatChatbotNotificationHtml({
+      title: params.title,
+      body: params.body,
+    })
 
     const markup = params.caseId
       ? inlineKeyboard([
           [
             {
-              text: 'مشاهده در بات',
+              text: 'مشاهده پرونده',
               callback_data: cb(
                 params.role === 'client' ? 'cc' : 'lc',
                 params.caseId

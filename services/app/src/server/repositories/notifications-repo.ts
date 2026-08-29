@@ -107,6 +107,19 @@ export async function countUnreadNotifications(
   return Number(rows[0]?.count ?? 0)
 }
 
+export async function getNotification(
+  recipientId: string,
+  notificationId: string
+): Promise<Notification | null> {
+  const { rows } = await query<NotificationRow>(
+    `SELECT * FROM notifications
+     WHERE id = $1 AND recipient_id = $2
+     LIMIT 1`,
+    [notificationId, recipientId]
+  )
+  return rows[0] ? mapNotification(rows[0]) : null
+}
+
 export async function markNotificationRead(
   recipientId: string,
   notificationId: string

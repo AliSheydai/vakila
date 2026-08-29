@@ -321,6 +321,7 @@ export async function addPortalComment(
     clientName: user.name || 'موکل',
     title: caseRow.title,
     attachmentCount: linkedDocs.length,
+    messageText: plain,
   })
 
   return mapCaseComment(comment, linkedDocs.map(mapCaseDocument))

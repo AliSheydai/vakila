@@ -13,6 +13,7 @@ import type {
 } from '@/features/cases/types'
 import type { CaseComment } from '@/features/client-portal/types'
 import type { CaseStatus } from '@/features/cases/types'
+import { htmlToPlainText } from '@/lib/html'
 import { query, withTransaction } from '../db'
 import {
   mapAttachment,
@@ -656,6 +657,7 @@ export async function addComment(
       caseId,
       clientId: notifyRow.client_id,
       title: notifyRow.title,
+      messageText: htmlToPlainText(input.bodyHtml),
     })
   }
 

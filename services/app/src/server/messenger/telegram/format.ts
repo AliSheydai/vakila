@@ -46,6 +46,44 @@ export function truncate(text: string, max = 200): string {
   return `${text.slice(0, max - 1)}…`
 }
 
+const notificationDateTimeFormatter = new Intl.DateTimeFormat('fa-IR', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+export function formatNotificationDateTime(iso: string): string {
+  try {
+    return notificationDateTimeFormatter.format(new Date(iso))
+  } catch {
+    return iso
+  }
+}
+
+/** Readable HTML body for chatbot notification push / detail views. */
+export function formatChatbotNotificationHtml(params: {
+  title: string
+  body: string
+  createdAt?: string | null
+  heading?: string
+}): string {
+  const lines = [
+    `<b>${esc(params.heading ?? 'اعلان جدید')}</b>`,
+    '',
+    `<b>${esc(params.title)}</b>`,
+  ]
+  if (params.createdAt) {
+    lines.push(`<i>${esc(formatNotificationDateTime(params.createdAt))}</i>`)
+  }
+  const body = params.body.trim()
+  if (body) {
+    lines.push('', esc(body))
+  }
+  return lines.join('\n')
+}
+
 export function pageSlice<T>(items: T[], page: number, pageSize = 5): {
   items: T[]
   page: number

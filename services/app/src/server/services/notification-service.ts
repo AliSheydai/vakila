@@ -339,18 +339,30 @@ export async function notifyFeeUpdated(params: {
   })
 }
 
+function appendMessagePreview(intro: string, messageText?: string | null): string {
+  const preview = messageText?.trim()
+  if (!preview) return intro
+  const clipped =
+    preview.length > 500 ? `${preview.slice(0, 499)}…` : preview
+  return `${intro}\n\n${clipped}`
+}
+
 export async function notifyLawyerComment(params: {
   clientUserId: string | null
   actorId: string
   caseId: string
   clientId: string | null
   title: string
+  messageText?: string | null
 }): Promise<void> {
   await notifyIfRecipient(params.clientUserId, {
     actorId: params.actorId,
     type: 'lawyer_comment',
     title: 'پیام جدید از وکیل',
-    body: `وکیل در گفتگوی پرونده «${params.title}» پیام جدیدی گذاشت.`,
+    body: appendMessagePreview(
+      `وکیل در گفتگوی پرونده «${params.title}» پیام جدیدی گذاشت.`,
+      params.messageText
+    ),
     href: `/cases/${params.caseId}?tab=comments`,
     caseId: params.caseId,
     clientId: params.clientId,
@@ -384,21 +396,22 @@ export async function notifyClientComment(params: {
   clientName: string
   title: string
   attachmentCount?: number
+  messageText?: string | null
 }): Promise<void> {
   const attachmentCount = params.attachmentCount ?? 0
   const type: NotificationType =
     attachmentCount > 0 ? 'client_comment_with_files' : 'client_comment'
 
-  let body = `${params.clientName} در پرونده «${params.title}» پیام جدیدی گذاشت.`
+  let intro = `${params.clientName} در پرونده «${params.title}» پیام جدیدی گذاشت.`
   if (attachmentCount > 0) {
-    body = `${params.clientName} در پرونده «${params.title}» پیام و ${attachmentCount.toLocaleString('fa-IR')} فایل ارسال کرد.`
+    intro = `${params.clientName} در پرونده «${params.title}» پیام و ${attachmentCount.toLocaleString('fa-IR')} فایل ارسال کرد.`
   }
 
   await notifyIfRecipient(params.lawyerId, {
     actorId: params.actorId,
     type,
     title: attachmentCount > 0 ? 'پیام و فایل از موکل' : 'پیام جدید از موکل',
-    body,
+    body: appendMessagePreview(intro, params.messageText),
     href: `/admin/cases/${params.caseId}?tab=comments`,
     caseId: params.caseId,
     clientId: params.clientId,
