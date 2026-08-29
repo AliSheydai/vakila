@@ -1,6 +1,14 @@
 export type MessengerPlatform = 'telegram' | 'bale' | 'rubika'
 export type ClientNotificationChannel = 'in_app' | 'sms' | 'chatbot'
 
+export type MessengerProxyStatus = {
+  configured: boolean
+  hint: string | null
+  running: boolean
+  socksHost: string | null
+  socksPort: number | null
+}
+
 export type MessengerTokenStatus = {
   platform: MessengerPlatform
   configured: boolean
@@ -9,6 +17,7 @@ export type MessengerTokenStatus = {
   botUsername: string | null
   webhookSetAt: string | null
   updatedAt: string | null
+  proxy?: MessengerProxyStatus
 }
 
 export type NotificationDeliverySettings = {

@@ -5,8 +5,15 @@ import {
   IconRubika,
   IconTelegram,
 } from '@/assets/brand-icons'
-import { TelegramBotEntry } from '@/components/messenger/telegram-bot-entry'
-import type { MessengerPlatform, MessengerTokenStatus, NotificationDeliverySettings } from '../types'
+import {
+  BaleBotEntry,
+  TelegramBotEntry,
+} from '@/components/messenger/telegram-bot-entry'
+import type {
+  MessengerPlatform,
+  MessengerTokenStatus,
+  NotificationDeliverySettings,
+} from '../types'
 import { MESSENGER_LABELS } from '../types'
 import { MessengerTokenCard } from './messenger-token-card'
 
@@ -26,7 +33,7 @@ const MESSENGER_CONFIG: {
   {
     platform: 'bale',
     helpText:
-      'از @BotFather در بله بات بسازید و توکن API را دریافت کنید.',
+      'از @BotFather در بله بات بسازید و توکن API را دریافت کنید. پروکسی لازم نیست.',
     helpUrl: 'https://ble.ir/BotFather',
     icon: <IconBale className='size-5' />,
   },
@@ -54,7 +61,9 @@ export function MessengersTab({
     messengers.map((m) => [m.platform, m])
   )
   const telegram = statusByPlatform.get('telegram')
+  const bale = statusByPlatform.get('bale')
   const telegramReady = Boolean(telegram?.configured && telegram.enabled)
+  const baleReady = Boolean(bale?.configured && bale.enabled)
 
   return (
     <div className='space-y-6'>
@@ -65,16 +74,25 @@ export function MessengersTab({
           </h2>
           <p className='text-sm text-muted-foreground'>
             توکن بات را ذخیره کنید و با دکمهٔ فعال‌سازی، چت‌بات را به سایت وصل کنید.
-            پس از فعال‌سازی، ادمین، وکیل و موکل با لینک مستقیم تلگرام (بدون OTP)
-            وارد بات می‌شوند.
+            پس از فعال‌سازی، ادمین، وکیل و موکل با لینک مستقیم (بدون OTP) وارد
+            بات می‌شوند. برای بله پروکسی لازم نیست.
           </p>
         </div>
-        {telegramReady ? (
-          <TelegramBotEntry
-            key={`${telegram?.botUsername ?? ''}-${telegram?.enabled ? '1' : '0'}`}
-            variant='compact'
-            className='shrink-0 self-start'
-          />
+        {telegramReady || baleReady ? (
+          <div className='flex shrink-0 flex-wrap gap-2 self-start'>
+            {telegramReady ? (
+              <TelegramBotEntry
+                key={`tg-${telegram?.botUsername ?? ''}-${telegram?.enabled ? '1' : '0'}`}
+                variant='compact'
+              />
+            ) : null}
+            {baleReady ? (
+              <BaleBotEntry
+                key={`bale-${bale?.botUsername ?? ''}-${bale?.enabled ? '1' : '0'}`}
+                variant='compact'
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
 
@@ -88,6 +106,16 @@ export function MessengersTab({
             botUsername: null,
             webhookSetAt: null,
             updatedAt: null,
+            proxy:
+              config.platform === 'telegram'
+                ? {
+                    configured: false,
+                    hint: null,
+                    running: false,
+                    socksHost: null,
+                    socksPort: null,
+                  }
+                : undefined,
           }
 
           return (

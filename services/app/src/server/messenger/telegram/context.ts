@@ -1,4 +1,5 @@
 import type { User } from '@/server/types'
+import type { BotApiPlatform } from '@/server/messenger/bot-platforms'
 import * as settingsRepo from '@/server/repositories/settings-repo'
 import {
   answerCallbackQuery,
@@ -8,15 +9,23 @@ import {
 } from './api'
 
 export type BotContext = {
+  platform: BotApiPlatform
   token: string
   chatId: string
   user: User | null
 }
 
-export async function getTelegramToken(): Promise<string | null> {
-  const ready = await settingsRepo.isMessengerReady('telegram')
+export async function getBotToken(
+  platform: BotApiPlatform
+): Promise<string | null> {
+  const ready = await settingsRepo.isMessengerReady(platform)
   if (!ready) return null
-  return settingsRepo.getDecryptedMessengerToken('telegram')
+  return settingsRepo.getDecryptedMessengerToken(platform)
+}
+
+/** @deprecated Prefer getBotToken('telegram') */
+export async function getTelegramToken(): Promise<string | null> {
+  return getBotToken('telegram')
 }
 
 export async function reply(
@@ -24,7 +33,7 @@ export async function reply(
   text: string,
   replyMarkup?: TelegramReplyMarkup
 ): Promise<void> {
-  await sendMessage(ctx.token, ctx.chatId, text, { replyMarkup })
+  await sendMessage(ctx.platform, ctx.token, ctx.chatId, text, { replyMarkup })
 }
 
 export async function editReply(
@@ -34,9 +43,14 @@ export async function editReply(
   replyMarkup?: TelegramReplyMarkup
 ): Promise<void> {
   try {
-    await editMessageText(ctx.token, ctx.chatId, messageId, text, {
-      replyMarkup,
-    })
+    await editMessageText(
+      ctx.platform,
+      ctx.token,
+      ctx.chatId,
+      messageId,
+      text,
+      { replyMarkup }
+    )
   } catch {
     await reply(ctx, text, replyMarkup)
   }
@@ -48,7 +62,12 @@ export async function ackCallback(
   text?: string
 ): Promise<void> {
   try {
-    await answerCallbackQuery(ctx.token, callbackQueryId, text)
+    await answerCallbackQuery(
+      ctx.platform,
+      ctx.token,
+      callbackQueryId,
+      text
+    )
   } catch {
     // ignore stale callbacks
   }

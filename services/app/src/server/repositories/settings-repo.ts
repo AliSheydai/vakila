@@ -12,10 +12,33 @@ import {
   setWebhook,
   TelegramApiError,
 } from '../messenger/telegram/api'
-import { canUseTelegramWebhook } from '../messenger/telegram/webhook-url'
+import {
+  type BotApiPlatform,
+  botPlatformLabel,
+  botWebhookPath,
+  isBotApiPlatform,
+} from '../messenger/bot-platforms'
+import {
+  ensureTelegramProxy,
+  getActiveSocksEndpoint,
+  isProxyRunning,
+  parseVlessUri,
+  proxyConfigHint,
+  stopTelegramProxy,
+  testAndActivateVlessProxy,
+} from '../messenger/telegram/v2ray'
+import { canUseBotWebhook } from '../messenger/telegram/webhook-url'
 
 export type MessengerPlatform = 'telegram' | 'bale' | 'rubika'
 export type ClientNotificationChannel = 'in_app' | 'sms' | 'chatbot'
+
+export type MessengerProxyStatus = {
+  configured: boolean
+  hint: string | null
+  running: boolean
+  socksHost: string | null
+  socksPort: number | null
+}
 
 export type MessengerTokenStatus = {
   platform: MessengerPlatform
@@ -25,11 +48,19 @@ export type MessengerTokenStatus = {
   botUsername: string | null
   webhookSetAt: string | null
   updatedAt: string | null
+  /** Present for telegram only. */
+  proxy?: MessengerProxyStatus
 }
 
 export type NotificationDeliverySettings = {
   clientChannel: ClientNotificationChannel
   clientChatbotPlatform: MessengerPlatform | null
+  updatedAt: string | null
+}
+
+export type UserNotificationPreferences = {
+  channel: ClientNotificationChannel
+  chatbotPlatform: MessengerPlatform | null
   updatedAt: string | null
 }
 
@@ -47,12 +78,50 @@ type PlatformSettingsRow = {
   webhook_secret_cipher: string | null
   bot_username: string | null
   webhook_set_at: Date | string | null
+  proxy_config_cipher: string | null
   updated_at: Date | string
+}
+
+function buildProxyStatus(
+  cipher: string | null | undefined
+): MessengerProxyStatus {
+  if (!cipher) {
+    return {
+      configured: false,
+      hint: null,
+      running: false,
+      socksHost: null,
+      socksPort: null,
+    }
+  }
+
+  let hint: string | null = '••••'
+  try {
+    hint = proxyConfigHint(decryptSecret(cipher))
+  } catch {
+    hint = '••••'
+  }
+
+  const socks = getActiveSocksEndpoint()
+  const running = isProxyRunning()
+  return {
+    configured: true,
+    hint,
+    running,
+    socksHost: running ? (socks?.host ?? null) : null,
+    socksPort: running ? (socks?.port ?? null) : null,
+  }
 }
 
 type DeliveryRow = {
   client_channel: ClientNotificationChannel
   client_chatbot_platform: MessengerPlatform | null
+  updated_at: Date | string
+}
+
+type UserPreferencesRow = {
+  channel: ClientNotificationChannel
+  chatbot_platform: MessengerPlatform | null
   updated_at: Date | string
 }
 
@@ -74,7 +143,7 @@ export async function getMessengerTokensStatus(): Promise<
     ),
     query<PlatformSettingsRow>(
       `SELECT platform, enabled, webhook_secret_cipher, bot_username,
-              webhook_set_at, updated_at
+              webhook_set_at, proxy_config_cipher, updated_at
        FROM messenger_platform_settings`
     ),
   ])
@@ -89,6 +158,10 @@ export async function getMessengerTokensStatus(): Promise<
   return PLATFORMS.map((platform) => {
     const row = tokensByPlatform.get(platform)
     const settings = settingsByPlatform.get(platform)
+    const proxy =
+      platform === 'telegram'
+        ? buildProxyStatus(settings?.proxy_config_cipher)
+        : undefined
 
     if (!row) {
       return {
@@ -99,6 +172,7 @@ export async function getMessengerTokensStatus(): Promise<
         botUsername: settings?.bot_username ?? null,
         webhookSetAt: settings ? toIso(settings.webhook_set_at) : null,
         updatedAt: settings ? toIso(settings.updated_at) : null,
+        proxy,
       }
     }
 
@@ -118,8 +192,93 @@ export async function getMessengerTokensStatus(): Promise<
       botUsername: settings?.bot_username ?? null,
       webhookSetAt: settings ? toIso(settings.webhook_set_at) : null,
       updatedAt: toIso(row.updated_at),
+      proxy,
     }
   })
+}
+
+export async function getDecryptedTelegramProxyConfig(): Promise<string | null> {
+  const { rows } = await query<{ proxy_config_cipher: string | null }>(
+    `SELECT proxy_config_cipher FROM messenger_platform_settings
+     WHERE platform = 'telegram' LIMIT 1`
+  )
+  const cipher = rows[0]?.proxy_config_cipher
+  if (!cipher) return null
+  try {
+    return decryptSecret(cipher)
+  } catch {
+    return null
+  }
+}
+
+export async function upsertTelegramProxyConfig(
+  configUri: string,
+  userId: string,
+  options?: { activate?: boolean }
+): Promise<MessengerTokenStatus> {
+  const trimmed = configUri.trim()
+  const parsed = parseVlessUri(trimmed)
+  if (!parsed.ok) {
+    throw new Error(parsed.error)
+  }
+
+  if (options?.activate !== false) {
+    const test = await testAndActivateVlessProxy(trimmed)
+    if (!test.ok) {
+      throw new Error(test.error ?? 'تست کانفیگ V2Ray ناموفق بود.')
+    }
+  }
+
+  const cipher = encryptSecret(trimmed)
+  await query(
+    `INSERT INTO messenger_platform_settings (platform, enabled, proxy_config_cipher, updated_by)
+     VALUES ('telegram', FALSE, $1, $2)
+     ON CONFLICT (platform) DO UPDATE SET
+       proxy_config_cipher = EXCLUDED.proxy_config_cipher,
+       updated_at = NOW(),
+       updated_by = EXCLUDED.updated_by`,
+    [cipher, userId]
+  )
+
+  const statuses = await getMessengerTokensStatus()
+  const status = statuses.find((s) => s.platform === 'telegram')
+  if (!status) {
+    throw new Error('Failed to save telegram proxy config')
+  }
+  return status
+}
+
+export async function deleteTelegramProxyConfig(
+  userId: string
+): Promise<MessengerTokenStatus> {
+  await stopTelegramProxy().catch(() => undefined)
+  await query(
+    `INSERT INTO messenger_platform_settings (platform, enabled, proxy_config_cipher, updated_by)
+     VALUES ('telegram', FALSE, NULL, $1)
+     ON CONFLICT (platform) DO UPDATE SET
+       proxy_config_cipher = NULL,
+       updated_at = NOW(),
+       updated_by = EXCLUDED.updated_by`,
+    [userId]
+  )
+
+  const statuses = await getMessengerTokensStatus()
+  const status = statuses.find((s) => s.platform === 'telegram')
+  if (!status) {
+    throw new Error('Failed to delete telegram proxy config')
+  }
+  return status
+}
+
+/** Restore local SOCKS5 from DB on process boot (if a config is stored). */
+export async function startTelegramProxyFromSettings(): Promise<void> {
+  const config = await getDecryptedTelegramProxyConfig()
+  if (!config) return
+  try {
+    await ensureTelegramProxy(config)
+  } catch (error) {
+    console.error('[telegram-proxy] failed to start from settings', error)
+  }
 }
 
 export async function isMessengerTokenConfigured(
@@ -230,49 +389,77 @@ async function clearWebhookMetadata(
   )
 }
 
-async function teardownTelegramWebhook(userId: string): Promise<void> {
-  const token = await getDecryptedMessengerToken('telegram')
+async function teardownBotWebhook(
+  platform: BotApiPlatform,
+  userId: string
+): Promise<void> {
+  const token = await getDecryptedMessengerToken(platform)
   if (token) {
     try {
-      await deleteWebhook(token)
+      await deleteWebhook(platform, token)
     } catch (error) {
-      console.error('[messenger] deleteWebhook failed', error)
+      console.error(`[messenger] deleteWebhook(${platform}) failed`, error)
     }
   }
-  await clearWebhookMetadata('telegram', userId)
+  await clearWebhookMetadata(platform, userId)
 }
 
-async function activateTelegramWebhook(userId: string): Promise<{
+async function ensureStoredTelegramProxy(): Promise<void> {
+  const config = await getDecryptedTelegramProxyConfig()
+  if (!config) return
+  await ensureTelegramProxy(config)
+}
+
+async function activateBotWebhook(
+  platform: BotApiPlatform,
+  userId: string
+): Promise<{
   botUsername: string
   mode: 'webhook' | 'polling'
 }> {
-  const token = await getDecryptedMessengerToken('telegram')
+  const label = botPlatformLabel(platform)
+  const token = await getDecryptedMessengerToken(platform)
   if (!token) {
-    throw new Error('ابتدا توکن تلگرام را ذخیره کنید.')
+    throw new Error(`ابتدا توکن ${label} را ذخیره کنید.`)
+  }
+
+  // V2Ray/SOCKS is Telegram-only — Bale is reached directly.
+  if (platform === 'telegram') {
+    try {
+      await ensureStoredTelegramProxy()
+    } catch (error) {
+      throw new Error(
+        `راه‌اندازی پروکسی V2Ray ناموفق بود: ${
+          error instanceof Error ? error.message : 'خطای ناشناخته'
+        }`
+      )
+    }
   }
 
   let botUsername: string
   try {
-    const me = await getMe(token)
+    const me = await getMe(platform, token)
     botUsername = me.username ?? `id_${me.id}`
   } catch (error) {
     if (error instanceof TelegramApiError) {
       throw new Error(
-        `توکن تلگرام نامعتبر است یا به Bot API دسترسی نیست: ${error.description}`
+        `توکن ${label} نامعتبر است یا به Bot API دسترسی نیست: ${error.description}`
       )
     }
-    throw new Error('ارتباط با تلگرام برقرار نشد. دوباره تلاش کنید.')
+    throw new Error(`ارتباط با ${label} برقرار نشد. دوباره تلاش کنید.`)
   }
 
   const env = getEnv()
-  const useWebhook = canUseTelegramWebhook(env.APP_URL)
+  const useWebhook = canUseBotWebhook(env.APP_URL)
 
   if (!useWebhook) {
-    // Local / non-HTTPS: long-polling via server poller (getUpdates)
     try {
-      await deleteWebhook(token)
+      await deleteWebhook(platform, token)
     } catch (error) {
-      console.error('[messenger] deleteWebhook before polling failed', error)
+      console.error(
+        `[messenger] deleteWebhook before polling (${platform}) failed`,
+        error
+      )
     }
 
     await query(
@@ -286,32 +473,37 @@ async function activateTelegramWebhook(userId: string): Promise<{
          webhook_set_at = NULL,
          updated_at = NOW(),
          updated_by = EXCLUDED.updated_by`,
-      ['telegram', botUsername, userId]
+      [platform, botUsername, userId]
     )
 
     console.log(
-      `[messenger] Telegram bot @${botUsername} enabled in polling mode (APP_URL=${env.APP_URL} is not public HTTPS)`
+      `[messenger] ${label} bot @${botUsername} enabled in polling mode (APP_URL=${env.APP_URL} is not public HTTPS)`
     )
     return { botUsername, mode: 'polling' }
   }
 
   const secret = generateWebhookSecret()
-  const webhookUrl = `${env.APP_URL.replace(/\/$/, '')}/api/webhooks/telegram`
+  const base = env.APP_URL.replace(/\/$/, '')
+  // Bale has no documented secret_token header — put secret in the webhook URL.
+  const webhookUrl =
+    platform === 'bale'
+      ? `${base}${botWebhookPath(platform)}?secret=${encodeURIComponent(secret)}`
+      : `${base}${botWebhookPath(platform)}`
 
   try {
-    await setWebhook(token, {
+    await setWebhook(platform, token, {
       url: webhookUrl,
-      secretToken: secret,
+      secretToken: platform === 'telegram' ? secret : undefined,
       allowedUpdates: ['message', 'callback_query'],
       dropPendingUpdates: true,
     })
   } catch (error) {
     if (error instanceof TelegramApiError) {
       throw new Error(
-        `ثبت webhook تلگرام ناموفق بود: ${error.description}. آدرس عمومی HTTPS (${env.APP_URL}) را بررسی کنید.`
+        `ثبت webhook ${label} ناموفق بود: ${error.description}. آدرس عمومی HTTPS (${env.APP_URL}) را بررسی کنید.`
       )
     }
-    throw new Error('ثبت webhook تلگرام ناموفق بود.')
+    throw new Error(`ثبت webhook ${label} ناموفق بود.`)
   }
 
   await query(
@@ -325,7 +517,7 @@ async function activateTelegramWebhook(userId: string): Promise<{
        webhook_set_at = NOW(),
        updated_at = NOW(),
        updated_by = EXCLUDED.updated_by`,
-    ['telegram', encryptSecret(secret), botUsername, userId]
+    [platform, encryptSecret(secret), botUsername, userId]
   )
 
   return { botUsername, mode: 'webhook' }
@@ -338,8 +530,8 @@ export async function deleteMessengerToken(
   messenger: MessengerTokenStatus
   notificationDelivery?: NotificationDeliverySettings
 }> {
-  if (platform === 'telegram') {
-    await teardownTelegramWebhook(userId)
+  if (isBotApiPlatform(platform)) {
+    await teardownBotWebhook(platform, userId)
   }
 
   await query(`DELETE FROM messenger_bot_tokens WHERE platform = $1`, [platform])
@@ -361,9 +553,9 @@ export async function setMessengerEnabled(
       throw new Error('برای فعال‌سازی چت‌بات، ابتدا توکن را ثبت کنید.')
     }
 
-    if (platform === 'telegram') {
+    if (isBotApiPlatform(platform)) {
       try {
-        await activateTelegramWebhook(userId)
+        await activateBotWebhook(platform, userId)
       } catch (error) {
         await query(
           `INSERT INTO messenger_platform_settings (platform, enabled, updated_by)
@@ -377,7 +569,7 @@ export async function setMessengerEnabled(
         throw error
       }
     } else {
-      // Bale / Rubika runtime comes in a later phase — persist toggle only.
+      // Rubika runtime comes in a later phase — persist toggle only.
       await query(
         `INSERT INTO messenger_platform_settings (platform, enabled, updated_by)
          VALUES ($1, TRUE, $2)
@@ -389,8 +581,8 @@ export async function setMessengerEnabled(
       )
     }
   } else {
-    if (platform === 'telegram' && !options?.skipTeardown) {
-      await teardownTelegramWebhook(userId)
+    if (isBotApiPlatform(platform) && !options?.skipTeardown) {
+      await teardownBotWebhook(platform, userId)
     }
 
     await query(
@@ -403,8 +595,9 @@ export async function setMessengerEnabled(
       [platform, userId]
     )
 
-    if (platform === 'telegram') {
+    if (isBotApiPlatform(platform)) {
       await clearWebhookMetadata(platform, userId)
+      // Keep Telegram V2Ray config stored; SOCKS stays up for next enable / API tests.
     }
   }
 
@@ -478,4 +671,63 @@ export async function updateNotificationDeliverySettings(
   )
 
   return getNotificationDeliverySettings()
+}
+
+export async function getAvailableMessengerPlatforms(): Promise<
+  MessengerPlatform[]
+> {
+  const statuses = await getMessengerTokensStatus()
+  return statuses
+    .filter((s) => s.configured && s.enabled)
+    .map((s) => s.platform)
+}
+
+export async function getUserNotificationPreferences(
+  userId: string
+): Promise<UserNotificationPreferences> {
+  const { rows } = await query<UserPreferencesRow>(
+    `SELECT channel, chatbot_platform, updated_at
+     FROM user_notification_preferences
+     WHERE user_id = $1
+     LIMIT 1`,
+    [userId]
+  )
+
+  const row = rows[0]
+  if (!row) {
+    return {
+      channel: 'in_app',
+      chatbotPlatform: null,
+      updatedAt: null,
+    }
+  }
+
+  return {
+    channel: row.channel,
+    chatbotPlatform: row.chatbot_platform,
+    updatedAt: toIso(row.updated_at),
+  }
+}
+
+export async function updateUserNotificationPreferences(
+  userId: string,
+  input: {
+    channel: ClientNotificationChannel
+    chatbotPlatform?: MessengerPlatform | null
+  }
+): Promise<UserNotificationPreferences> {
+  const chatbotPlatform =
+    input.channel === 'chatbot' ? (input.chatbotPlatform ?? null) : null
+
+  await query(
+    `INSERT INTO user_notification_preferences (user_id, channel, chatbot_platform)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id) DO UPDATE SET
+       channel = EXCLUDED.channel,
+       chatbot_platform = EXCLUDED.chatbot_platform,
+       updated_at = NOW()`,
+    [userId, input.channel, chatbotPlatform]
+  )
+
+  return getUserNotificationPreferences(userId)
 }

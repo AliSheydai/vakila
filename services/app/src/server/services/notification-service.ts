@@ -37,10 +37,10 @@ async function notifyIfRecipient(
       ...input,
       recipientId,
     })
-    const { pushTelegramNotification } = await import(
+    const { pushMessengerNotifications } = await import(
       '../messenger/telegram/notify'
     )
-    await pushTelegramNotification({
+    await pushMessengerNotifications({
       recipientId,
       title: input.title,
       body: input.body,

@@ -1,21 +1,29 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import type { BotApiPlatform } from '@/server/messenger/bot-platforms'
 import { getEnv } from '@/server/env'
 
-/** Telegram start payload: A-Z a-z 0-9 _ - max 64 chars */
+/** Bot start payload: A-Z a-z 0-9 _ - max 64 chars */
 const PAYLOAD_TTL_SECONDS = 60 * 60 * 24 // 24h — reusable while browsing dashboard
 
-function hmacPrefix(message: string, bytes = 8): string {
+function hmacPrefix(
+  platform: BotApiPlatform,
+  message: string,
+  bytes = 8
+): string {
+  // Keep legacy `tg-deeplink:` so existing dashboard Telegram links stay valid.
+  const namespace = platform === 'telegram' ? 'tg-deeplink' : `${platform}-deeplink`
   return createHmac('sha256', getEnv().SESSION_SECRET)
-    .update(`tg-deeplink:${message}`, 'utf8')
+    .update(`${namespace}:${message}`, 'utf8')
     .digest('base64url')
     .slice(0, bytes)
 }
 
 /**
  * Build a signed start payload bound to user id (not phone — avoids leaking PII).
- * Format: `{uuid32}{expBase36}_{sig}` — fits Telegram's 64-char limit.
+ * Format: `{uuid32}{expBase36}_{sig}` — fits Telegram/Bale 64-char limit.
  */
-export function createTelegramStartPayload(
+export function createBotStartPayload(
+  platform: BotApiPlatform,
   userId: string,
   ttlSeconds = PAYLOAD_TTL_SECONDS
 ): string {
@@ -25,7 +33,7 @@ export function createTelegramStartPayload(
   }
   const exp = Math.floor(Date.now() / 1000) + ttlSeconds
   const expPart = exp.toString(36)
-  const sig = hmacPrefix(`${id}.${exp}`)
+  const sig = hmacPrefix(platform, `${id}.${exp}`)
   const payload = `${id}${expPart}_${sig}`
   if (payload.length > 64) {
     throw new Error('توکن ورود بات بیش از حد طولانی است.')
@@ -33,7 +41,10 @@ export function createTelegramStartPayload(
   return payload
 }
 
-export function verifyTelegramStartPayload(payload: string): string | null {
+export function verifyBotStartPayload(
+  platform: BotApiPlatform,
+  payload: string
+): string | null {
   const trimmed = payload.trim()
   if (!/^[A-Za-z0-9_-]{20,64}$/.test(trimmed)) return null
 
@@ -51,7 +62,7 @@ export function verifyTelegramStartPayload(payload: string): string | null {
   const exp = Number.parseInt(expPart, 36)
   if (!Number.isFinite(exp) || exp * 1000 < Date.now()) return null
 
-  const expected = hmacPrefix(`${id}.${exp}`)
+  const expected = hmacPrefix(platform, `${id}.${exp}`)
   try {
     const a = Buffer.from(sig)
     const b = Buffer.from(expected)
@@ -60,14 +71,53 @@ export function verifyTelegramStartPayload(payload: string): string | null {
     return null
   }
 
-  // Restore UUID dashed form
   return `${id.slice(0, 8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20)}`
+}
+
+export function buildBotDeepLink(
+  platform: BotApiPlatform,
+  botUsername: string,
+  startPayload: string
+): string {
+  const username = botUsername.replace(/^@/, '')
+  if (platform === 'bale') {
+    return `https://ble.ir/${username}?start=${encodeURIComponent(startPayload)}`
+  }
+  return `https://t.me/${username}?start=${encodeURIComponent(startPayload)}`
+}
+
+export function createTelegramStartPayload(
+  userId: string,
+  ttlSeconds = PAYLOAD_TTL_SECONDS
+): string {
+  return createBotStartPayload('telegram', userId, ttlSeconds)
+}
+
+export function verifyTelegramStartPayload(payload: string): string | null {
+  return verifyBotStartPayload('telegram', payload)
 }
 
 export function buildTelegramDeepLink(
   botUsername: string,
   startPayload: string
 ): string {
-  const username = botUsername.replace(/^@/, '')
-  return `https://t.me/${username}?start=${encodeURIComponent(startPayload)}`
+  return buildBotDeepLink('telegram', botUsername, startPayload)
+}
+
+export function createBaleStartPayload(
+  userId: string,
+  ttlSeconds = PAYLOAD_TTL_SECONDS
+): string {
+  return createBotStartPayload('bale', userId, ttlSeconds)
+}
+
+export function verifyBaleStartPayload(payload: string): string | null {
+  return verifyBotStartPayload('bale', payload)
+}
+
+export function buildBaleDeepLink(
+  botUsername: string,
+  startPayload: string
+): string {
+  return buildBotDeepLink('bale', botUsername, startPayload)
 }

@@ -1,7 +1,8 @@
+import type { BotApiPlatform } from '@/server/messenger/bot-platforms'
 import * as linksRepo from '@/server/repositories/messenger-links-repo'
 import * as settingsRepo from '@/server/repositories/settings-repo'
 import type { TelegramUpdate } from './api'
-import { type BotContext, getTelegramToken, isLawyerRole } from './context'
+import { type BotContext, getBotToken, isLawyerRole } from './context'
 import { tryDeepLinkLogin } from './deep-link-auth'
 import { allowRate } from './rate-limit'
 import {
@@ -20,13 +21,16 @@ import {
 } from './handlers/lawyer'
 
 /**
- * Process a Telegram update. Always safe to call; errors are logged.
+ * Process a Bot API update for Telegram or Bale. Always safe to call; errors are logged.
  */
-export async function handleTelegramUpdate(update: TelegramUpdate): Promise<void> {
-  const token = await getTelegramToken()
+export async function handleBotUpdate(
+  platform: BotApiPlatform,
+  update: TelegramUpdate
+): Promise<void> {
+  const token = await getBotToken(platform)
   if (!token) return
 
-  const ready = await settingsRepo.isMessengerReady('telegram')
+  const ready = await settingsRepo.isMessengerReady(platform)
   if (!ready) return
 
   const message = update.message
@@ -37,20 +41,23 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<void
   )
   if (!chatId) return
 
-  if (!allowRate(`tg:${chatId}`, 40, 60_000)) {
+  if (!allowRate(`${platform}:${chatId}`, 40, 60_000)) {
     return
   }
 
-  const linked = await linksRepo.getActiveLinkByChat('telegram', chatId)
+  const linked = await linksRepo.getActiveLinkByChat(platform, chatId)
   if (linked) {
-    await linksRepo.touchLink('telegram', chatId)
+    await linksRepo.touchLink(platform, chatId)
   }
 
   const ctx: BotContext = {
+    platform,
     token,
     chatId,
     user: linked?.user ?? null,
   }
+
+  const logTag = `[${platform}-bot]`
 
   try {
     if (callback) {
@@ -75,7 +82,6 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<void
       if (/^\/start(?:@\w+)?\s+\S+/i.test(text)) {
         const result = await tryDeepLinkLogin(ctx, text)
         if (result === 'linked' || result === 'invalid') return
-        // 'none' should not happen when regex matched a payload
       }
 
       if (!ctx.user) {
@@ -96,15 +102,28 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<void
       }
     }
   } catch (error) {
-    console.error('[telegram-bot] handler error', error)
+    console.error(`${logTag} handler error`, error)
     try {
       const { reply } = await import('./context')
       await reply(
         ctx,
-        'خطایی رخ داد. دوباره از منوی اصلی تلاش کنید.'
+        `خطایی رخ داد. دوباره از منوی اصلی تلاش کنید.`
       )
     } catch {
       // ignore
     }
   }
+}
+
+/** @deprecated Prefer handleBotUpdate('telegram', update) */
+export async function handleTelegramUpdate(
+  update: TelegramUpdate
+): Promise<void> {
+  return handleBotUpdate('telegram', update)
+}
+
+export async function handleBaleUpdate(
+  update: TelegramUpdate
+): Promise<void> {
+  return handleBotUpdate('bale', update)
 }

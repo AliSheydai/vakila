@@ -20,8 +20,6 @@ import {
   phoneRequestKeyboard,
 } from '../keyboards'
 
-const PLATFORM = 'telegram' as const
-
 export async function sendWelcome(
   ctx: BotContext,
   user: User | null
@@ -46,7 +44,7 @@ export async function sendWelcome(
 }
 
 export async function startLinkFlow(ctx: BotContext): Promise<void> {
-  await conversationsRepo.setConversation(PLATFORM, ctx.chatId, 'await_phone', {})
+  await conversationsRepo.setConversation(ctx.platform, ctx.chatId, 'await_phone', {})
   await reply(
     ctx,
     'شماره موبایل ایران خود را ارسال کنید (مثلاً ۰۹۱۲۱۲۳۴۵۶۷) یا دکمهٔ زیر را بزنید.',
@@ -55,8 +53,8 @@ export async function startLinkFlow(ctx: BotContext): Promise<void> {
 }
 
 export async function unlinkAccount(ctx: BotContext): Promise<void> {
-  await linksRepo.revokeLink(PLATFORM, ctx.chatId)
-  await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+  await linksRepo.revokeLink(ctx.platform, ctx.chatId)
+  await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
   ctx.user = null
   await reply(
     ctx,
@@ -83,7 +81,7 @@ export async function handleGuestMessage(
 ): Promise<boolean> {
   const text = message.text?.trim() ?? ''
   const conversation = await conversationsRepo.getConversation(
-    PLATFORM,
+    ctx.platform,
     ctx.chatId
   )
 
@@ -98,7 +96,7 @@ export async function handleGuestMessage(
   }
 
   if (text === BTN.cancel) {
-    await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+    await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
     await sendWelcome(ctx, null)
     return true
   }
@@ -129,7 +127,7 @@ export async function handleGuestMessage(
       return true
     }
 
-    await conversationsRepo.setConversation(PLATFORM, ctx.chatId, 'await_otp', {
+    await conversationsRepo.setConversation(ctx.platform, ctx.chatId, 'await_otp', {
       phone,
     })
     await reply(
@@ -155,12 +153,12 @@ export async function handleGuestMessage(
     try {
       const result = await verifyOtp(phone, text)
       await linksRepo.linkChatToUser({
-        platform: PLATFORM,
+        platform: ctx.platform,
         chatId: ctx.chatId,
         userId: result.user.id,
         phone: result.user.phone,
       })
-      await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+      await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
       ctx.user = result.user
 
       let extra = ''

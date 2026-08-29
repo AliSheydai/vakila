@@ -7,13 +7,11 @@ import {
   isLawyerRole,
   reply,
 } from './context'
-import { verifyTelegramStartPayload } from './deep-link'
+import { verifyBotStartPayload } from './deep-link'
 import {
   clientMainKeyboard,
   lawyerMainKeyboard,
 } from './keyboards'
-
-const PLATFORM = 'telegram' as const
 
 export type DeepLinkResult = 'linked' | 'invalid' | 'none'
 
@@ -29,7 +27,7 @@ export async function tryDeepLinkLogin(
   const rawPayload = match?.[1]?.trim()
   if (!rawPayload) return 'none'
 
-  const userId = verifyTelegramStartPayload(rawPayload)
+  const userId = verifyBotStartPayload(ctx.platform, rawPayload)
   if (!userId) {
     await reply(
       ctx,
@@ -45,12 +43,12 @@ export async function tryDeepLinkLogin(
   }
 
   await linksRepo.linkChatToUser({
-    platform: PLATFORM,
+    platform: ctx.platform,
     chatId: ctx.chatId,
     userId: user.id,
     phone: user.phone,
   })
-  await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+  await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
   ctx.user = user
 
   const menu = isLawyerRole(user.role)

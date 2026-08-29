@@ -1,5 +1,10 @@
-import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
+import { SettingsClientPage } from '@/features/settings-client'
 
 export default function Page() {
-  redirect('/account')
+  return (
+    <Suspense fallback={null}>
+      <SettingsClientPage />
+    </Suspense>
+  )
 }

@@ -3,9 +3,14 @@ import { parse } from 'node:url'
 import next from 'next'
 import { WebSocketServer } from 'ws'
 import { getEnv } from './src/server/env'
-import { startTelegramPoller, stopTelegramPoller } from './src/server/messenger/telegram/poller'
+import {
+  startAllBotPollers,
+  stopAllBotPollers,
+} from './src/server/messenger/telegram/poller'
+import { stopTelegramProxy } from './src/server/messenger/telegram/v2ray'
 import { PgListener } from './src/server/realtime/pg-listener'
 import { WsHub } from './src/server/realtime/ws-hub'
+import * as settingsRepo from './src/server/repositories/settings-repo'
 import { startEventReminderScheduler } from './src/server/services/event-reminder-service'
 
 const env = getEnv()
@@ -56,12 +61,19 @@ try {
 server.listen(port, hostname, () => {
   console.log(`> Ready on http://${hostname}:${port}`)
   startEventReminderScheduler()
-  startTelegramPoller()
+  void settingsRepo
+    .startTelegramProxyFromSettings()
+    .then(() => startAllBotPollers())
+    .catch((error) => {
+      console.error('[server] telegram proxy bootstrap failed', error)
+      startAllBotPollers()
+    })
 })
 
 async function shutdown(): Promise<void> {
   hub.stopKeepalive()
-  await stopTelegramPoller()
+  await stopAllBotPollers()
+  await stopTelegramProxy().catch(() => undefined)
   await listener.stop()
   await new Promise<void>((resolve, reject) => {
     server.close((err) => (err ? reject(err) : resolve()))

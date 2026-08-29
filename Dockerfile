@@ -29,7 +29,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN addgroup -g 1001 -S nodejs \
+# unzip + gcompat: Xray linux-64 binary for Telegram VLESS→SOCKS5 proxy
+RUN apk add --no-cache unzip curl gcompat \
+  && addgroup -g 1001 -S nodejs \
   && adduser -S -u 1001 -G nodejs nextjs \
   && corepack enable && corepack prepare pnpm@latest --activate
 
@@ -42,6 +44,18 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/next.config.ts ./next.config.ts
+
+# Prefetch Xray-core so the Telegram VLESS→SOCKS5 proxy works offline at runtime
+ARG XRAY_VERSION=25.3.6
+RUN mkdir -p /app/.xray \
+  && curl -fsSL -o /tmp/xray.zip \
+    "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-64.zip" \
+  && unzip -o /tmp/xray.zip -d /tmp/xray-extract \
+  && mv /tmp/xray-extract/xray /app/.xray/xray \
+  && chmod +x /app/.xray/xray \
+  && echo "${XRAY_VERSION}" > /app/.xray/VERSION \
+  && rm -rf /tmp/xray.zip /tmp/xray-extract \
+  && chown -R nextjs:nodejs /app
 
 USER nextjs
 EXPOSE 3000

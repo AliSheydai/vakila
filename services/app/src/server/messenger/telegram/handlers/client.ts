@@ -28,11 +28,10 @@ import {
 } from '../keyboards'
 import { unlinkAccount } from './guest'
 
-const PLATFORM = 'telegram' as const
 const PAGE_SIZE = 5
 
 export async function sendClientHome(ctx: BotContext, user: User): Promise<void> {
-  await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+  await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
   await reply(
     ctx,
     `منوی موکل — ${esc(displayName(user))}\nیکی از گزینه‌ها را انتخاب کنید.`,
@@ -227,7 +226,7 @@ async function showNotifications(ctx: BotContext, user: User): Promise<void> {
 
 async function startNewCase(ctx: BotContext): Promise<void> {
   await conversationsRepo.setConversation(
-    PLATFORM,
+    ctx.platform,
     ctx.chatId,
     'client_new_case_title',
     {}
@@ -242,7 +241,7 @@ export async function handleClientMessage(
 ): Promise<boolean> {
   const text = message.text?.trim() ?? ''
   const conversation = await conversationsRepo.getConversation(
-    PLATFORM,
+    ctx.platform,
     ctx.chatId
   )
 
@@ -255,7 +254,7 @@ export async function handleClientMessage(
     return true
   }
   if (text === BTN.cancel) {
-    await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+    await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
     await sendClientHome(ctx, user)
     return true
   }
@@ -266,7 +265,7 @@ export async function handleClientMessage(
       return true
     }
     await conversationsRepo.setConversation(
-      PLATFORM,
+      ctx.platform,
       ctx.chatId,
       'client_new_case_area',
       { title: text }
@@ -299,7 +298,7 @@ export async function handleClientMessage(
         descriptionHtml:
           text && text !== '-' ? `<p>${esc(text)}</p>` : undefined,
       })
-      await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+      await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
       await reply(
         ctx,
         `پرونده «${esc(created.title)}» ثبت شد.`,
@@ -309,7 +308,7 @@ export async function handleClientMessage(
       const msg =
         error instanceof Error ? error.message : 'ثبت پرونده ناموفق بود.'
       await reply(ctx, msg, clientMainKeyboard())
-      await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+      await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
     }
     return true
   }
@@ -324,13 +323,13 @@ export async function handleClientMessage(
       await portalRepo.addPortalComment(user, caseId, {
         bodyHtml: `<p>${esc(text)}</p>`,
       })
-      await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+      await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
       await reply(ctx, 'نظر شما ثبت شد.', clientMainKeyboard())
     } catch (error) {
       const msg =
         error instanceof Error ? error.message : 'ثبت نظر ناموفق بود.'
       await reply(ctx, msg, clientMainKeyboard())
-      await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+      await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
     }
     return true
   }
@@ -381,7 +380,7 @@ export async function handleClientCallback(
     case 'ccc':
       if (!a) return true
       await conversationsRepo.setConversation(
-        PLATFORM,
+        ctx.platform,
         ctx.chatId,
         'client_add_comment',
         { caseId: a }
@@ -391,7 +390,7 @@ export async function handleClientCallback(
     case 'cca': {
       if (!a || !(LEGAL_AREAS as readonly string[]).includes(a)) return true
       const conversation = await conversationsRepo.getConversation(
-        PLATFORM,
+        ctx.platform,
         ctx.chatId
       )
       const title = String(conversation.context.title ?? '')
@@ -400,7 +399,7 @@ export async function handleClientCallback(
         return true
       }
       await conversationsRepo.setConversation(
-        PLATFORM,
+        ctx.platform,
         ctx.chatId,
         'client_new_case_desc',
         { title, legalArea: a }

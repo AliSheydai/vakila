@@ -61,6 +61,11 @@ export const sidebarData: SidebarData = {
           url: '/payments',
           icon: CreditCard,
         },
+        {
+          title: 'تنظیمات',
+          url: '/settings',
+          icon: Settings,
+        },
       ],
     },
   ],

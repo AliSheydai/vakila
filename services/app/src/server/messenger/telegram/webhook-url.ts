@@ -1,8 +1,8 @@
 /**
- * Telegram Bot API rejects webhook URLs that are not public HTTPS
- * (localhost, private IPs, plain HTTP).
+ * Bot API webhook URLs must be public HTTPS (localhost, private IPs, plain HTTP
+ * are rejected). Shared by Telegram and Bale.
  */
-export function canUseTelegramWebhook(appUrl: string): boolean {
+export function canUseBotWebhook(appUrl: string): boolean {
   try {
     const url = new URL(appUrl)
     if (url.protocol !== 'https:') return false
@@ -24,4 +24,9 @@ export function canUseTelegramWebhook(appUrl: string): boolean {
   } catch {
     return false
   }
+}
+
+/** @deprecated Prefer canUseBotWebhook */
+export function canUseTelegramWebhook(appUrl: string): boolean {
+  return canUseBotWebhook(appUrl)
 }

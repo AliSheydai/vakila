@@ -11,7 +11,7 @@ const AUTH_PAGES = new Set([
   '/sign-in-2',
 ])
 
-const CLIENT_PREFIXES = ['/dashboard', '/cases', '/sessions', '/payments']
+const CLIENT_PREFIXES = ['/dashboard', '/cases', '/sessions', '/payments', '/settings']
 
 function isStaticOrPublic(pathname: string): boolean {
   if (
@@ -110,8 +110,11 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname === '/settings' || pathname.startsWith('/settings/')) {
-    const target = isLawyer(claims.role) ? '/admin/account' : '/account'
-    return NextResponse.redirect(new URL(target, request.url))
+    if (isLawyer(claims.role)) {
+      const target =
+        claims.role === 'super_admin' ? '/admin/settings' : '/admin/account'
+      return NextResponse.redirect(new URL(target, request.url))
+    }
   }
 
   if (

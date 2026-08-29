@@ -39,7 +39,6 @@ import {
 } from '../keyboards'
 import { unlinkAccount } from './guest'
 
-const PLATFORM = 'telegram' as const
 const PAGE_SIZE = 5
 
 function ownerId(user: User): string {
@@ -47,7 +46,7 @@ function ownerId(user: User): string {
 }
 
 export async function sendLawyerHome(ctx: BotContext, user: User): Promise<void> {
-  await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+  await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
   await reply(
     ctx,
     `منوی وکیل — ${esc(displayName(user))}\nیکی از گزینه‌ها را انتخاب کنید.`,
@@ -421,7 +420,7 @@ export async function handleLawyerMessage(
 ): Promise<boolean> {
   const text = message.text?.trim() ?? ''
   const conversation = await conversationsRepo.getConversation(
-    PLATFORM,
+    ctx.platform,
     ctx.chatId
   )
 
@@ -434,7 +433,7 @@ export async function handleLawyerMessage(
     return true
   }
   if (text === BTN.cancel) {
-    await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+    await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
     await sendLawyerHome(ctx, user)
     return true
   }
@@ -452,7 +451,7 @@ export async function handleLawyerMessage(
       authorName: displayName(user),
       authorId: user.id,
     })
-    await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+    await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
     if (!comment) {
       await reply(ctx, 'ثبت نظر ناموفق بود.', lawyerMainKeyboard())
     } else {
@@ -477,7 +476,7 @@ export async function handleLawyerMessage(
       source: 'manual',
       status: 'completed',
     })
-    await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+    await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
     await reply(
       ctx,
       payment ? `پرداخت ${formatMoney(amount)} ثبت شد.` : 'ثبت پرداخت ناموفق بود.',
@@ -494,7 +493,7 @@ export async function handleLawyerMessage(
       return true
     }
     await conversationsRepo.setConversation(
-      PLATFORM,
+      ctx.platform,
       ctx.chatId,
       'lawyer_add_expense_amount',
       { caseId, title: text }
@@ -517,7 +516,7 @@ export async function handleLawyerMessage(
       amount,
       date: new Date().toISOString().slice(0, 10),
     })
-    await conversationsRepo.clearConversation(PLATFORM, ctx.chatId)
+    await conversationsRepo.clearConversation(ctx.platform, ctx.chatId)
     await reply(
       ctx,
       expense ? `هزینه ثبت شد.` : 'ثبت هزینه ناموفق بود.',
@@ -597,7 +596,7 @@ export async function handleLawyerCallback(
     case 'lcc':
       if (!a) return true
       await conversationsRepo.setConversation(
-        PLATFORM,
+        ctx.platform,
         ctx.chatId,
         'lawyer_add_comment',
         { caseId: a }
@@ -607,7 +606,7 @@ export async function handleLawyerCallback(
     case 'lcpay':
       if (!a) return true
       await conversationsRepo.setConversation(
-        PLATFORM,
+        ctx.platform,
         ctx.chatId,
         'lawyer_add_payment',
         { caseId: a }
@@ -617,7 +616,7 @@ export async function handleLawyerCallback(
     case 'lcexp':
       if (!a) return true
       await conversationsRepo.setConversation(
-        PLATFORM,
+        ctx.platform,
         ctx.chatId,
         'lawyer_add_expense_title',
         { caseId: a }

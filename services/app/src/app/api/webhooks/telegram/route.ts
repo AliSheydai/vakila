@@ -8,8 +8,6 @@ export const runtime = 'nodejs'
 
 /**
  * Telegram Bot API webhook. Authenticated via X-Telegram-Bot-Api-Secret-Token.
- * Always returns 200 for valid/invalid secrets that look like bots probing —
- * invalid secret still 401 to avoid accepting forged updates.
  */
 export async function POST(request: Request) {
   try {
@@ -29,12 +27,10 @@ export async function POST(request: Request) {
       return new NextResponse(null, { status: 200 })
     }
 
-    // Process inline; Telegram retries on non-2xx / timeout.
     await handleTelegramUpdate(update)
     return new NextResponse(null, { status: 200 })
   } catch (error) {
     console.error('[telegram-webhook]', error)
-    // Still 200 to avoid endless Telegram retries on our bugs
     return new NextResponse(null, { status: 200 })
   }
 }

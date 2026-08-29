@@ -58,6 +58,16 @@ export function MessengerTokenCard({
   const [deleting, setDeleting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
+  const [proxyConfig, setProxyConfig] = useState('')
+  const [showProxy, setShowProxy] = useState(false)
+  const [testingProxy, setTestingProxy] = useState(false)
+  const [savingProxy, setSavingProxy] = useState(false)
+  const [deletingProxy, setDeletingProxy] = useState(false)
+  const [lastSocks, setLastSocks] = useState<string | null>(null)
+
+  const isTelegram = platform === 'telegram'
+  const proxy = status.proxy
+
   const tokenValidation = useMemo(() => {
     const trimmed = token.trim()
     if (!trimmed) return null
@@ -67,6 +77,7 @@ export function MessengerTokenCard({
   const tokenError =
     tokenValidation && !tokenValidation.valid ? tokenValidation.message : null
   const canSave = Boolean(token.trim() && tokenValidation?.valid)
+  const canSaveProxy = Boolean(proxyConfig.trim())
 
   async function handleToggleEnabled() {
     const nextEnabled = !status.enabled
@@ -89,7 +100,8 @@ export function MessengerTokenCard({
     onSaved(result.data.messenger, result.data.notificationDelivery)
     const modeHint =
       nextEnabled &&
-      result.data.messenger.platform === 'telegram' &&
+      (result.data.messenger.platform === 'telegram' ||
+        result.data.messenger.platform === 'bale') &&
       !result.data.messenger.webhookSetAt
         ? ' (حالت توسعه / polling)'
         : ''
@@ -159,6 +171,93 @@ export function MessengerTokenCard({
         'کانال اعلان چت‌بات به «فقط داخل پورتال» تغییر کرد، چون توکن این پیام‌رسان حذف شد.'
       )
     }
+  }
+
+  async function handleTestProxy() {
+    const config = proxyConfig.trim()
+    setTestingProxy(true)
+    const result = await api<{
+      socks?: { host: string; port: number; url: string }
+      latencyMs?: number
+      remark?: string
+    }>('/api/settings/messengers/proxy/test', {
+      method: 'POST',
+      body: config ? { config, keepAlive: false } : { keepAlive: false },
+    })
+    setTestingProxy(false)
+
+    if (!result.ok) {
+      setLastSocks(null)
+      toast.error(result.error)
+      return
+    }
+
+    const socks = result.data.socks
+    const socksLabel = socks ? `${socks.host}:${socks.port}` : null
+    setLastSocks(socksLabel)
+    toast.success(
+      socksLabel
+        ? `کانفیگ معتبر است. SOCKS5: ${socksLabel}${
+            result.data.latencyMs != null
+              ? ` · ${result.data.latencyMs}ms`
+              : ''
+          }`
+        : 'کانفیگ معتبر است.'
+    )
+  }
+
+  async function handleSaveProxy() {
+    const config = proxyConfig.trim()
+    if (!config) {
+      toast.error('لینک کانفیگ V2Ray را وارد کنید.')
+      return
+    }
+
+    setSavingProxy(true)
+    const result = await api<{ messenger: MessengerTokenStatus }>(
+      '/api/settings/messengers/proxy',
+      {
+        method: 'PATCH',
+        body: { config, activate: true },
+      }
+    )
+    setSavingProxy(false)
+
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+
+    setProxyConfig('')
+    onSaved(result.data.messenger)
+    const p = result.data.messenger.proxy
+    if (p?.running && p.socksHost && p.socksPort) {
+      setLastSocks(`${p.socksHost}:${p.socksPort}`)
+      toast.success(
+        `پروکسی ذخیره و فعال شد (SOCKS5 ${p.socksHost}:${p.socksPort}).`
+      )
+    } else {
+      toast.success('کانفیگ پروکسی ذخیره شد.')
+    }
+  }
+
+  async function handleDeleteProxy() {
+    setDeletingProxy(true)
+    const result = await api<{ messenger: MessengerTokenStatus }>(
+      '/api/settings/messengers/proxy',
+      { method: 'DELETE' }
+    )
+    setDeletingProxy(false)
+
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+
+    setProxyConfig('')
+    setLastSocks(null)
+    onSaved(result.data.messenger)
+    toast.success('کانفیگ پروکسی حذف شد.')
   }
 
   return (
@@ -307,6 +406,128 @@ export function MessengerTokenCard({
               <p className='text-xs text-destructive'>{tokenError}</p>
             ) : null}
           </div>
+
+          {isTelegram ? (
+            <div className='space-y-3 rounded-lg border border-sidebar-border bg-muted/20 p-3'>
+              <div className='space-y-1'>
+                <Label htmlFor='telegram-v2ray-config'>
+                  کانفیگ V2Ray (VLESS)
+                </Label>
+                <p className='text-xs leading-relaxed text-muted-foreground'>
+                  لینک اشتراک vless:// را وارد کنید تا یک پروکسی SOCKS5 محلی
+                  ساخته شود و درخواست‌های Bot API از آن عبور کنند.
+                </p>
+              </div>
+
+              {proxy?.configured ? (
+                <p className='text-xs text-muted-foreground'>
+                  کانفیگ فعلی:{' '}
+                  <span dir='ltr' className='font-mono text-foreground'>
+                    {proxy.hint}
+                  </span>
+                  {proxy.running && proxy.socksHost && proxy.socksPort ? (
+                    <span className='ms-2 text-emerald-600 dark:text-emerald-400'>
+                      · SOCKS5 {proxy.socksHost}:{proxy.socksPort}
+                    </span>
+                  ) : (
+                    <span className='ms-2'>· پروکسی غیرفعال</span>
+                  )}
+                </p>
+              ) : null}
+
+              {lastSocks && !proxy?.running ? (
+                <p className='text-xs text-muted-foreground'>
+                  آخرین تست موفق:{' '}
+                  <span dir='ltr' className='font-mono text-foreground'>
+                    SOCKS5 {lastSocks}
+                  </span>
+                </p>
+              ) : null}
+
+              <div className='flex gap-2'>
+                <Input
+                  id='telegram-v2ray-config'
+                  dir='ltr'
+                  type={showProxy ? 'text' : 'password'}
+                  value={proxyConfig}
+                  onChange={(e) => setProxyConfig(e.target.value)}
+                  placeholder={
+                    proxy?.configured
+                      ? 'vless://uuid@host:port?…'
+                      : 'vless://…'
+                  }
+                  className='font-mono text-sm'
+                  autoComplete='off'
+                />
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='icon'
+                  className='shrink-0'
+                  onClick={() => setShowProxy((v) => !v)}
+                  aria-label={
+                    showProxy ? 'مخفی کردن کانفیگ' : 'نمایش کانفیگ'
+                  }
+                >
+                  {showProxy ? (
+                    <EyeOff className='size-4' />
+                  ) : (
+                    <Eye className='size-4' />
+                  )}
+                </Button>
+              </div>
+
+              <div className='flex flex-wrap gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  disabled={
+                    testingProxy ||
+                    savingProxy ||
+                    deletingProxy ||
+                    (!proxyConfig.trim() && !proxy?.configured)
+                  }
+                  onClick={() => void handleTestProxy()}
+                >
+                  {testingProxy ? (
+                    <Loader2 className='size-4 animate-spin' />
+                  ) : null}
+                  تست کانفیگ
+                </Button>
+                <Button
+                  type='button'
+                  disabled={
+                    savingProxy ||
+                    testingProxy ||
+                    deletingProxy ||
+                    !canSaveProxy
+                  }
+                  onClick={() => void handleSaveProxy()}
+                >
+                  {savingProxy ? (
+                    <Loader2 className='size-4 animate-spin' />
+                  ) : null}
+                  ذخیره و فعال‌سازی پروکسی
+                </Button>
+                {proxy?.configured ? (
+                  <Button
+                    type='button'
+                    variant='outline'
+                    className='border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive'
+                    disabled={deletingProxy || savingProxy || testingProxy}
+                    onClick={() => void handleDeleteProxy()}
+                  >
+                    {deletingProxy ? (
+                      <Loader2 className='size-4 animate-spin' />
+                    ) : (
+                      <Trash2 className='size-4' />
+                    )}
+                    حذف پروکسی
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </CardContent>
 
         <CardFooter className='flex flex-wrap gap-2 border-t border-sidebar-border pt-4 sm:justify-between'>
@@ -324,7 +545,10 @@ export function MessengerTokenCard({
           ) : null}
           <Button
             type='button'
-            className={cn('w-full sm:w-auto', !status.configured && 'sm:ms-auto')}
+            className={cn(
+              'w-full sm:w-auto',
+              !status.configured && 'sm:ms-auto'
+            )}
             onClick={() => void handleSave()}
             disabled={saving || deleting || !canSave}
           >

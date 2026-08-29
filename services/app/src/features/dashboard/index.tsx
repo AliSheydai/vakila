@@ -4,14 +4,14 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { TelegramBotEntry } from '@/components/messenger/telegram-bot-entry'
+import { ChatbotEntries } from '@/components/messenger/chatbot-entries'
 
 export function Dashboard() {
   return (
     <>
       <Header>
         <div className='ms-auto flex items-center gap-3'>
-          <TelegramBotEntry variant='compact' />
+          <ChatbotEntries variant='compact' />
           <Search />
           <ThemeSwitch />
         </div>
@@ -23,7 +23,7 @@ export function Dashboard() {
             خوش آمدید
           </h1>
           <div className='w-full max-w-2xl'>
-            <TelegramBotEntry />
+            <ChatbotEntries />
           </div>
         </div>
       </Main>

@@ -1,3 +1,4 @@
+import type { BotApiPlatform } from '@/server/messenger/bot-platforms'
 import * as linksRepo from '@/server/repositories/messenger-links-repo'
 import * as settingsRepo from '@/server/repositories/settings-repo'
 import { sendMessage } from '@/server/messenger/telegram/api'
@@ -7,17 +8,19 @@ import type { UserRole } from '@/server/types'
 import { query } from '@/server/db'
 
 /**
- * Push an in-app notification to Telegram when the recipient has a linked chat
- * and delivery rules allow it.
+ * Push an in-app notification to a linked Telegram/Bale chat when delivery rules allow it.
  */
-export async function pushTelegramNotification(params: {
-  recipientId: string
-  title: string
-  body: string
-  caseId?: string | null
-}): Promise<void> {
+export async function pushBotNotification(
+  platform: BotApiPlatform,
+  params: {
+    recipientId: string
+    title: string
+    body: string
+    caseId?: string | null
+  }
+): Promise<void> {
   try {
-    const ready = await settingsRepo.isMessengerReady('telegram')
+    const ready = await settingsRepo.isMessengerReady(platform)
     if (!ready) return
 
     const { rows } = await query<{ role: UserRole }>(
@@ -31,17 +34,20 @@ export async function pushTelegramNotification(params: {
       const delivery = await settingsRepo.getNotificationDeliverySettings()
       if (
         delivery.clientChannel !== 'chatbot' ||
-        delivery.clientChatbotPlatform !== 'telegram'
+        delivery.clientChatbotPlatform !== platform
       ) {
         return
       }
     }
     // Lawyers / super_admin: push whenever linked (no extra channel gate)
 
-    const link = await linksRepo.getActiveLinkByUser('telegram', params.recipientId)
+    const link = await linksRepo.getActiveLinkByUser(
+      platform,
+      params.recipientId
+    )
     if (!link) return
 
-    const token = await settingsRepo.getDecryptedMessengerToken('telegram')
+    const token = await settingsRepo.getDecryptedMessengerToken(platform)
     if (!token) return
 
     const text =
@@ -58,8 +64,44 @@ export async function pushTelegramNotification(params: {
         ])
       : undefined
 
-    await sendMessage(token, link.chatId, text, { replyMarkup: markup })
+    await sendMessage(platform, token, link.chatId, text, {
+      replyMarkup: markup,
+    })
   } catch (error) {
-    console.error('[telegram-notify] push failed', error)
+    console.error(`[${platform}-notify] push failed`, error)
   }
+}
+
+export async function pushTelegramNotification(params: {
+  recipientId: string
+  title: string
+  body: string
+  caseId?: string | null
+}): Promise<void> {
+  return pushBotNotification('telegram', params)
+}
+
+export async function pushBaleNotification(params: {
+  recipientId: string
+  title: string
+  body: string
+  caseId?: string | null
+}): Promise<void> {
+  return pushBotNotification('bale', params)
+}
+
+/**
+ * Push to whichever chatbot platforms the recipient may be linked on,
+ * respecting client delivery settings for clients.
+ */
+export async function pushMessengerNotifications(params: {
+  recipientId: string
+  title: string
+  body: string
+  caseId?: string | null
+}): Promise<void> {
+  await Promise.all([
+    pushBotNotification('telegram', params),
+    pushBotNotification('bale', params),
+  ])
 }
