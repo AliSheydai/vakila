@@ -77,35 +77,103 @@ If you want to update components using the Shadcn CLI (e.g., `npx shadcn@latest 
 ## Project structure (monorepo)
 
 ```
-vokala/
+vakila/
 ├── Dockerfile              # production image for services/app
-├── docker-compose.yml      # microservices orchestration
-├── .dockerignore
-├── .gitignore
+├── docker-compose.yml      # Postgres, RustFS, LiveKit, coturn, app
+├── .env.example            # root env (ports, DB, RustFS)
 ├── run.sh                  # interactive runner (dev / prod)
+├── infra/                  # livekit.yaml, coturn.conf
 └── services/
-    └── app/                # Next.js frontend
+    └── app/                # Next.js app + API
+        └── .env.example    # app secrets (SESSION, SMS, LiveKit, …)
 ```
 
 ## Run Locally
 
-```bash
-# interactive menu
-./run.sh
+### Prerequisites
 
-# or directly:
-./run.sh install   # install deps in services/app
-./run.sh dev       # development (hot reload)
-./run.sh prod      # production (Docker containers)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Node.js + [pnpm](https://pnpm.io/) (or npm)
+- On Windows: **Git Bash** or **WSL** (`run.sh` is a bash script)
+
+### One-time setup
+
+```bash
+# from repo root
+cp .env.example .env
+cp services/app/.env.example services/app/.env
+
+# edit secrets if needed (SESSION_SECRET, FERZZ_*, passwords)
+# keep DATABASE_URL / POSTGRES_* passwords in sync between both files
+
+./run.sh install
 ```
 
-Manual (without the runner):
+App runs on **http://localhost:4000** by default (port `3000` is often reserved on Windows).
+
+### Everyday commands (`./run.sh`)
 
 ```bash
+./run.sh              # interactive menu
+./run.sh install      # install deps in services/app
+./run.sh dev          # Postgres + RustFS + migrate + Next hot reload
+./run.sh migrate      # Postgres + RustFS up, then DB migrations only
+./run.sh prod         # full stack in Docker (build + up)
+./run.sh stop         # stop all compose containers
+./run.sh status       # container / env status
+./run.sh logs         # follow container logs
+./run.sh build        # build production image only
+./run.sh help         # usage
+```
+
+**`./run.sh dev` does:**
+
+1. Starts **Postgres** + **RustFS** via Docker  
+2. Runs **migrations** (`pnpm migrate`)  
+3. Starts the Next.js server with watch (`pnpm dev`)
+
+Ctrl+C stops the Next server; Postgres and RustFS keep running until `./run.sh stop`.
+
+### Video calls (LiveKit) in development
+
+`dev` does **not** start LiveKit/coturn. For video features:
+
+```bash
+docker compose up -d livekit coturn
+```
+
+See `infra/DEPLOY_VIDEO.md` for production video setup.
+
+### Manual (without `run.sh`)
+
+```bash
+# infra
+docker compose up -d postgres rustfs-perms rustfs
+# optional video:
+# docker compose up -d livekit coturn
+
+# app
 cd services/app
 pnpm install
-pnpm run dev
+pnpm migrate
+pnpm dev
 ```
+
+Production without the runner:
+
+```bash
+docker compose up -d --build
+```
+
+### Useful URLs
+
+| Service        | URL / port                          |
+|----------------|-------------------------------------|
+| App            | http://localhost:4000               |
+| Postgres       | localhost:5432                      |
+| RustFS API     | http://localhost:9000               |
+| RustFS console | http://localhost:9001               |
+| LiveKit        | ws://localhost:7880                 |
 
 ## Sponsoring this project ❤️
 
