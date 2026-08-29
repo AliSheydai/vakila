@@ -3,6 +3,7 @@ import { parse } from 'node:url'
 import next from 'next'
 import { WebSocketServer } from 'ws'
 import { getEnv } from './src/server/env'
+import { startTelegramPoller, stopTelegramPoller } from './src/server/messenger/telegram/poller'
 import { PgListener } from './src/server/realtime/pg-listener'
 import { WsHub } from './src/server/realtime/ws-hub'
 import { startEventReminderScheduler } from './src/server/services/event-reminder-service'
@@ -55,10 +56,12 @@ try {
 server.listen(port, hostname, () => {
   console.log(`> Ready on http://${hostname}:${port}`)
   startEventReminderScheduler()
+  startTelegramPoller()
 })
 
 async function shutdown(): Promise<void> {
   hub.stopKeepalive()
+  await stopTelegramPoller()
   await listener.stop()
   await new Promise<void>((resolve, reject) => {
     server.close((err) => (err ? reject(err) : resolve()))

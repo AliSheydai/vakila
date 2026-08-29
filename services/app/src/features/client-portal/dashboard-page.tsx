@@ -25,6 +25,7 @@ import {
   isOnlineVideoSession,
   sessionToCallTimes,
 } from '@/features/video-call/utils'
+import { TelegramBotEntry } from '@/components/messenger/telegram-bot-entry'
 
 function isUpcoming(startsAt: string): boolean {
   return new Date(startsAt).getTime() >= Date.now()
@@ -84,6 +85,8 @@ export function ClientDashboardPage() {
               کنید.
             </p>
           </section>
+
+          <TelegramBotEntry />
 
           <section className='grid grid-cols-2 gap-3 lg:grid-cols-4'>
             <SummaryCard

@@ -29,12 +29,17 @@ export async function PATCH(request: Request) {
       return fail('وضعیت فعال‌سازی نامعتبر است.')
     }
 
-    const status = await settingsRepo.setMessengerEnabled(
-      platform,
-      body.enabled,
-      user.id
-    )
-
-    return ok(status)
+    try {
+      const status = await settingsRepo.setMessengerEnabled(
+        platform,
+        body.enabled,
+        user.id
+      )
+      return ok(status)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'فعال‌سازی چت‌بات ناموفق بود.'
+      return fail(message)
+    }
   })
 }

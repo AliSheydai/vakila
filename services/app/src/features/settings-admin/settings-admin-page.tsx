@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { TelegramBotEntry } from '@/components/messenger/telegram-bot-entry'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
@@ -70,7 +71,10 @@ export function SettingsAdminPage() {
     <>
       <Header>
         <Search className='me-auto' />
-        <ThemeSwitch />
+        <div className='flex items-center gap-2 sm:gap-3'>
+          <TelegramBotEntry variant='compact' />
+          <ThemeSwitch />
+        </div>
       </Header>
 
       <Main>

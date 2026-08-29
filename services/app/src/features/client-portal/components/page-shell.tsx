@@ -5,6 +5,7 @@ import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TelegramBotEntry } from '@/components/messenger/telegram-bot-entry'
 
 type PageShellProps = {
   children: React.ReactNode
@@ -23,7 +24,10 @@ export function PageShell({
     <>
       <Header fixed>
         <Search className='me-auto' />
-        <ThemeSwitch />
+        <div className='flex items-center gap-2 sm:gap-3'>
+          <TelegramBotEntry variant='compact' />
+          <ThemeSwitch />
+        </div>
       </Header>
 
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>

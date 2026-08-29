@@ -6,6 +6,8 @@ export type MessengerTokenStatus = {
   configured: boolean
   enabled: boolean
   hint: string | null
+  botUsername: string | null
+  webhookSetAt: string | null
   updatedAt: string | null
 }
 

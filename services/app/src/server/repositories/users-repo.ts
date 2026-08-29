@@ -9,6 +9,14 @@ export async function listUsers(): Promise<PublicUser[]> {
   return rows.map(toPublicUser)
 }
 
+export async function getUserById(userId: string): Promise<User | null> {
+  const { rows } = await query<User>(
+    `SELECT * FROM users WHERE id = $1 LIMIT 1`,
+    [userId]
+  )
+  return rows[0] ?? null
+}
+
 export async function updateUserRole(
   actorId: string,
   userId: string,

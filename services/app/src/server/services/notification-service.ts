@@ -37,6 +37,15 @@ async function notifyIfRecipient(
       ...input,
       recipientId,
     })
+    const { pushTelegramNotification } = await import(
+      '../messenger/telegram/notify'
+    )
+    await pushTelegramNotification({
+      recipientId,
+      title: input.title,
+      body: input.body,
+      caseId: input.caseId,
+    })
   } catch (error) {
     console.error('[notification-service] failed to create notification', error)
   }

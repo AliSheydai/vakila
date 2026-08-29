@@ -87,9 +87,17 @@ export function MessengerTokenCard({
     }
 
     onSaved(result.data.messenger, result.data.notificationDelivery)
+    const modeHint =
+      nextEnabled &&
+      result.data.messenger.platform === 'telegram' &&
+      !result.data.messenger.webhookSetAt
+        ? ' (حالت توسعه / polling)'
+        : ''
     toast.success(
       nextEnabled
-        ? `چت‌بات ${label} فعال شد.`
+        ? result.data.messenger.botUsername
+          ? `چت‌بات ${label} فعال شد (@${result.data.messenger.botUsername})${modeHint}.`
+          : `چت‌بات ${label} فعال شد${modeHint}.`
         : `چت‌بات ${label} غیرفعال شد.`
     )
     if (result.data.notificationDelivery) {
@@ -182,10 +190,20 @@ export function MessengerTokenCard({
             </div>
           </div>
           <Badge
-            variant={status.configured ? 'default' : 'secondary'}
+            variant={
+              status.enabled
+                ? 'default'
+                : status.configured
+                  ? 'secondary'
+                  : 'outline'
+            }
             className='w-fit shrink-0'
           >
-            {status.configured ? 'توکن ثبت شده' : 'توکن ندارد'}
+            {status.enabled
+              ? 'چت‌بات فعال'
+              : status.configured
+                ? 'توکن ثبت شده'
+                : 'توکن ندارد'}
           </Badge>
         </CardHeader>
 
@@ -214,6 +232,22 @@ export function MessengerTokenCard({
           {!status.configured ? (
             <p className='text-xs text-muted-foreground'>
               برای فعال‌سازی چت‌بات، ابتدا توکن را ثبت کنید.
+            </p>
+          ) : null}
+
+          {status.configured && status.botUsername ? (
+            <p className='text-xs text-muted-foreground'>
+              بات:{' '}
+              <span dir='ltr' className='font-mono text-foreground'>
+                @{status.botUsername}
+              </span>
+              {status.enabled ? (
+                <span className='ms-2 text-emerald-600 dark:text-emerald-400'>
+                  {status.webhookSetAt
+                    ? '· webhook متصل'
+                    : '· حالت polling (لوکال)'}
+                </span>
+              ) : null}
             </p>
           ) : null}
 
