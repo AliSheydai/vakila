@@ -49,7 +49,9 @@ function resolvePostAuthRedirect(role: string, next: string | null): string {
     next.startsWith('/dashboard/') ||
     next.startsWith('/cases') ||
     next.startsWith('/sessions') ||
-    next.startsWith('/payments')
+    next.startsWith('/payments') ||
+    next === '/settings' ||
+    next.startsWith('/settings/')
 
   if (role === 'client' && isAdminPath) return '/dashboard'
   if (isLawyer(role) && isClientPath) {
@@ -126,7 +128,7 @@ export async function middleware(request: NextRequest) {
   ) {
     const target =
       pathname === '/notifications' || pathname.startsWith('/notifications/')
-        ? '/admin/notifications'
+        ? '/admin/account?tab=notifications'
         : '/admin/account'
     return NextResponse.redirect(new URL(target, request.url))
   }

@@ -1,12 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { BadgeCheck, Bell, ChevronLeft, LogOut } from 'lucide-react'
+import { BadgeCheck, ChevronLeft, LogOut } from 'lucide-react'
 import useDialogState from '@/hooks/use-dialog-state'
-import { accountPath, notificationsPath } from '@/lib/account-routes'
+import { accountPath } from '@/lib/account-routes'
 import { useNotificationsBadge } from '@/features/notifications/hooks/use-notifications-hydration'
 import { useAuthStore } from '@/stores/auth-store'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -37,7 +36,6 @@ export function NavUser({ user }: NavUserProps) {
   const [open, setOpen] = useDialogState()
   const role = useAuthStore((s) => s.auth.user?.role)
   const accountHref = accountPath(role)
-  const notificationsHref = notificationsPath(role)
   const unreadCount = useNotificationsBadge()
   const { isMobile, state } = useSidebar()
   const collapsed = state === 'collapsed' && !isMobile
@@ -119,17 +117,6 @@ export function NavUser({ user }: NavUserProps) {
             sideOffset={8}
           >
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild className='h-10 gap-3 rounded-lg px-3'>
-                <Link href={notificationsHref} className='flex items-center gap-3'>
-                  <Bell className='size-4' />
-                  <span className='flex-1'>اعلانات</span>
-                  {unreadCount > 0 ? (
-                    <Badge className='h-5 min-w-5 rounded-full px-1.5 tabular-nums'>
-                      {unreadCount.toLocaleString('fa-IR')}
-                    </Badge>
-                  ) : null}
-                </Link>
-              </DropdownMenuItem>
               <DropdownMenuItem asChild className='h-10 gap-3 rounded-lg px-3'>
                 <Link href={accountHref} className='flex items-center gap-3'>
                   <BadgeCheck className='size-4' />
