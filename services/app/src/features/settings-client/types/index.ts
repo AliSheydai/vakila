@@ -3,7 +3,7 @@ export type ClientNotificationChannel = 'in_app' | 'sms' | 'chatbot'
 
 export type UserNotificationPreferences = {
   channel: ClientNotificationChannel
-  chatbotPlatform: MessengerPlatform | null
+  chatbotPlatforms: MessengerPlatform[]
   updatedAt: string | null
 }
 

@@ -8,7 +8,10 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { ChatbotEntries } from '@/components/messenger/chatbot-entries'
+import {
+  ChatbotEntries,
+  invalidateChatbotDeepLinkCache,
+} from '@/components/messenger/chatbot-entries'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
@@ -46,6 +49,7 @@ export function SettingsAdminPage() {
     status: MessengerTokenStatus,
     notificationDelivery?: NotificationDeliverySettings
   ) {
+    invalidateChatbotDeepLinkCache()
     setData((prev) => {
       if (!prev) return prev
       return {
@@ -60,6 +64,11 @@ export function SettingsAdminPage() {
     })
   }
 
+  const deepLinkRefreshKey =
+    data?.messengers
+      .map((m) => `${m.platform}:${m.enabled ? 1 : 0}:${m.botUsername ?? ''}`)
+      .join('|') ?? 'default'
+
   function handleNotificationSaved(settings: NotificationDeliverySettings) {
     setData((prev) => {
       if (!prev) return prev
@@ -72,7 +81,7 @@ export function SettingsAdminPage() {
       <Header>
         <Search className='me-auto' />
         <div className='flex items-center gap-2 sm:gap-3'>
-          <ChatbotEntries variant='compact' />
+          <ChatbotEntries variant='compact' refreshKey={deepLinkRefreshKey} />
           <ThemeSwitch />
         </div>
       </Header>

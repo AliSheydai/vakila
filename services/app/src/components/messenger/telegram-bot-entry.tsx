@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react'
 import { ExternalLink, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
-import { IconBale, IconTelegram } from '@/assets/brand-icons'
+import { IconBale, IconRubika, IconTelegram } from '@/assets/brand-icons'
 import { Button } from '@/components/ui/button'
 import type { MessengerPlatform } from '@/features/settings-admin/types'
 import { MESSENGER_LABELS } from '@/features/settings-admin/types'
+import { DEMO_MESSENGER_PLATFORMS } from '@/server/messenger/rubika/feature'
 
-type DeepLinkResponse =
+export type DeepLinkResponse =
   | {
       enabled: true
       botUsername: string
@@ -22,15 +23,27 @@ type DeepLinkResponse =
       url: null
     }
 
+/** Demo-gated list (Rubika hidden while RUBIKA_CHATBOT_ENABLED is false). */
+export const MESSENGER_PLATFORMS: MessengerPlatform[] = [
+  ...DEMO_MESSENGER_PLATFORMS,
+]
+
 type MessengerBotEntryProps = {
-  platform: Extract<MessengerPlatform, 'telegram' | 'bale'>
+  platform: MessengerPlatform
   className?: string
   /** Compact row for headers; default is a promotional card */
   variant?: 'card' | 'compact'
+  /**
+   * When provided by a parent (e.g. ChatbotEntries), skips the per-platform fetch
+   * so siblings appear together without layout jump.
+   */
+  data?: DeepLinkResponse | null
+  /** Parent is still loading aggregated deep-links */
+  loading?: boolean
 }
 
 const THEME: Record<
-  'telegram' | 'bale',
+  MessengerPlatform,
   {
     accent: string
     border: string
@@ -53,59 +66,96 @@ const THEME: Record<
     iconBg: 'bg-[#0CB689]/15 text-[#0CB689]',
     Icon: IconBale,
   },
+  rubika: {
+    accent: '#7B2D8E',
+    border: 'border-[#7B2D8E]/25',
+    bg: 'bg-gradient-to-l from-[#7B2D8E]/10 via-card to-card',
+    iconBg: 'bg-[#7B2D8E]/15 text-[#7B2D8E]',
+    Icon: IconRubika,
+  },
+}
+
+function CardSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        'flex h-[88px] items-center gap-2 rounded-2xl border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground sm:h-[96px] sm:px-5',
+        className
+      )}
+      aria-hidden
+    >
+      <Loader2 className='size-4 shrink-0 animate-spin' />
+      <span>در حال بررسی چت‌بات…</span>
+    </div>
+  )
 }
 
 export function MessengerBotEntry({
   platform,
   className,
   variant = 'card',
+  data: dataProp,
+  loading: loadingProp,
 }: MessengerBotEntryProps) {
-  const [data, setData] = useState<DeepLinkResponse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const controlled = dataProp !== undefined
+  const [fetched, setFetched] = useState<DeepLinkResponse | null>(null)
+  const [fetching, setFetching] = useState(!controlled)
   const theme = THEME[platform]
   const label = MESSENGER_LABELS[platform]
   const Icon = theme.Icon
 
   useEffect(() => {
+    if (controlled) return
     let cancelled = false
+    setFetching(true)
     void (async () => {
       const result = await api<DeepLinkResponse>(
         `/api/messenger/${platform}/deep-link`
       )
       if (cancelled) return
-      if (result.ok) setData(result.data)
-      else setData({ enabled: false, botUsername: null, url: null })
-      setLoading(false)
+      if (result.ok) setFetched(result.data)
+      else setFetched({ enabled: false, botUsername: null, url: null })
+      setFetching(false)
     })()
     return () => {
       cancelled = true
     }
-  }, [platform])
+  }, [platform, controlled])
+
+  const loading = controlled ? Boolean(loadingProp) : fetching
+  const data = controlled ? dataProp : fetched
 
   if (loading) {
     if (variant === 'compact') return null
-    return (
-      <div
-        className={cn(
-          'flex items-center gap-2 rounded-xl border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground',
-          className
-        )}
-      >
-        <Loader2 className='size-4 animate-spin' />
-        در حال بررسی چت‌بات…
-      </div>
-    )
+    return <CardSkeleton className={className} />
   }
 
   if (!data?.enabled || !data.url) return null
 
   if (variant === 'compact') {
     return (
-      <Button variant='outline' size='sm' className={cn('gap-2', className)} asChild>
+      <Button
+        variant='outline'
+        size='sm'
+        className={cn(
+          'h-9 gap-2 border bg-background/80 px-3 shadow-none transition-colors',
+          theme.border,
+          'hover:bg-muted/60',
+          className
+        )}
+        asChild
+      >
         <a href={data.url} target='_blank' rel='noopener noreferrer'>
-          <Icon className='size-4' />
+          <span
+            className={cn(
+              'flex size-5 items-center justify-center rounded-md',
+              theme.iconBg
+            )}
+          >
+            <Icon className='size-3.5' />
+          </span>
           چت‌بات {label}
-          <ExternalLink className='size-3.5 opacity-60' />
+          <ExternalLink className='size-3.5 opacity-50' />
         </a>
       </Button>
     )
@@ -174,4 +224,10 @@ export function BaleBotEntry(
   props: Omit<MessengerBotEntryProps, 'platform'>
 ) {
   return <MessengerBotEntry platform='bale' {...props} />
+}
+
+export function RubikaBotEntry(
+  props: Omit<MessengerBotEntryProps, 'platform'>
+) {
+  return <MessengerBotEntry platform='rubika' {...props} />
 }

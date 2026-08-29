@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,8 +11,10 @@ import {
   Copy,
   Check,
   Smartphone,
+  Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,6 +31,14 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from '@/components/ui/input-otp'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const otpSchema = z.object({
   code: z
@@ -37,11 +47,25 @@ const otpSchema = z.object({
     .max(6, 'کد ۶ رقمی را وارد کنید.'),
 })
 
-const SECRET = 'JBSWY3DPEHPK3PXP'
+type TotpStatus = {
+  enabled: boolean
+  confirmedAt: string | null
+}
+
+type TotpSetup = {
+  secret: string
+  otpauthUrl: string
+  qrDataUrl: string
+}
 
 export function SecurityTab() {
-  const [enabled, setEnabled] = useState(false)
-  const [setupOpen, setSetupOpen] = useState(false)
+  const [status, setStatus] = useState<TotpStatus | null>(null)
+  const [loadingStatus, setLoadingStatus] = useState(true)
+  const [setup, setSetup] = useState<TotpSetup | null>(null)
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [confirmLoading, setConfirmLoading] = useState(false)
+  const [disableOpen, setDisableOpen] = useState(false)
+  const [disableLoading, setDisableLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const form = useForm<z.infer<typeof otpSchema>>({
@@ -49,44 +73,106 @@ export function SecurityTab() {
     defaultValues: { code: '' },
   })
 
-  function startSetup() {
+  const disableForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { code: '' },
+  })
+
+  const loadStatus = useCallback(async () => {
+    setLoadingStatus(true)
+    const result = await api<TotpStatus>('/api/auth/totp/status')
+    setLoadingStatus(false)
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+    setStatus(result.data)
+  }, [])
+
+  useEffect(() => {
+    void loadStatus()
+  }, [loadStatus])
+
+  const enabled = Boolean(status?.enabled)
+
+  async function startSetup() {
+    setSetupLoading(true)
     form.reset({ code: '' })
-    setSetupOpen(true)
+    const result = await api<TotpSetup>('/api/auth/totp/setup', {
+      method: 'POST',
+    })
+    setSetupLoading(false)
+
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+
+    setSetup(result.data)
   }
 
-  function cancelSetup() {
+  async function cancelSetup() {
     form.reset({ code: '' })
-    setSetupOpen(false)
+    setSetup(null)
+    await api('/api/auth/totp/confirm', { method: 'DELETE' })
   }
 
   function copySecret() {
-    void navigator.clipboard.writeText(SECRET)
+    if (!setup?.secret) return
+    void navigator.clipboard.writeText(setup.secret)
     setCopied(true)
     toast.success('کلید مخفی کپی شد.')
     window.setTimeout(() => setCopied(false), 2000)
   }
 
-  function confirmEnable(_data: z.infer<typeof otpSchema>) {
-    setEnabled(true)
-    setSetupOpen(false)
+  async function confirmEnable(data: z.infer<typeof otpSchema>) {
+    setConfirmLoading(true)
+    const result = await api<TotpStatus>('/api/auth/totp/confirm', {
+      method: 'POST',
+      body: { code: data.code },
+    })
+    setConfirmLoading(false)
+
+    if (!result.ok) {
+      toast.error(result.error)
+      form.setValue('code', '')
+      return
+    }
+
+    setStatus(result.data)
+    setSetup(null)
     form.reset({ code: '' })
-    toast.success('تأیید دو مرحله‌ای گوگل فعال شد.')
+    toast.success('ورود دو مرحله‌ای فعال شد.')
   }
 
-  function disable() {
-    setEnabled(false)
-    setSetupOpen(false)
-    toast.message('تأیید دو مرحله‌ای غیرفعال شد.')
+  async function confirmDisable(data: z.infer<typeof otpSchema>) {
+    setDisableLoading(true)
+    const result = await api<TotpStatus>('/api/auth/totp/disable', {
+      method: 'POST',
+      body: { code: data.code },
+    })
+    setDisableLoading(false)
+
+    if (!result.ok) {
+      toast.error(result.error)
+      disableForm.setValue('code', '')
+      return
+    }
+
+    setStatus(result.data)
+    setDisableOpen(false)
+    disableForm.reset({ code: '' })
+    toast.message('ورود دو مرحله‌ای غیرفعال شد.')
   }
 
   return (
     <div className='space-y-8'>
       <div>
         <h2 className='text-base font-semibold tracking-tight text-sidebar-foreground'>
-          تنظیمات
+          ورود دو مرحله‌ای
         </h2>
         <p className='mt-1 text-sm text-muted-foreground'>
-          امنیت حساب با تأیید دو مرحله‌ای گوگل
+          پس از تأیید پیامک، کد یک‌بارمصرف اپلیکیشن Authenticator هم لازم است.
         </p>
       </div>
 
@@ -109,28 +195,34 @@ export function SecurityTab() {
             </div>
             <div className='space-y-1.5'>
               <div className='flex flex-wrap items-center gap-2'>
-                <p className='text-sm font-semibold'>
-                  تأیید دو مرحله‌ای گوگل
-                </p>
-                <Badge variant={enabled ? 'secondary' : 'outline'}>
-                  {enabled ? 'فعال' : 'غیرفعال'}
-                </Badge>
+                <p className='text-sm font-semibold'>Google Authenticator</p>
+                {loadingStatus ? (
+                  <Badge variant='outline'>در حال بررسی…</Badge>
+                ) : (
+                  <Badge variant={enabled ? 'secondary' : 'outline'}>
+                    {enabled ? 'فعال' : 'غیرفعال'}
+                  </Badge>
+                )}
               </div>
               <p className='max-w-md text-sm leading-relaxed text-muted-foreground'>
-                با Google Authenticator هنگام ورود، علاوه بر رمز، یک کد یک‌بارمصرف
-                هم لازم است.
+                با فعال‌سازی، هنگام ورود به پنل پس از کد پیامک، کد ۶ رقمی اپ
+                Authenticator هم درخواست می‌شود.
               </p>
             </div>
           </div>
 
-          {!setupOpen ? (
+          {!setup ? (
             enabled ? (
               <Button
                 type='button'
                 variant='outline'
                 size='sm'
                 className='shrink-0 gap-1.5 text-destructive hover:bg-destructive/5 hover:text-destructive'
-                onClick={disable}
+                disabled={loadingStatus}
+                onClick={() => {
+                  disableForm.reset({ code: '' })
+                  setDisableOpen(true)
+                }}
               >
                 <ShieldOff className='size-3.5' />
                 غیرفعال‌سازی
@@ -140,15 +232,19 @@ export function SecurityTab() {
                 type='button'
                 size='sm'
                 className='shrink-0'
-                onClick={startSetup}
+                disabled={loadingStatus || setupLoading}
+                onClick={() => void startSetup()}
               >
+                {setupLoading ? (
+                  <Loader2 className='size-4 animate-spin' />
+                ) : null}
                 فعال‌سازی
               </Button>
             )
           ) : null}
         </div>
 
-        {setupOpen ? (
+        {setup ? (
           <div className='space-y-6 border-t border-sidebar-border bg-sidebar-accent/40 px-5 py-6 sm:px-6'>
             <ol className='space-y-5'>
               <li className='flex gap-3'>
@@ -160,7 +256,7 @@ export function SecurityTab() {
                     نصب Google Authenticator
                   </p>
                   <p className='text-sm text-muted-foreground'>
-                    اپلیکیشن را از فروشگاه گوشی نصب کنید.
+                    اپلیکیشن را از فروشگاه گوشی نصب کنید (یا هر اپ TOTP مشابه).
                   </p>
                 </div>
               </li>
@@ -178,26 +274,14 @@ export function SecurityTab() {
                   </div>
 
                   <div className='flex flex-col items-start gap-4 sm:flex-row sm:items-center'>
-                    <div
-                      className='flex size-36 items-center justify-center rounded-xl border bg-background p-3 shadow-sm'
-                      aria-hidden
-                    >
-                      <div className='grid size-full grid-cols-5 grid-rows-5 gap-0.5'>
-                        {Array.from({ length: 25 }).map((_, i) => (
-                          <span
-                            key={i}
-                            className={cn(
-                              'rounded-[1px]',
-                              [0, 1, 2, 4, 5, 6, 8, 10, 12, 14, 16, 18, 19, 20, 22, 23, 24].includes(
-                                i
-                              )
-                                ? 'bg-foreground'
-                                : 'bg-transparent'
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={setup.qrDataUrl}
+                      alt='کد QR ورود دو مرحله‌ای'
+                      className='size-40 rounded-xl border bg-white p-2 shadow-sm'
+                      width={160}
+                      height={160}
+                    />
 
                     <div className='w-full space-y-2 sm:max-w-xs'>
                       <p className='text-xs font-medium text-muted-foreground'>
@@ -208,7 +292,7 @@ export function SecurityTab() {
                           dir='ltr'
                           className='flex-1 truncate rounded-lg border bg-background px-3 py-2 font-mono text-xs tracking-wider'
                         >
-                          {SECRET}
+                          {setup.secret}
                         </code>
                         <Button
                           type='button'
@@ -225,6 +309,10 @@ export function SecurityTab() {
                           )}
                         </Button>
                       </div>
+                      <p className='text-xs text-muted-foreground'>
+                        این کلید را فقط یک‌بار می‌بینید؛ پس از فعال‌سازی ذخیره
+                        می‌شود.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -238,7 +326,8 @@ export function SecurityTab() {
                   <div className='space-y-1'>
                     <p className='text-sm font-medium'>تأیید کد ۶ رقمی</p>
                     <p className='text-sm text-muted-foreground'>
-                      کد نمایش‌داده‌شده در اپ را وارد کنید.
+                      کد نمایش‌داده‌شده در اپ را وارد کنید تا فعال‌سازی کامل
+                      شود.
                     </p>
                   </div>
 
@@ -254,7 +343,11 @@ export function SecurityTab() {
                           <FormItem>
                             <FormLabel className='sr-only'>کد تأیید</FormLabel>
                             <FormControl>
-                              <InputOTP maxLength={6} {...field}>
+                              <InputOTP
+                                maxLength={6}
+                                {...field}
+                                disabled={confirmLoading}
+                              >
                                 <InputOTPGroup dir='ltr'>
                                   {Array.from({ length: 6 }).map((_, i) => (
                                     <InputOTPSlot key={i} index={i} />
@@ -267,14 +360,23 @@ export function SecurityTab() {
                         )}
                       />
                       <div className='flex flex-wrap gap-2'>
-                        <Button type='submit' className='gap-1.5'>
-                          <Smartphone className='size-4' />
+                        <Button
+                          type='submit'
+                          className='gap-1.5'
+                          disabled={confirmLoading}
+                        >
+                          {confirmLoading ? (
+                            <Loader2 className='size-4 animate-spin' />
+                          ) : (
+                            <Smartphone className='size-4' />
+                          )}
                           تأیید و فعال‌سازی
                         </Button>
                         <Button
                           type='button'
                           variant='ghost'
-                          onClick={cancelSetup}
+                          disabled={confirmLoading}
+                          onClick={() => void cancelSetup()}
                         >
                           انصراف
                         </Button>
@@ -287,6 +389,79 @@ export function SecurityTab() {
           </div>
         ) : null}
       </div>
+
+      <Dialog
+        open={disableOpen}
+        onOpenChange={(open) => {
+          if (!disableLoading) {
+            setDisableOpen(open)
+            if (!open) disableForm.reset({ code: '' })
+          }
+        }}
+      >
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle>غیرفعال‌سازی ورود دو مرحله‌ای</DialogTitle>
+            <DialogDescription>
+              برای غیرفعال‌سازی، کد ۶ رقمی فعلی در Google Authenticator را وارد
+              کنید.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...disableForm}>
+            <form
+              onSubmit={disableForm.handleSubmit(confirmDisable)}
+              className='space-y-4'
+            >
+              <FormField
+                control={disableForm.control}
+                name='code'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='sr-only'>کد تأیید</FormLabel>
+                    <FormControl>
+                      <div className='flex justify-center' dir='ltr'>
+                        <InputOTP
+                          maxLength={6}
+                          {...field}
+                          disabled={disableLoading}
+                          autoFocus
+                        >
+                          <InputOTPGroup dir='ltr' className='gap-2'>
+                            {Array.from({ length: 6 }).map((_, i) => (
+                              <InputOTPSlot key={i} index={i} />
+                            ))}
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2 sm:gap-0'>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  disabled={disableLoading}
+                  onClick={() => setDisableOpen(false)}
+                >
+                  انصراف
+                </Button>
+                <Button
+                  type='submit'
+                  variant='destructive'
+                  disabled={disableLoading}
+                >
+                  {disableLoading ? (
+                    <Loader2 className='size-4 animate-spin' />
+                  ) : null}
+                  غیرفعال کن
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

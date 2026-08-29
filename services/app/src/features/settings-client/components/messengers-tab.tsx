@@ -21,6 +21,7 @@ function useDeepLinkAvailability(): DeepLinkStatus {
     let cancelled = false
 
     void (async () => {
+      // Rubika deep-link omitted while RUBIKA_CHATBOT_ENABLED is false
       const [telegram, bale] = await Promise.all([
         api<{ enabled: boolean }>('/api/messenger/telegram/deep-link'),
         api<{ enabled: boolean }>('/api/messenger/bale/deep-link'),
@@ -62,6 +63,7 @@ export function ClientMessengersTab() {
 
       {loading ? (
         <div className='space-y-3'>
+          <Skeleton className='h-28 w-full rounded-2xl' />
           <Skeleton className='h-28 w-full rounded-2xl' />
           <Skeleton className='h-28 w-full rounded-2xl' />
         </div>

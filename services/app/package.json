@@ -13,7 +13,9 @@
     "lint": "next lint",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "knip": "knip"
+    "knip": "knip",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1120.0",
@@ -64,6 +66,7 @@
     "next": "^15.2.0",
     "pg": "^8.23.0",
     "postcss": "^8.5.3",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-day-picker": "9.14.0",
     "react-dom": "^19.0.0",
@@ -89,6 +92,7 @@
     "@trivago/prettier-plugin-sort-imports": "^5.0.0",
     "@types/node": "^22.13.4",
     "@types/pg": "^8.23.1",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@types/ws": "^8.18.1",
@@ -100,6 +104,7 @@
     "prettier-plugin-tailwindcss": "^0.6.11",
     "tsx": "^4.23.12",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.24.0"
+    "typescript-eslint": "^8.24.0",
+    "vitest": "^3.2.7"
   }
 }

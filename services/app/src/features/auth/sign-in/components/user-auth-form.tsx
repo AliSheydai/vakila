@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, ArrowRight, Smartphone, UserRound } from 'lucide-react'
+import { Loader2, ArrowRight, Smartphone, UserRound, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   formatIranianMobileInputDisplay,
@@ -29,8 +29,9 @@ import {
 } from '@/components/ui/input-otp'
 
 const OTP_LENGTH = 5
+const TOTP_LENGTH = 6
 
-type Step = 'phone' | 'otp' | 'name'
+type Step = 'phone' | 'otp' | 'totp' | 'name'
 
 type OtpRequestData = {
   expiresAt: string
@@ -38,7 +39,18 @@ type OtpRequestData = {
   destinationMasked: string
 }
 
-type OtpVerifyData = {
+type OtpVerifyData =
+  | {
+      requiresTotp: true
+      challengeToken: string
+    }
+  | {
+      requiresTotp?: false
+      user: AuthUser
+      needsName: boolean
+    }
+
+type TotpVerifyData = {
   user: AuthUser
   needsName: boolean
 }
@@ -83,6 +95,8 @@ export function UserAuthForm({
   const [phone, setPhone] = useState('')
   const [maskedPhone, setMaskedPhone] = useState('')
   const [code, setCode] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [challengeToken, setChallengeToken] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [phoneTouched, setPhoneTouched] = useState(false)
@@ -90,6 +104,7 @@ export function UserAuthForm({
   const [cooldown, setCooldown] = useState(0)
   const [visible, setVisible] = useState(true)
   const submittingOtp = useRef(false)
+  const submittingTotp = useRef(false)
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -162,6 +177,8 @@ export function UserAuthForm({
     setMaskedPhone(result.data.destinationMasked)
     setCooldown(result.data.cooldownSeconds || 60)
     setCode('')
+    setTotpCode('')
+    setChallengeToken(null)
     if (!resend) {
       goToStep('otp')
     } else {
@@ -189,6 +206,45 @@ export function UserAuthForm({
       setError(result.error)
       toast.error(result.error)
       setCode('')
+      return
+    }
+
+    if (result.data.requiresTotp) {
+      setChallengeToken(result.data.challengeToken)
+      setTotpCode('')
+      goToStep('totp')
+      return
+    }
+
+    if (result.data.needsName) {
+      setUser(result.data.user)
+      goToStep('name')
+      return
+    }
+
+    finishAuth(result.data.user)
+  }
+
+  async function verifyTotp(totpValue: string) {
+    if (submittingTotp.current) return
+    if (!challengeToken || totpValue.length !== TOTP_LENGTH) return
+
+    submittingTotp.current = true
+    setLoading(true)
+    setError(null)
+
+    const result = await api<TotpVerifyData>('/api/auth/totp/verify-login', {
+      method: 'POST',
+      body: { challengeToken, code: totpValue },
+    })
+
+    setLoading(false)
+    submittingTotp.current = false
+
+    if (!result.ok) {
+      setError(result.error)
+      toast.error(result.error)
+      setTotpCode('')
       return
     }
 
@@ -396,6 +452,86 @@ export function UserAuthForm({
                 {cooldown > 0
                   ? `ارسال مجدد (${cooldown.toLocaleString('fa-IR')})`
                   : 'ارسال مجدد کد'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {step === 'totp' && (
+          <form
+            className='grid gap-4'
+            onSubmit={(e) => {
+              e.preventDefault()
+              void verifyTotp(totpCode)
+            }}
+          >
+            <div className='space-y-1 text-center'>
+              <div className='mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground'>
+                <Shield className='size-5' strokeWidth={1.75} />
+              </div>
+              <h3 className='font-display text-base font-semibold tracking-tight'>
+                کد ورود دو مرحله‌ای
+              </h3>
+              <p className='text-sm text-muted-foreground'>
+                کد ۶ رقمی نمایش‌داده‌شده در Google Authenticator را وارد کنید.
+              </p>
+            </div>
+
+            <div className='flex flex-col items-center gap-3' dir='ltr'>
+              <InputOTP
+                maxLength={TOTP_LENGTH}
+                value={totpCode}
+                onChange={(value) => {
+                  setTotpCode(value)
+                  setError(null)
+                  if (value.length === TOTP_LENGTH) {
+                    void verifyTotp(value)
+                  }
+                }}
+                disabled={loading}
+                containerClassName='justify-center'
+                autoFocus
+              >
+                <InputOTPGroup dir='ltr' className='gap-2'>
+                  {Array.from({ length: TOTP_LENGTH }).map((_, index) => (
+                    <InputOTPSlot
+                      key={index}
+                      index={index}
+                      className='size-11 rounded-lg border text-base tabular-nums sm:size-12'
+                    />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+
+              {error && (
+                <p className='text-sm text-destructive' role='alert'>
+                  {error}
+                </p>
+              )}
+            </div>
+
+            <Button
+              type='submit'
+              disabled={loading || totpCode.length < TOTP_LENGTH}
+            >
+              {loading ? <Loader2 className='size-4 animate-spin' /> : null}
+              تأیید و ورود
+            </Button>
+
+            <div className='flex justify-center text-sm'>
+              <button
+                type='button'
+                className='inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground'
+                onClick={() => {
+                  setTotpCode('')
+                  setChallengeToken(null)
+                  setCode('')
+                  goToStep('phone')
+                }}
+                disabled={loading}
+              >
+                <ArrowRight className='size-3.5' />
+                بازگشت به شروع
               </button>
             </div>
           </form>

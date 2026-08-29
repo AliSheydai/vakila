@@ -9,6 +9,10 @@ import {
 import { setSessionCookie } from '@/server/auth/cookies'
 import { verifyOtp } from '@/server/auth/otp'
 import { createSession } from '@/server/auth/session'
+import {
+  isTotpEnabledForUser,
+  signTotpLoginChallenge,
+} from '@/server/auth/totp'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -20,6 +24,21 @@ export async function POST(request: Request) {
 
     try {
       const { user, needsName } = await verifyOtp(body.phone, body.code)
+
+      if (await isTotpEnabledForUser(user.id)) {
+        const challengeToken = await signTotpLoginChallenge({
+          userId: user.id,
+          needsName,
+        })
+        return NextResponse.json({
+          ok: true as const,
+          data: {
+            requiresTotp: true as const,
+            challengeToken,
+          },
+        })
+      }
+
       const jwt = await createSession(user.id, {
         role: user.role,
         userAgent: request.headers.get('user-agent'),
@@ -29,6 +48,7 @@ export async function POST(request: Request) {
       const response = NextResponse.json({
         ok: true as const,
         data: {
+          requiresTotp: false as const,
           user: toPublicUser(user),
           needsName,
         },

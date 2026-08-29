@@ -5,7 +5,12 @@ import {
   botApiBaseUrl,
   botPlatformLabel,
 } from '../bot-platforms'
-import { getActiveSocksEndpoint } from './v2ray'
+import {
+  ensureTelegramProxyFromDb,
+  getActiveSocksEndpoint,
+  isProxyRunning,
+  type SocksEndpoint,
+} from './v2ray'
 
 export class TelegramApiError extends Error {
   constructor(
@@ -209,6 +214,14 @@ async function postJson<T>(
   })
 }
 
+async function resolveTelegramSocks(): Promise<SocksEndpoint> {
+  if (isProxyRunning()) {
+    const active = getActiveSocksEndpoint()
+    if (active) return active
+  }
+  return ensureTelegramProxyFromDb()
+}
+
 async function callApi<T>(
   platform: BotApiPlatform,
   token: string,
@@ -218,10 +231,23 @@ async function callApi<T>(
   const url = `${botApiBaseUrl(platform)}/bot${token}/${method}`
   const label = botPlatformLabel(platform)
 
-  // Proxy is Telegram-only (Iran reachability). Bale is reachable directly.
-  const socks =
-    platform === 'telegram' ? getActiveSocksEndpoint() : null
-  const agent = socks ? new SocksProxyAgent(socks.url) : undefined
+  // Telegram must always go through the stored V2Ray SOCKS — never bare fetch.
+  let socks: SocksEndpoint | null = null
+  let agent: SocksProxyAgent | undefined
+  if (platform === 'telegram') {
+    try {
+      socks = await resolveTelegramSocks()
+      agent = new SocksProxyAgent(socks.url)
+    } catch (error) {
+      throw new TelegramApiError(
+        error instanceof Error
+          ? error.message
+          : 'پروکسی V2Ray برای تلگرام در دسترس نیست.',
+        undefined,
+        platform
+      )
+    }
+  }
 
   let status: number
   let payload: TelegramResponse<T>

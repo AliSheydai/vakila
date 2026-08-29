@@ -42,6 +42,7 @@ async function notifyIfRecipient(
     )
     await pushMessengerNotifications({
       recipientId,
+      actorId: input.actorId,
       title: input.title,
       body: input.body,
       caseId: input.caseId,

@@ -74,7 +74,8 @@ export function Settings() {
               حساب کاربری
             </h1>
             <p className='text-sm text-muted-foreground md:text-base'>
-              اطلاعات، نشست‌ها، امنیت و اعلانات حساب خود را مدیریت کنید.
+              اطلاعات، نشست‌ها، ورود دو مرحله‌ای و اعلانات حساب خود را مدیریت
+              کنید.
             </p>
           </div>
 
@@ -103,7 +104,7 @@ export function Settings() {
                 className='gap-1.5 rounded-lg px-2 py-2.5 text-xs text-muted-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-accent-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-sidebar-accent sm:text-sm'
               >
                 <Shield className='size-4 shrink-0' />
-                <span>تنظیمات</span>
+                <span className='truncate'>ورود دو مرحله‌ای</span>
               </TabsTrigger>
               <TabsTrigger
                 value='notifications'

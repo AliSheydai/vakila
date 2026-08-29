@@ -1,32 +1,8 @@
+import type { CSSProperties, ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
-import { Amiri, Vazirmatn, Inter, Manrope } from 'next/font/google'
+import { amiri, inter, manrope, vazirmatn } from '@/lib/fonts'
 import { Providers } from './providers'
 import '@/styles/index.css'
-
-const vazirmatn = Vazirmatn({
-  subsets: ['arabic', 'latin'],
-  variable: '--font-vazirmatn',
-  display: 'swap',
-})
-
-const amiri = Amiri({
-  subsets: ['arabic', 'latin'],
-  weight: ['400', '700'],
-  variable: '--font-amiri',
-  display: 'swap',
-})
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  variable: '--font-manrope',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: {
@@ -69,7 +45,7 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: ReactNode
 }>) {
   return (
     <html
@@ -77,6 +53,12 @@ export default function RootLayout({
       dir='rtl'
       suppressHydrationWarning
       className={`${vazirmatn.variable} ${amiri.variable} ${inter.variable} ${manrope.variable}`}
+      style={
+        {
+          // Concrete family for Sonner (avoids its system font stack)
+          '--font-toast': vazirmatn.style.fontFamily,
+        } as CSSProperties
+      }
     >
       <body className='min-h-svh w-full bg-background font-sans text-foreground antialiased'>
         <Providers>{children}</Providers>

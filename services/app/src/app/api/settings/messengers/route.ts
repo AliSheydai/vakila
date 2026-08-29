@@ -32,13 +32,18 @@ export async function PATCH(request: Request) {
       return fail(validation.message)
     }
 
-    const status = await settingsRepo.upsertMessengerToken(
-      platform,
-      token,
-      user.id
-    )
-
-    return ok({ messenger: status })
+    try {
+      const status = await settingsRepo.upsertMessengerToken(
+        platform,
+        token,
+        user.id
+      )
+      return ok({ messenger: status })
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'ذخیره توکن ناموفق بود.'
+      return fail(message)
+    }
   })
 }
 

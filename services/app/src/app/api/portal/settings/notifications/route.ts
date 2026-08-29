@@ -15,7 +15,7 @@ const PLATFORMS = new Set<MessengerPlatform>(['telegram', 'bale', 'rubika'])
 
 type PatchBody = {
   channel?: string
-  chatbotPlatform?: string | null
+  chatbotPlatforms?: string[] | null
 }
 
 export async function PATCH(request: Request) {
@@ -33,26 +33,34 @@ export async function PATCH(request: Request) {
       return fail('کانال اعلان نامعتبر است.')
     }
 
-    let chatbotPlatform: MessengerPlatform | null = null
+    let chatbotPlatforms: MessengerPlatform[] = []
 
     if (channel === 'chatbot') {
-      const platform = body.chatbotPlatform as MessengerPlatform
-      if (!platform || !PLATFORMS.has(platform)) {
-        return fail('لطفاً پیام‌رسان چت‌بات را انتخاب کنید.')
+      const raw = Array.isArray(body.chatbotPlatforms)
+        ? body.chatbotPlatforms
+        : []
+      const platforms = settingsRepo.normalizeMessengerPlatforms(
+        raw.filter((p): p is MessengerPlatform => PLATFORMS.has(p as MessengerPlatform))
+      )
+
+      if (platforms.length === 0) {
+        return fail('لطفاً حداقل یک پیام‌رسان چت‌بات را انتخاب کنید.')
       }
 
-      const configured = await settingsRepo.isMessengerReady(platform)
-      if (!configured) {
-        return fail('این پیام‌رسان در حال حاضر فعال نیست.')
+      for (const platform of platforms) {
+        const configured = await settingsRepo.isMessengerReady(platform)
+        if (!configured) {
+          return fail('یکی از پیام‌رسان‌های انتخاب‌شده در حال حاضر فعال نیست.')
+        }
       }
 
-      chatbotPlatform = platform
+      chatbotPlatforms = platforms
     }
 
     const notificationPreferences =
       await settingsRepo.updateUserNotificationPreferences(user.id, {
         channel,
-        chatbotPlatform,
+        chatbotPlatforms,
       })
 
     return ok({ notificationPreferences })

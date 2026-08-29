@@ -25,13 +25,18 @@ export async function PATCH(request: Request) {
       return fail(parsed.error)
     }
 
-    const messenger = await settingsRepo.upsertTelegramProxyConfig(
-      config,
-      user.id,
-      { activate: body.activate !== false }
-    )
-
-    return ok({ messenger })
+    try {
+      const messenger = await settingsRepo.upsertTelegramProxyConfig(
+        config,
+        user.id,
+        { activate: body.activate !== false }
+      )
+      return ok({ messenger })
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'ذخیره پروکسی ناموفق بود.'
+      return fail(message)
+    }
   })
 }
 
@@ -40,7 +45,7 @@ export async function DELETE(request: Request) {
     const user = await requireUser(request)
     requireRole(user, ['super_admin'])
 
-    const messenger = await settingsRepo.deleteTelegramProxyConfig(user.id)
-    return ok({ messenger })
+    const result = await settingsRepo.deleteTelegramProxyConfig(user.id)
+    return ok(result)
   })
 }

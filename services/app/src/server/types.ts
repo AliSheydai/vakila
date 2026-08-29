@@ -11,6 +11,10 @@ export type User = {
   specialty: string | null
   bar_number: string | null
   is_active: boolean
+  totp_enabled?: boolean
+  totp_secret_encrypted?: string | null
+  totp_pending_secret_encrypted?: string | null
+  totp_confirmed_at?: Date | null
   created_at: Date
   updated_at: Date
 }

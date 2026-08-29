@@ -1,14 +1,9 @@
 'use client'
 
-import {
-  IconBale,
-  IconRubika,
-  IconTelegram,
-} from '@/assets/brand-icons'
-import {
-  BaleBotEntry,
-  TelegramBotEntry,
-} from '@/components/messenger/telegram-bot-entry'
+import { IconBale, IconTelegram } from '@/assets/brand-icons'
+// import { IconRubika } from '@/assets/brand-icons' // Rubika demo-gated
+import { ChatbotEntries } from '@/components/messenger/chatbot-entries'
+import { RUBIKA_CHATBOT_ENABLED } from '@/server/messenger/rubika/feature'
 import type {
   MessengerPlatform,
   MessengerTokenStatus,
@@ -26,7 +21,7 @@ const MESSENGER_CONFIG: {
   {
     platform: 'telegram',
     helpText:
-      'از @BotFather در تلگرام بات بسازید و توکن API را دریافت کنید.',
+      'ابتدا کانفیگ V2Ray وصل‌شونده را پینگ و ذخیره کنید، سپس از @BotFather توکن بات را بگیرید و ثبت کنید؛ بعد چت‌بات را فعال کنید.',
     helpUrl: 'https://t.me/BotFather',
     icon: <IconTelegram className='size-5' />,
   },
@@ -37,12 +32,14 @@ const MESSENGER_CONFIG: {
     helpUrl: 'https://ble.ir/BotFather',
     icon: <IconBale className='size-5' />,
   },
-  {
-    platform: 'rubika',
-    helpText:
-      'از پنل توسعه‌دهندگان روبیکا بات بسازید و توکن API را دریافت کنید.',
-    icon: <IconRubika className='size-5' />,
-  },
+  // Rubika chatbot temporarily hidden from demo — re-enable via RUBIKA_CHATBOT_ENABLED
+  // {
+  //   platform: 'rubika',
+  //   helpText:
+  //     'از @BotFather در روبیکا بات بسازید و توکن API را دریافت کنید. پروکسی لازم نیست.',
+  //   helpUrl: 'https://rubika.ir/botapi',
+  //   icon: <IconRubika className='size-5' />,
+  // },
 ]
 
 type MessengersTabProps = {
@@ -62,36 +59,64 @@ export function MessengersTab({
   )
   const telegram = statusByPlatform.get('telegram')
   const bale = statusByPlatform.get('bale')
-  const telegramReady = Boolean(telegram?.configured && telegram.enabled)
-  const baleReady = Boolean(bale?.configured && bale.enabled)
+  const rubika = RUBIKA_CHATBOT_ENABLED
+    ? statusByPlatform.get('rubika')
+    : undefined
+  const anyReady = [telegram, bale, rubika].some(
+    (m) => m?.configured && m.enabled
+  )
+  const deepLinkRefreshKey = messengers
+    .map((m) => `${m.platform}:${m.enabled ? 1 : 0}:${m.botUsername ?? ''}`)
+    .join('|')
 
   return (
     <div className='space-y-6'>
-      <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-        <div className='min-w-0 space-y-1'>
+      <div className='space-y-4'>
+        <div className='space-y-1.5'>
           <h2 className='text-base font-semibold tracking-tight text-sidebar-foreground'>
             پیام‌رسان‌ها
           </h2>
-          <p className='text-sm text-muted-foreground'>
-            توکن بات را ذخیره کنید و با دکمهٔ فعال‌سازی، چت‌بات را به سایت وصل کنید.
-            پس از فعال‌سازی، ادمین، وکیل و موکل با لینک مستقیم (بدون OTP) وارد
-            بات می‌شوند. برای بله پروکسی لازم نیست.
+          <p className='max-w-prose text-sm leading-relaxed text-muted-foreground'>
+            توکن بات را ثبت و فعال کنید تا اعلان‌ها از طریق پیام‌رسان ارسال شوند.
           </p>
+          <ul className='max-w-prose space-y-1 text-xs leading-relaxed text-muted-foreground/90'>
+            <li className='flex gap-2'>
+              <span
+                className='mt-1.5 size-1 shrink-0 rounded-full bg-muted-foreground/50'
+                aria-hidden
+              />
+              <span>
+                تلگرام: ابتدا V2Ray را با پینگ موفق ذخیره کنید، سپس توکن را ثبت
+                و چت‌بات را فعال کنید.
+              </span>
+            </li>
+            <li className='flex gap-2'>
+              <span
+                className='mt-1.5 size-1 shrink-0 rounded-full bg-muted-foreground/50'
+                aria-hidden
+              />
+              <span>بله: فقط ثبت توکن کافی است.</span>
+            </li>
+          </ul>
         </div>
-        {telegramReady || baleReady ? (
-          <div className='flex shrink-0 flex-wrap gap-2 self-start'>
-            {telegramReady ? (
-              <TelegramBotEntry
-                key={`tg-${telegram?.botUsername ?? ''}-${telegram?.enabled ? '1' : '0'}`}
+
+        {anyReady ? (
+          <div className='rounded-xl border border-sidebar-border bg-muted/20 px-4 py-3.5'>
+            <div className='flex flex-col gap-3'>
+              <div className='space-y-0.5'>
+                <p className='text-sm font-medium text-sidebar-foreground'>
+                  ورود مستقیم به چت‌بات
+                </p>
+                <p className='text-xs leading-relaxed text-muted-foreground'>
+                  ادمین، وکیل و موکل با این لینک‌ها بدون OTP وارد بات می‌شوند.
+                </p>
+              </div>
+              <ChatbotEntries
                 variant='compact'
+                className='w-full'
+                refreshKey={deepLinkRefreshKey}
               />
-            ) : null}
-            {baleReady ? (
-              <BaleBotEntry
-                key={`bale-${bale?.botUsername ?? ''}-${bale?.enabled ? '1' : '0'}`}
-                variant='compact'
-              />
-            ) : null}
+            </div>
           </div>
         ) : null}
       </div>

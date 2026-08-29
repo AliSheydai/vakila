@@ -1,6 +1,6 @@
 /**
  * Telegram-compatible Bot API platforms used by Vakila chatbots.
- * Rubika uses a different API and is not included here.
+ * Rubika uses a different API (`botapi.rubika.ir`) and lives under `messenger/rubika/`.
  */
 export type BotApiPlatform = 'telegram' | 'bale'
 
@@ -21,11 +21,13 @@ export function botApiBaseUrl(platform: BotApiPlatform): string {
     : 'https://api.telegram.org'
 }
 
-export function botPlatformLabel(platform: BotApiPlatform): string {
-  return platform === 'bale' ? 'بله' : 'تلگرام'
+export function botPlatformLabel(platform: BotApiPlatform | 'rubika'): string {
+  if (platform === 'bale') return 'بله'
+  if (platform === 'rubika') return 'روبیکا'
+  return 'تلگرام'
 }
 
-/** Public HTTPS webhook path (secret may be appended as query for Bale). */
-export function botWebhookPath(platform: BotApiPlatform): string {
+/** Public HTTPS webhook path (secret may be appended as query for Bale/Rubika). */
+export function botWebhookPath(platform: BotApiPlatform | 'rubika'): string {
   return `/api/webhooks/${platform}`
 }

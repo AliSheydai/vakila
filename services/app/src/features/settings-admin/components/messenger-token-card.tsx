@@ -64,9 +64,12 @@ export function MessengerTokenCard({
   const [savingProxy, setSavingProxy] = useState(false)
   const [deletingProxy, setDeletingProxy] = useState(false)
   const [lastSocks, setLastSocks] = useState<string | null>(null)
+  /** Session flag: successful ping this visit (in addition to server `proxy.running`). */
+  const [proxyPingOk, setProxyPingOk] = useState(false)
 
   const isTelegram = platform === 'telegram'
   const proxy = status.proxy
+  const proxyReady = Boolean(proxy?.configured && (proxy.running || proxyPingOk))
 
   const tokenValidation = useMemo(() => {
     const trimmed = token.trim()
@@ -76,10 +79,24 @@ export function MessengerTokenCard({
 
   const tokenError =
     tokenValidation && !tokenValidation.valid ? tokenValidation.message : null
-  const canSave = Boolean(token.trim() && tokenValidation?.valid)
+  const canSaveToken = Boolean(
+    token.trim() &&
+      tokenValidation?.valid &&
+      (!isTelegram || proxyReady)
+  )
   const canSaveProxy = Boolean(proxyConfig.trim())
+  const canEnable = Boolean(
+    status.configured && (!isTelegram || proxyReady)
+  )
 
   async function handleToggleEnabled() {
+    if (!status.enabled && isTelegram && !proxyReady) {
+      toast.error(
+        'ابتدا کانفیگ V2Ray را وارد کنید، پینگ بگیرید و ذخیره کنید؛ سپس توکن را ثبت کنید.'
+      )
+      return
+    }
+
     const nextEnabled = !status.enabled
 
     setToggling(true)
@@ -98,6 +115,9 @@ export function MessengerTokenCard({
     }
 
     onSaved(result.data.messenger, result.data.notificationDelivery)
+    if (result.data.messenger.proxy?.running) {
+      setProxyPingOk(true)
+    }
     const modeHint =
       nextEnabled &&
       (result.data.messenger.platform === 'telegram' ||
@@ -127,6 +147,13 @@ export function MessengerTokenCard({
       return
     }
 
+    if (isTelegram && !proxyReady) {
+      toast.error(
+        'قبل از ثبت توکن، کانفیگ V2Ray را تست (پینگ) و ذخیره کنید.'
+      )
+      return
+    }
+
     setSaving(true)
     const result = await api<{ messenger: MessengerTokenStatus }>(
       '/api/settings/messengers',
@@ -144,6 +171,9 @@ export function MessengerTokenCard({
 
     setToken('')
     onSaved(result.data.messenger)
+    if (result.data.messenger.proxy?.running) {
+      setProxyPingOk(true)
+    }
     toast.success(`توکن ${label} ذخیره شد.`)
   }
 
@@ -180,14 +210,18 @@ export function MessengerTokenCard({
       socks?: { host: string; port: number; url: string }
       latencyMs?: number
       remark?: string
+      running?: boolean
+      messenger?: MessengerTokenStatus
     }>('/api/settings/messengers/proxy/test', {
       method: 'POST',
-      body: config ? { config, keepAlive: false } : { keepAlive: false },
+      // Keep SOCKS alive so poller / Bot API can reuse the same process.
+      body: config ? { config, keepAlive: true } : { keepAlive: true },
     })
     setTestingProxy(false)
 
     if (!result.ok) {
       setLastSocks(null)
+      setProxyPingOk(false)
       toast.error(result.error)
       return
     }
@@ -195,14 +229,19 @@ export function MessengerTokenCard({
     const socks = result.data.socks
     const socksLabel = socks ? `${socks.host}:${socks.port}` : null
     setLastSocks(socksLabel)
+    setProxyPingOk(Boolean(result.data.running ?? socks))
+    if (result.data.messenger) {
+      onSaved(result.data.messenger)
+      setProxyConfig('')
+    }
     toast.success(
       socksLabel
-        ? `کانفیگ معتبر است. SOCKS5: ${socksLabel}${
+        ? `پینگ موفق — پروکسی فعال ماند. SOCKS5: ${socksLabel}${
             result.data.latencyMs != null
               ? ` · ${result.data.latencyMs}ms`
               : ''
           }`
-        : 'کانفیگ معتبر است.'
+        : 'پینگ کانفیگ موفق بود؛ پروکسی فعال ماند.'
     )
   }
 
@@ -224,6 +263,7 @@ export function MessengerTokenCard({
     setSavingProxy(false)
 
     if (!result.ok) {
+      setProxyPingOk(false)
       toast.error(result.error)
       return
     }
@@ -233,20 +273,22 @@ export function MessengerTokenCard({
     const p = result.data.messenger.proxy
     if (p?.running && p.socksHost && p.socksPort) {
       setLastSocks(`${p.socksHost}:${p.socksPort}`)
+      setProxyPingOk(true)
       toast.success(
-        `پروکسی ذخیره و فعال شد (SOCKS5 ${p.socksHost}:${p.socksPort}).`
+        `پروکسی ذخیره و پینگ شد (SOCKS5 ${p.socksHost}:${p.socksPort}).`
       )
     } else {
+      setProxyPingOk(Boolean(p?.configured))
       toast.success('کانفیگ پروکسی ذخیره شد.')
     }
   }
 
   async function handleDeleteProxy() {
     setDeletingProxy(true)
-    const result = await api<{ messenger: MessengerTokenStatus }>(
-      '/api/settings/messengers/proxy',
-      { method: 'DELETE' }
-    )
+    const result = await api<{
+      messenger: MessengerTokenStatus
+      notificationDelivery?: NotificationDeliverySettings
+    }>('/api/settings/messengers/proxy', { method: 'DELETE' })
     setDeletingProxy(false)
 
     if (!result.ok) {
@@ -256,9 +298,31 @@ export function MessengerTokenCard({
 
     setProxyConfig('')
     setLastSocks(null)
-    onSaved(result.data.messenger)
+    setProxyPingOk(false)
+    onSaved(result.data.messenger, result.data.notificationDelivery)
     toast.success('کانفیگ پروکسی حذف شد.')
+    if (result.data.notificationDelivery) {
+      toast.info(
+        'کانال اعلان چت‌بات به «فقط داخل پورتال» تغییر کرد، چون پروکسی تلگرام حذف شد.'
+      )
+    } else if (status.enabled) {
+      toast.info('چت‌بات تلگرام به‌خاطر حذف پروکسی غیرفعال شد.')
+    }
   }
+
+  const statusBadge = (() => {
+    if (status.enabled) return { variant: 'default' as const, text: 'چت‌بات فعال' }
+    if (isTelegram && status.configured && proxyReady) {
+      return { variant: 'secondary' as const, text: 'آمادهٔ فعال‌سازی' }
+    }
+    if (status.configured) {
+      return { variant: 'secondary' as const, text: 'توکن ثبت شده' }
+    }
+    if (isTelegram && proxyReady) {
+      return { variant: 'secondary' as const, text: 'پروکسی آماده' }
+    }
+    return { variant: 'outline' as const, text: 'توکن ندارد' }
+  })()
 
   return (
     <>
@@ -288,21 +352,8 @@ export function MessengerTokenCard({
               </CardDescription>
             </div>
           </div>
-          <Badge
-            variant={
-              status.enabled
-                ? 'default'
-                : status.configured
-                  ? 'secondary'
-                  : 'outline'
-            }
-            className='w-fit shrink-0'
-          >
-            {status.enabled
-              ? 'چت‌بات فعال'
-              : status.configured
-                ? 'توکن ثبت شده'
-                : 'توکن ندارد'}
+          <Badge variant={statusBadge.variant} className='w-fit shrink-0'>
+            {statusBadge.text}
           </Badge>
         </CardHeader>
 
@@ -310,11 +361,11 @@ export function MessengerTokenCard({
           <Button
             type='button'
             variant='outline'
-            disabled={toggling || !status.configured}
+            disabled={toggling || (!status.enabled && !canEnable)}
             onClick={() => void handleToggleEnabled()}
             className={cn(
               'h-auto w-full justify-center gap-2 border py-2.5 text-sm font-medium transition-colors',
-              !status.configured && 'opacity-60',
+              !status.enabled && !canEnable && 'opacity-60',
               status.enabled
                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300'
                 : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground'
@@ -328,7 +379,15 @@ export function MessengerTokenCard({
             {status.enabled ? 'چت‌بات فعال است' : 'چت‌بات غیرفعال است'}
           </Button>
 
-          {!status.configured ? (
+          {isTelegram && !status.enabled ? (
+            <p className='text-xs leading-relaxed text-muted-foreground'>
+              {!proxyReady
+                ? 'مرحله ۱: کانفیگ V2Ray را وارد کنید، پینگ بگیرید و ذخیره کنید.'
+                : !status.configured
+                  ? 'مرحله ۲: توکن بات را وارد و ذخیره کنید.'
+                  : 'مرحله ۳: دکمهٔ بالا را بزنید تا چت‌بات فعال شود.'}
+            </p>
+          ) : !status.configured ? (
             <p className='text-xs text-muted-foreground'>
               برای فعال‌سازی چت‌بات، ابتدا توکن را ثبت کنید.
             </p>
@@ -359,63 +418,26 @@ export function MessengerTokenCard({
             </p>
           ) : null}
 
-          <div className='space-y-2'>
-            <Label htmlFor={`token-${platform}`}>توکن بات</Label>
-            <div className='flex gap-2'>
-              <Input
-                id={`token-${platform}`}
-                dir='ltr'
-                type={showToken ? 'text' : 'password'}
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder={
-                  status.configured
-                    ? 'توکن جدید وارد کنید'
-                    : TOKEN_FORMAT_HINTS[platform]
-                }
-                className={cn(
-                  'font-mono text-sm',
-                  tokenError && 'border-destructive'
-                )}
-                autoComplete='off'
-                aria-invalid={Boolean(tokenError)}
-                aria-describedby={`token-${platform}-hint`}
-              />
-              <Button
-                type='button'
-                variant='outline'
-                size='icon'
-                className='shrink-0'
-                onClick={() => setShowToken((v) => !v)}
-                aria-label={showToken ? 'مخفی کردن توکن' : 'نمایش توکن'}
-              >
-                {showToken ? (
-                  <EyeOff className='size-4' />
-                ) : (
-                  <Eye className='size-4' />
-                )}
-              </Button>
-            </div>
-            <p
-              id={`token-${platform}-hint`}
-              className='text-xs leading-relaxed text-muted-foreground'
-            >
-              {TOKEN_FORMAT_DESCRIPTIONS[platform]}
-            </p>
-            {tokenError ? (
-              <p className='text-xs text-destructive'>{tokenError}</p>
-            ) : null}
-          </div>
-
           {isTelegram ? (
             <div className='space-y-3 rounded-lg border border-sidebar-border bg-muted/20 p-3'>
               <div className='space-y-1'>
-                <Label htmlFor='telegram-v2ray-config'>
-                  کانفیگ V2Ray (VLESS)
-                </Label>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <Label htmlFor='telegram-v2ray-config'>
+                    ۱. کانفیگ V2Ray (VLESS) — الزامی
+                  </Label>
+                  {proxyReady ? (
+                    <Badge
+                      variant='secondary'
+                      className='border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                    >
+                      پینگ موفق
+                    </Badge>
+                  ) : null}
+                </div>
                 <p className='text-xs leading-relaxed text-muted-foreground'>
-                  لینک اشتراک vless:// را وارد کنید تا یک پروکسی SOCKS5 محلی
-                  ساخته شود و درخواست‌های Bot API از آن عبور کنند.
+                  لینک اشتراک vless:// را وارد کنید، با «تست کانفیگ» پینگ بگیرید،
+                  سپس ذخیره کنید. بدون پروکسی وصل‌شونده نمی‌توانید توکن ثبت یا
+                  چت‌بات بسازید.
                 </p>
               </div>
 
@@ -429,15 +451,21 @@ export function MessengerTokenCard({
                     <span className='ms-2 text-emerald-600 dark:text-emerald-400'>
                       · SOCKS5 {proxy.socksHost}:{proxy.socksPort}
                     </span>
+                  ) : proxyReady ? (
+                    <span className='ms-2 text-emerald-600 dark:text-emerald-400'>
+                      · پینگ تأیید شد
+                    </span>
                   ) : (
-                    <span className='ms-2'>· پروکسی غیرفعال</span>
+                    <span className='ms-2 text-amber-600 dark:text-amber-400'>
+                      · دوباره تست کنید تا پینگ تأیید شود
+                    </span>
                   )}
                 </p>
               ) : null}
 
               {lastSocks && !proxy?.running ? (
                 <p className='text-xs text-muted-foreground'>
-                  آخرین تست موفق:{' '}
+                  آخرین پینگ موفق:{' '}
                   <span dir='ltr' className='font-mono text-foreground'>
                     SOCKS5 {lastSocks}
                   </span>
@@ -450,7 +478,10 @@ export function MessengerTokenCard({
                   dir='ltr'
                   type={showProxy ? 'text' : 'password'}
                   value={proxyConfig}
-                  onChange={(e) => setProxyConfig(e.target.value)}
+                  onChange={(e) => {
+                    setProxyConfig(e.target.value)
+                    if (e.target.value.trim()) setProxyPingOk(false)
+                  }}
                   placeholder={
                     proxy?.configured
                       ? 'vless://uuid@host:port?…'
@@ -492,7 +523,7 @@ export function MessengerTokenCard({
                   {testingProxy ? (
                     <Loader2 className='size-4 animate-spin' />
                   ) : null}
-                  تست کانفیگ
+                  تست / پینگ
                 </Button>
                 <Button
                   type='button'
@@ -528,6 +559,59 @@ export function MessengerTokenCard({
               </div>
             </div>
           ) : null}
+
+          <div className='space-y-2'>
+            <Label htmlFor={`token-${platform}`}>
+              {isTelegram ? '۲. توکن بات' : 'توکن بات'}
+            </Label>
+            <div className='flex gap-2'>
+              <Input
+                id={`token-${platform}`}
+                dir='ltr'
+                type={showToken ? 'text' : 'password'}
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder={
+                  status.configured
+                    ? 'توکن جدید وارد کنید'
+                    : TOKEN_FORMAT_HINTS[platform]
+                }
+                className={cn(
+                  'font-mono text-sm',
+                  tokenError && 'border-destructive'
+                )}
+                autoComplete='off'
+                disabled={isTelegram && !proxyReady}
+                aria-invalid={Boolean(tokenError)}
+                aria-describedby={`token-${platform}-hint`}
+              />
+              <Button
+                type='button'
+                variant='outline'
+                size='icon'
+                className='shrink-0'
+                onClick={() => setShowToken((v) => !v)}
+                aria-label={showToken ? 'مخفی کردن توکن' : 'نمایش توکن'}
+              >
+                {showToken ? (
+                  <EyeOff className='size-4' />
+                ) : (
+                  <Eye className='size-4' />
+                )}
+              </Button>
+            </div>
+            <p
+              id={`token-${platform}-hint`}
+              className='text-xs leading-relaxed text-muted-foreground'
+            >
+              {isTelegram && !proxyReady
+                ? 'پس از پینگ و ذخیرهٔ موفق پروکسی، توکن را وارد کنید.'
+                : TOKEN_FORMAT_DESCRIPTIONS[platform]}
+            </p>
+            {tokenError ? (
+              <p className='text-xs text-destructive'>{tokenError}</p>
+            ) : null}
+          </div>
         </CardContent>
 
         <CardFooter className='flex flex-wrap gap-2 border-t border-sidebar-border pt-4 sm:justify-between'>
@@ -550,10 +634,10 @@ export function MessengerTokenCard({
               !status.configured && 'sm:ms-auto'
             )}
             onClick={() => void handleSave()}
-            disabled={saving || deleting || !canSave}
+            disabled={saving || deleting || !canSaveToken}
           >
             {saving ? <Loader2 className='size-4 animate-spin' /> : null}
-            ذخیره
+            {isTelegram ? 'ذخیره توکن' : 'ذخیره'}
           </Button>
         </CardFooter>
       </Card>

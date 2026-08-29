@@ -32,8 +32,43 @@ type RunningProxy = {
   config: ParsedVlessConfig
 }
 
-let running: RunningProxy | null = null
-let startLock: Promise<unknown> | null = null
+/**
+ * Process-wide singleton. Next.js may load this module twice (custom server
+ * via tsx vs App Router bundle); module-local `let` would spawn two Xrays
+ * and leave the poller without SOCKS while API routes think proxy is up.
+ */
+type ProxyGlobals = {
+  running: RunningProxy | null
+  startLock: Promise<unknown> | null
+}
+
+const PROXY_GLOBAL_KEY = '__vakilaTelegramProxy' as const
+
+function proxyGlobals(): ProxyGlobals {
+  const g = globalThis as typeof globalThis & {
+    [PROXY_GLOBAL_KEY]?: ProxyGlobals
+  }
+  if (!g[PROXY_GLOBAL_KEY]) {
+    g[PROXY_GLOBAL_KEY] = { running: null, startLock: null }
+  }
+  return g[PROXY_GLOBAL_KEY]
+}
+
+function getRunning(): RunningProxy | null {
+  return proxyGlobals().running
+}
+
+function setRunning(value: RunningProxy | null): void {
+  proxyGlobals().running = value
+}
+
+function getStartLock(): Promise<unknown> | null {
+  return proxyGlobals().startLock
+}
+
+function setStartLock(value: Promise<unknown> | null): void {
+  proxyGlobals().startLock = value
+}
 
 function socksUrl(port: number): string {
   return `socks5h://127.0.0.1:${port}`
@@ -172,8 +207,8 @@ async function spawnXray(
     console.error(
       `[telegram-proxy] Xray exited (code=${code ?? 'null'} signal=${signal ?? 'null'})`
     )
-    if (running?.process === child) {
-      running = null
+    if (getRunning()?.process === child) {
+      setRunning(null)
     }
   })
 
@@ -201,28 +236,31 @@ async function stopRunning(instance: RunningProxy | null): Promise<void> {
 }
 
 export function getActiveSocksEndpoint(): SocksEndpoint | null {
-  return running?.socks ?? null
+  return getRunning()?.socks ?? null
 }
 
 export function getActiveProxyRemark(): string | null {
-  return running?.config.remark ?? null
+  return getRunning()?.config.remark ?? null
 }
 
 export function isProxyRunning(): boolean {
+  const running = getRunning()
   return Boolean(running && !running.process.killed)
 }
 
 export async function stopTelegramProxy(): Promise<void> {
   const run = async () => {
-    const current = running
-    running = null
+    const current = getRunning()
+    setRunning(null)
     await stopRunning(current)
   }
-  if (startLock) await startLock.catch(() => undefined)
-  startLock = run().finally(() => {
-    startLock = null
+  const existingLock = getStartLock()
+  if (existingLock) await existingLock.catch(() => undefined)
+  const promise = run().finally(() => {
+    setStartLock(null)
   })
-  await startLock
+  setStartLock(promise)
+  await promise
 }
 
 export async function ensureTelegramProxy(
@@ -234,28 +272,33 @@ export async function ensureTelegramProxy(
   }
 
   const run = async (): Promise<SocksEndpoint> => {
+    const current = getRunning()
     if (
-      running &&
-      !running.process.killed &&
-      running.configUri === configUri.trim()
+      current &&
+      !current.process.killed &&
+      current.configUri === configUri.trim()
     ) {
-      return running.socks
+      return current.socks
     }
 
-    await stopRunning(running)
-    running = null
-    running = await spawnXray(parsed.config, configUri.trim())
+    await stopRunning(current)
+    setRunning(null)
+    const next = await spawnXray(parsed.config, configUri.trim())
+    setRunning(next)
     console.log(
-      `[telegram-proxy] SOCKS5 ready at ${running.socks.url} → ${parsed.config.address}:${parsed.config.port}`
+      `[telegram-proxy] SOCKS5 ready at ${next.socks.url} → ${parsed.config.address}:${parsed.config.port}`
     )
-    return running.socks
+    return next.socks
   }
 
-  if (startLock) await startLock.catch(() => undefined)
+  const existingLock = getStartLock()
+  if (existingLock) await existingLock.catch(() => undefined)
   const promise = run()
-  startLock = promise.finally(() => {
-    startLock = null
-  })
+  setStartLock(
+    promise.finally(() => {
+      setStartLock(null)
+    })
+  )
   return promise
 }
 
@@ -313,16 +356,18 @@ export async function testVlessProxy(
     return { ok: false, error: parsed.error }
   }
 
+  // Ephemeral probe only when keepAlive is false — prefer keepAlive for ops.
   let instance: RunningProxy | null = null
   try {
+    const current = getRunning()
     if (
-      running &&
-      !running.process.killed &&
-      running.configUri === configUri.trim()
+      current &&
+      !current.process.killed &&
+      current.configUri === configUri.trim()
     ) {
       const probe = await httpsGetViaSocks(
         'https://api.telegram.org',
-        running.socks
+        current.socks
       )
       if (probe.status < 200 || probe.status >= 500) {
         return {
@@ -332,7 +377,7 @@ export async function testVlessProxy(
       }
       return {
         ok: true,
-        socks: running.socks,
+        socks: current.socks,
         latencyMs: probe.latencyMs,
         remark: parsed.config.remark,
       }

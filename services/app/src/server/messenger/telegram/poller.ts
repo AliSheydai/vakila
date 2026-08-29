@@ -2,6 +2,11 @@ import type { BotApiPlatform } from '@/server/messenger/bot-platforms'
 import * as settingsRepo from '@/server/repositories/settings-repo'
 import { getUpdates } from './api'
 import { handleBotUpdate } from './router'
+// Rubika poller demo-gated — see RUBIKA_CHATBOT_ENABLED
+// import {
+//   startRubikaPoller,
+//   stopRubikaPoller,
+// } from '@/server/messenger/rubika/poller'
 
 type PollerState = {
   running: boolean
@@ -55,10 +60,16 @@ export async function stopBalePoller(): Promise<void> {
 export function startAllBotPollers(): void {
   startBotPoller('telegram')
   startBotPoller('bale')
+  // Rubika poller off for demo — re-enable with RUBIKA_CHATBOT_ENABLED
+  // startRubikaPoller()
 }
 
 export async function stopAllBotPollers(): Promise<void> {
-  await Promise.all([stopBotPoller('telegram'), stopBotPoller('bale')])
+  await Promise.all([
+    stopBotPoller('telegram'),
+    stopBotPoller('bale'),
+    // stopRubikaPoller(),
+  ])
 }
 
 async function sleep(ms: number): Promise<void> {

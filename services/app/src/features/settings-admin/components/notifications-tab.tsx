@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Bell,
   Bot,
   Globe,
   Loader2,
-  MessageSquare,
+  // MessageSquare, // SMS channel hidden until SMS delivery is implemented
   TriangleAlert,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -17,8 +17,10 @@ import {
   IconRubika,
   IconTelegram,
 } from '@/assets/brand-icons'
+import { DEMO_MESSENGER_PLATFORMS } from '@/server/messenger/rubika/feature'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
@@ -41,13 +43,27 @@ const MESSENGER_ICONS: Record<MessengerPlatform, React.ReactNode> = {
   rubika: <IconRubika className='size-4' />,
 }
 
-const PLATFORMS: MessengerPlatform[] = ['telegram', 'bale', 'rubika']
+const PLATFORMS: MessengerPlatform[] = [...DEMO_MESSENGER_PLATFORMS]
 
 function getAvailablePlatforms(messengers: MessengerTokenStatus[]) {
   return new Set(
     messengers
       .filter((m) => m.configured && m.enabled)
       .map((m) => m.platform)
+  )
+}
+
+function samePlatforms(a: MessengerPlatform[], b: MessengerPlatform[]) {
+  if (a.length !== b.length) return false
+  return a.every((platform, index) => platform === b[index])
+}
+
+function normalizeSelected(
+  platforms: MessengerPlatform[],
+  available: Set<MessengerPlatform>
+) {
+  return PLATFORMS.filter(
+    (platform) => platforms.includes(platform) && available.has(platform)
   )
 }
 
@@ -100,38 +116,52 @@ function ChannelOption({
 export function NotificationsTab({
   settings,
   messengers,
-  smsConfigured,
+  smsConfigured: _smsConfigured,
   onSaved,
 }: NotificationsTabProps) {
-  const [channel, setChannel] = useState<ClientNotificationChannel>(
-    settings.clientChannel
+  void _smsConfigured
+  const availablePlatforms = useMemo(
+    () => getAvailablePlatforms(messengers),
+    [messengers]
   )
-  const [chatbotPlatform, setChatbotPlatform] = useState<MessengerPlatform | ''>(
-    settings.clientChatbotPlatform ?? ''
+  const [channel, setChannel] = useState<ClientNotificationChannel>(
+    settings.clientChannel === 'sms' ? 'in_app' : settings.clientChannel
+  )
+  const [chatbotPlatforms, setChatbotPlatforms] = useState<MessengerPlatform[]>(
+    () => normalizeSelected(settings.clientChatbotPlatforms ?? [], availablePlatforms)
   )
   const [saving, setSaving] = useState(false)
 
-  const availablePlatforms = getAvailablePlatforms(messengers)
-
   useEffect(() => {
-    setChannel(settings.clientChannel)
-    setChatbotPlatform(settings.clientChatbotPlatform ?? '')
-  }, [settings])
+    // SMS channel is temporarily hidden; treat legacy sms as in_app for editing.
+    setChannel(
+      settings.clientChannel === 'sms' ? 'in_app' : settings.clientChannel
+    )
+    setChatbotPlatforms(
+      normalizeSelected(settings.clientChatbotPlatforms ?? [], availablePlatforms)
+    )
+  }, [settings, availablePlatforms])
 
-  useEffect(() => {
-    if (chatbotPlatform && !availablePlatforms.has(chatbotPlatform)) {
-      setChatbotPlatform('')
-    }
-  }, [availablePlatforms, chatbotPlatform])
-
+  const savedInvalidPlatforms = (settings.clientChatbotPlatforms ?? []).filter(
+    (platform) => !availablePlatforms.has(platform)
+  )
   const savedDeliveryInvalid =
     settings.clientChannel === 'chatbot' &&
-    settings.clientChatbotPlatform != null &&
-    !availablePlatforms.has(settings.clientChatbotPlatform)
+    ((settings.clientChatbotPlatforms ?? []).length === 0 ||
+      savedInvalidPlatforms.length > 0)
+
+  function togglePlatform(platform: MessengerPlatform, checked: boolean) {
+    setChatbotPlatforms((prev) => {
+      if (checked) {
+        return PLATFORMS.filter((p) => p === platform || prev.includes(p))
+      }
+      return prev.filter((p) => p !== platform)
+    })
+  }
 
   async function handleSave() {
-    if (channel === 'chatbot' && !chatbotPlatform) {
-      toast.error('لطفاً پیام‌رسان چت‌بات را انتخاب کنید.')
+    if (channel === 'chatbot' && chatbotPlatforms.length === 0) {
+      toast.error('لطفاً حداقل یک پیام‌رسان چت‌بات را انتخاب کنید.')
       return
     }
 
@@ -142,8 +172,8 @@ export function NotificationsTab({
         method: 'PATCH',
         body: {
           clientChannel: channel,
-          clientChatbotPlatform:
-            channel === 'chatbot' ? chatbotPlatform : null,
+          clientChatbotPlatforms:
+            channel === 'chatbot' ? chatbotPlatforms : [],
         },
       }
     )
@@ -156,16 +186,18 @@ export function NotificationsTab({
 
     onSaved(result.data.notificationDelivery)
     setChannel(result.data.notificationDelivery.clientChannel)
-    setChatbotPlatform(
-      result.data.notificationDelivery.clientChatbotPlatform ?? ''
-    )
+    setChatbotPlatforms(result.data.notificationDelivery.clientChatbotPlatforms)
     toast.success('تنظیمات اعلان‌ها ذخیره شد.')
   }
 
   const isDirty =
     channel !== settings.clientChannel ||
     (channel === 'chatbot' &&
-      chatbotPlatform !== (settings.clientChatbotPlatform ?? ''))
+      !samePlatforms(
+        chatbotPlatforms,
+        settings.clientChatbotPlatforms ?? []
+      )) ||
+    (channel !== 'chatbot' && (settings.clientChatbotPlatforms ?? []).length > 0)
 
   return (
     <div className='space-y-6'>
@@ -184,12 +216,13 @@ export function NotificationsTab({
           <TriangleAlert className='text-amber-600 dark:text-amber-400' />
           <AlertTitle>تنظیم اعلان نامعتبر است</AlertTitle>
           <AlertDescription>
-            پیام‌رسان ذخیره‌شده برای چت‌بات دیگر فعال نیست یا توکن ندارد. لطفاً
-            یک پیام‌رسان دیگر انتخاب کنید یا کانال را تغییر دهید و ذخیره کنید.
+            یک یا چند پیام‌رسان ذخیره‌شده برای چت‌بات دیگر فعال نیست یا توکن
+            ندارد. لطفاً انتخاب را به‌روز کنید و ذخیره کنید.
           </AlertDescription>
         </Alert>
       ) : null}
 
+      {/* SMS channel UI hidden until SMS delivery for case notifications is implemented
       {channel === 'sms' && !smsConfigured ? (
         <Alert className='border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200'>
           <TriangleAlert className='text-amber-600 dark:text-amber-400' />
@@ -197,6 +230,18 @@ export function NotificationsTab({
           <AlertDescription>
             ارسال پیامک نیاز به تنظیم درگاه Ferzz در سرور دارد. تا زمان
             پیکربندی، اعلان‌ها فقط داخل پورتال نمایش داده می‌شوند.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      */}
+
+      {settings.clientChannel === 'sms' && channel === 'in_app' ? (
+        <Alert className='border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200'>
+          <TriangleAlert className='text-amber-600 dark:text-amber-400' />
+          <AlertTitle>کانال پیامک موقتاً غیرفعال است</AlertTitle>
+          <AlertDescription>
+            تنظیم قبلی روی پیامک بود. لطفاً کانال جدید را ذخیره کنید تا به «فقط
+            داخل پورتال» یا «چت‌بات» به‌روز شود.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -217,6 +262,7 @@ export function NotificationsTab({
             description='موکل فقط از طریق پورتال و اعلان‌های داخل سایت مطلع می‌شود.'
             selected={channel === 'in_app'}
           />
+          {/* SMS channel hidden until SMS delivery is implemented
           <ChannelOption
             value='sms'
             id='channel-sms'
@@ -225,12 +271,13 @@ export function NotificationsTab({
             description='اعلان‌ها به شماره موبایل موکل از طریق پیامک ارسال می‌شود.'
             selected={channel === 'sms'}
           />
+          */}
           <ChannelOption
             value='chatbot'
             id='channel-chatbot'
             icon={<Bot className='size-4' />}
             title={CHANNEL_LABELS.chatbot}
-            description='اعلان‌ها از طریق چت‌بات پیام‌رسان انتخاب‌شده به موکل ارسال می‌شود.'
+            description='اعلان‌ها علاوه بر پورتال، از طریق چت‌بات‌های انتخاب‌شده به موکل ارسال می‌شود (فقط اگر چت‌بات را متصل کرده باشد).'
             selected={channel === 'chatbot'}
           />
         </RadioGroup>
@@ -238,32 +285,45 @@ export function NotificationsTab({
 
       {channel === 'chatbot' ? (
         <div className='space-y-3 rounded-xl border border-sidebar-border bg-muted/30 p-4'>
-          <Label className='text-sm font-medium'>پیام‌رسان چت‌بات</Label>
+          <Label className='text-sm font-medium'>
+            پیام‌رسان‌های چت‌بات (می‌توانید چند مورد انتخاب کنید)
+          </Label>
           <TooltipProvider delayDuration={200}>
-            <RadioGroup
-              value={chatbotPlatform}
-              onValueChange={(v) =>
-                setChatbotPlatform(v as MessengerPlatform)
-              }
-              className='gap-2'
-            >
+            <div className='space-y-2'>
               {PLATFORMS.map((platform) => {
                 const available = availablePlatforms.has(platform)
+                const checked = chatbotPlatforms.includes(platform)
                 const item = (
-                  <Label
-                    htmlFor={`platform-${platform}`}
+                  <div
+                    role='checkbox'
+                    aria-checked={checked}
+                    aria-disabled={!available}
+                    tabIndex={available ? 0 : -1}
                     className={cn(
                       'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors',
                       !available && 'cursor-not-allowed opacity-50',
-                      chatbotPlatform === platform
+                      checked
                         ? 'border-primary bg-primary/5'
                         : 'border-sidebar-border hover:bg-muted/50'
                     )}
+                    onClick={() => {
+                      if (!available) return
+                      togglePlatform(platform, !checked)
+                    }}
+                    onKeyDown={(event) => {
+                      if (!available) return
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        togglePlatform(platform, !checked)
+                      }
+                    }}
                   >
-                    <RadioGroupItem
-                      value={platform}
-                      id={`platform-${platform}`}
+                    <Checkbox
+                      checked={checked}
                       disabled={!available}
+                      tabIndex={-1}
+                      aria-hidden
+                      className='pointer-events-none'
                     />
                     <span className='text-muted-foreground'>
                       {MESSENGER_ICONS[platform]}
@@ -271,7 +331,7 @@ export function NotificationsTab({
                     <span className='text-sm font-medium'>
                       {MESSENGER_LABELS[platform]}
                     </span>
-                  </Label>
+                  </div>
                 )
 
                 if (!available) {
@@ -290,7 +350,7 @@ export function NotificationsTab({
 
                 return <div key={platform}>{item}</div>
               })}
-            </RadioGroup>
+            </div>
           </TooltipProvider>
         </div>
       ) : null}

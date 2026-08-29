@@ -35,7 +35,8 @@ export async function POST(request: Request) {
       return fail(parsed.error)
     }
 
-    const keepAlive = body.keepAlive === true
+    // Default keepAlive=true so a successful ping leaves SOCKS up for the bot.
+    const keepAlive = body.keepAlive !== false
     const result = keepAlive
       ? await testAndActivateVlessProxy(config)
       : await testVlessProxy(config, { keepAlive: false })
@@ -44,11 +45,31 @@ export async function POST(request: Request) {
       return fail(result.error ?? 'تست کانفیگ ناموفق بود.')
     }
 
+    // Persist pasted config after a successful live ping so boot/poller can restore SOCKS.
+    let messenger:
+      | Awaited<ReturnType<typeof settingsRepo.upsertTelegramProxyConfig>>
+      | undefined
+    try {
+      if (keepAlive && body.config?.trim()) {
+        messenger = await settingsRepo.upsertTelegramProxyConfig(
+          config,
+          user.id,
+          { activate: false }
+        )
+      } else if (keepAlive) {
+        const statuses = await settingsRepo.getMessengerTokensStatus()
+        messenger = statuses.find((s) => s.platform === 'telegram')
+      }
+    } catch (error) {
+      console.error('[telegram-proxy] persist after test failed', error)
+    }
+
     return ok({
       socks: result.socks,
       latencyMs: result.latencyMs,
       remark: result.remark,
-      running: keepAlive,
+      running: keepAlive && Boolean(result.socks),
+      messenger,
     })
   })
 }

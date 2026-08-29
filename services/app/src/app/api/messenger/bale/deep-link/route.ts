@@ -3,6 +3,7 @@ import { requireUser } from '@/server/auth/require-user'
 import {
   buildBotDeepLink,
   createBotStartPayload,
+  isPublicBotUsername,
 } from '@/server/messenger/telegram/deep-link'
 import * as settingsRepo from '@/server/repositories/settings-repo'
 
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
     const statuses = await settingsRepo.getMessengerTokensStatus()
     const status = statuses.find((s) => s.platform === 'bale')
     const botUsername = status?.botUsername
-    if (!botUsername) {
+    if (!isPublicBotUsername(botUsername)) {
       return ok({
         enabled: false as const,
         botUsername: null,
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
     }
 
     const payload = createBotStartPayload('bale', user.id)
-    const url = buildBotDeepLink('bale', botUsername, payload)
+    const url = buildBotDeepLink('bale', botUsername!, payload)
 
     return ok({
       enabled: true as const,

@@ -13,13 +13,19 @@ import {
   TelegramApiError,
 } from '../messenger/telegram/api'
 import {
+  clearBotEndpoints,
+  getMe as getRubikaMe,
+  RubikaApiError,
+  updateBotEndpoints,
+} from '../messenger/rubika/api'
+import {
   type BotApiPlatform,
   botPlatformLabel,
   botWebhookPath,
   isBotApiPlatform,
 } from '../messenger/bot-platforms'
 import {
-  ensureTelegramProxy,
+  ensureTelegramProxyFromDb,
   getActiveSocksEndpoint,
   isProxyRunning,
   parseVlessUri,
@@ -27,6 +33,11 @@ import {
   stopTelegramProxy,
   testAndActivateVlessProxy,
 } from '../messenger/telegram/v2ray'
+import {
+  extractUsernameFromShareUrl,
+  isPublicBotUsername,
+} from '../messenger/telegram/deep-link'
+import { RUBIKA_CHATBOT_ENABLED } from '../messenger/rubika/feature'
 import { canUseBotWebhook } from '../messenger/telegram/webhook-url'
 
 export type MessengerPlatform = 'telegram' | 'bale' | 'rubika'
@@ -54,17 +65,70 @@ export type MessengerTokenStatus = {
 
 export type NotificationDeliverySettings = {
   clientChannel: ClientNotificationChannel
-  clientChatbotPlatform: MessengerPlatform | null
+  clientChatbotPlatforms: MessengerPlatform[]
   updatedAt: string | null
 }
 
 export type UserNotificationPreferences = {
   channel: ClientNotificationChannel
-  chatbotPlatform: MessengerPlatform | null
+  chatbotPlatforms: MessengerPlatform[]
   updatedAt: string | null
 }
 
 const PLATFORMS: MessengerPlatform[] = ['telegram', 'bale', 'rubika']
+const PLATFORM_ORDER = new Map(
+  PLATFORMS.map((platform, index) => [platform, index])
+)
+
+export function normalizeMessengerPlatforms(
+  platforms: readonly MessengerPlatform[] | null | undefined
+): MessengerPlatform[] {
+  if (!platforms?.length) return []
+  const unique = new Set<MessengerPlatform>()
+  for (const platform of platforms) {
+    if (!PLATFORM_ORDER.has(platform)) continue
+    // Strip Rubika from notification prefs while demo-gated
+    if (platform === 'rubika' && !RUBIKA_CHATBOT_ENABLED) continue
+    unique.add(platform)
+  }
+  return [...unique].sort(
+    (a, b) => (PLATFORM_ORDER.get(a) ?? 0) - (PLATFORM_ORDER.get(b) ?? 0)
+  )
+}
+
+/**
+ * node-pg often returns custom enum arrays as a Postgres literal string
+ * like `{telegram,bale}` instead of a JS array. Coerce both shapes.
+ */
+export function coerceMessengerPlatforms(value: unknown): MessengerPlatform[] {
+  if (value == null) return []
+
+  if (Array.isArray(value)) {
+    return normalizeMessengerPlatforms(
+      value.filter(
+        (item): item is MessengerPlatform =>
+          typeof item === 'string' && PLATFORM_ORDER.has(item as MessengerPlatform)
+      ) as MessengerPlatform[]
+    )
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed || trimmed === '{}') return []
+    const inner =
+      trimmed.startsWith('{') && trimmed.endsWith('}')
+        ? trimmed.slice(1, -1)
+        : trimmed
+    if (!inner) return []
+    const parts = inner
+      .split(',')
+      .map((part) => part.trim().replace(/^"(.*)"$/, '$1'))
+      .filter(Boolean) as MessengerPlatform[]
+    return normalizeMessengerPlatforms(parts)
+  }
+
+  return []
+}
 
 type TokenRow = {
   platform: MessengerPlatform
@@ -115,13 +179,13 @@ function buildProxyStatus(
 
 type DeliveryRow = {
   client_channel: ClientNotificationChannel
-  client_chatbot_platform: MessengerPlatform | null
+  client_chatbot_platforms: MessengerPlatform[] | string | null
   updated_at: Date | string
 }
 
 type UserPreferencesRow = {
   channel: ClientNotificationChannel
-  chatbot_platform: MessengerPlatform | null
+  chatbot_platforms: MessengerPlatform[] | string | null
   updated_at: Date | string
 }
 
@@ -250,12 +314,28 @@ export async function upsertTelegramProxyConfig(
 
 export async function deleteTelegramProxyConfig(
   userId: string
-): Promise<MessengerTokenStatus> {
+): Promise<{
+  messenger: MessengerTokenStatus
+  notificationDelivery?: NotificationDeliverySettings
+}> {
+  // Telegram bot cannot stay enabled without a reachable proxy.
+  const before = (await getMessengerTokensStatus()).find(
+    (s) => s.platform === 'telegram'
+  )
+  let notificationDelivery: NotificationDeliverySettings | undefined
+  if (before?.enabled) {
+    const disabled = await setMessengerEnabled('telegram', false, userId, {
+      skipTeardown: false,
+    })
+    notificationDelivery = disabled.notificationDelivery
+  }
+
   await stopTelegramProxy().catch(() => undefined)
   await query(
     `INSERT INTO messenger_platform_settings (platform, enabled, proxy_config_cipher, updated_by)
      VALUES ('telegram', FALSE, NULL, $1)
      ON CONFLICT (platform) DO UPDATE SET
+       enabled = FALSE,
        proxy_config_cipher = NULL,
        updated_at = NOW(),
        updated_by = EXCLUDED.updated_by`,
@@ -263,20 +343,24 @@ export async function deleteTelegramProxyConfig(
   )
 
   const statuses = await getMessengerTokensStatus()
-  const status = statuses.find((s) => s.platform === 'telegram')
-  if (!status) {
+  const messenger = statuses.find((s) => s.platform === 'telegram')
+  if (!messenger) {
     throw new Error('Failed to delete telegram proxy config')
   }
-  return status
+  return { messenger, notificationDelivery }
 }
 
 /** Restore local SOCKS5 from DB on process boot (if a config is stored). */
 export async function startTelegramProxyFromSettings(): Promise<void> {
-  const config = await getDecryptedTelegramProxyConfig()
-  if (!config) return
   try {
-    await ensureTelegramProxy(config)
+    const socks = await ensureTelegramProxyFromDb()
+    console.log(
+      `[telegram-proxy] boot SOCKS5 ready at ${socks.host}:${socks.port}`
+    )
   } catch (error) {
+    // No config yet is fine; real failures should be visible.
+    const message = error instanceof Error ? error.message : String(error)
+    if (message.includes('ذخیره نشده')) return
     console.error('[telegram-proxy] failed to start from settings', error)
   }
 }
@@ -294,6 +378,8 @@ export async function isMessengerTokenConfigured(
 export async function isMessengerReady(
   platform: MessengerPlatform
 ): Promise<boolean> {
+  // Rubika temporarily off for site demo
+  if (platform === 'rubika' && !RUBIKA_CHATBOT_ENABLED) return false
   const statuses = await getMessengerTokensStatus()
   const status = statuses.find((s) => s.platform === platform)
   return Boolean(status?.configured && status.enabled)
@@ -353,6 +439,10 @@ export async function upsertMessengerToken(
   token: string,
   userId: string
 ): Promise<MessengerTokenStatus> {
+  if (platform === 'telegram') {
+    await requireWorkingTelegramProxy('token')
+  }
+
   const cipher = encryptSecret(token.trim())
 
   await query(
@@ -404,10 +494,29 @@ async function teardownBotWebhook(
   await clearWebhookMetadata(platform, userId)
 }
 
-async function ensureStoredTelegramProxy(): Promise<void> {
+/**
+ * Telegram Bot API is only reachable via the stored V2Ray config.
+ * Config must exist and successfully start + ping before token save / enable.
+ */
+async function requireWorkingTelegramProxy(
+  purpose: 'token' | 'enable' = 'enable'
+): Promise<void> {
   const config = await getDecryptedTelegramProxyConfig()
-  if (!config) return
-  await ensureTelegramProxy(config)
+  if (!config) {
+    throw new Error(
+      purpose === 'token'
+        ? 'برای ثبت توکن تلگرام، ابتدا کانفیگ V2Ray را وارد کنید، پینگ بگیرید و ذخیره کنید.'
+        : 'برای فعال‌سازی چت‌بات تلگرام، ابتدا کانفیگ V2Ray را وارد کنید، پینگ بگیرید و ذخیره کنید.'
+    )
+  }
+
+  const test = await testAndActivateVlessProxy(config)
+  if (!test.ok) {
+    throw new Error(
+      test.error ??
+        'کانفیگ V2Ray پینگ نداد. کانفیگ وصل‌شونده وارد کنید و دوباره تست کنید.'
+    )
+  }
 }
 
 async function activateBotWebhook(
@@ -425,26 +534,26 @@ async function activateBotWebhook(
 
   // V2Ray/SOCKS is Telegram-only — Bale is reached directly.
   if (platform === 'telegram') {
-    try {
-      await ensureStoredTelegramProxy()
-    } catch (error) {
-      throw new Error(
-        `راه‌اندازی پروکسی V2Ray ناموفق بود: ${
-          error instanceof Error ? error.message : 'خطای ناشناخته'
-        }`
-      )
-    }
+    await requireWorkingTelegramProxy('enable')
   }
 
   let botUsername: string
   try {
     const me = await getMe(platform, token)
-    botUsername = me.username ?? `id_${me.id}`
+    if (!me.username) {
+      throw new Error(
+        `بات ${label} باید username عمومی داشته باشد تا لینک ورود از داشبورد کار کند. در BotFather یک username تنظیم کنید.`
+      )
+    }
+    botUsername = me.username.replace(/^@/, '')
   } catch (error) {
     if (error instanceof TelegramApiError) {
       throw new Error(
         `توکن ${label} نامعتبر است یا به Bot API دسترسی نیست: ${error.description}`
       )
+    }
+    if (error instanceof Error && error.message.includes('username')) {
+      throw error
     }
     throw new Error(`ارتباط با ${label} برقرار نشد. دوباره تلاش کنید.`)
   }
@@ -523,6 +632,115 @@ async function activateBotWebhook(
   return { botUsername, mode: 'webhook' }
 }
 
+async function activateRubikaWebhook(userId: string): Promise<{
+  botUsername: string
+  mode: 'webhook' | 'polling'
+}> {
+  const token = await getDecryptedMessengerToken('rubika')
+  if (!token) {
+    throw new Error('ابتدا توکن روبیکا را ذخیره کنید.')
+  }
+
+  let botUsername: string
+  try {
+    const me = await getRubikaMe(token)
+    const fromUsername = me.username?.replace(/^@/, '') || null
+    const fromShare = me.share_url
+      ? extractUsernameFromShareUrl(me.share_url)
+      : null
+    botUsername = fromUsername || fromShare || ''
+    if (!isPublicBotUsername(botUsername)) {
+      throw new Error(
+        'بات روبیکا باید username عمومی داشته باشد تا لینک ورود (?st=) کار کند. در BotFather روبیکا یک username تنظیم کنید.'
+      )
+    }
+  } catch (error) {
+    if (error instanceof RubikaApiError) {
+      throw new Error(
+        `توکن روبیکا نامعتبر است یا به Bot API دسترسی نیست: ${error.description}`
+      )
+    }
+    if (error instanceof Error && error.message.includes('username')) {
+      throw error
+    }
+    throw new Error('ارتباط با روبیکا برقرار نشد. دوباره تلاش کنید.')
+  }
+
+  const env = getEnv()
+  const useWebhook = canUseBotWebhook(env.APP_URL)
+
+  if (!useWebhook) {
+    try {
+      await clearBotEndpoints(token)
+    } catch (error) {
+      console.error('[messenger] clear Rubika endpoints before polling failed', error)
+    }
+
+    await query(
+      `INSERT INTO messenger_platform_settings (
+         platform, enabled, webhook_secret_cipher, bot_username, webhook_set_at, updated_by
+       ) VALUES ('rubika', TRUE, NULL, $1, NULL, $2)
+       ON CONFLICT (platform) DO UPDATE SET
+         enabled = TRUE,
+         webhook_secret_cipher = NULL,
+         bot_username = EXCLUDED.bot_username,
+         webhook_set_at = NULL,
+         updated_at = NOW(),
+         updated_by = EXCLUDED.updated_by`,
+      [botUsername, userId]
+    )
+
+    console.log(
+      `[messenger] روبیکا bot @${botUsername} enabled in polling mode (APP_URL=${env.APP_URL} is not public HTTPS)`
+    )
+    return { botUsername, mode: 'polling' }
+  }
+
+  const secret = generateWebhookSecret()
+  const base = env.APP_URL.replace(/\/$/, '')
+  const webhookUrl = `${base}${botWebhookPath('rubika')}?secret=${encodeURIComponent(secret)}`
+
+  try {
+    await updateBotEndpoints(token, webhookUrl, 'ReceiveUpdate')
+    await updateBotEndpoints(token, webhookUrl, 'ReceiveInlineMessage')
+  } catch (error) {
+    if (error instanceof RubikaApiError) {
+      throw new Error(
+        `ثبت webhook روبیکا ناموفق بود: ${error.description}. آدرس عمومی HTTPS (${env.APP_URL}) را بررسی کنید.`
+      )
+    }
+    throw new Error('ثبت webhook روبیکا ناموفق بود.')
+  }
+
+  await query(
+    `INSERT INTO messenger_platform_settings (
+       platform, enabled, webhook_secret_cipher, bot_username, webhook_set_at, updated_by
+     ) VALUES ('rubika', TRUE, $1, $2, NOW(), $3)
+     ON CONFLICT (platform) DO UPDATE SET
+       enabled = TRUE,
+       webhook_secret_cipher = EXCLUDED.webhook_secret_cipher,
+       bot_username = EXCLUDED.bot_username,
+       webhook_set_at = NOW(),
+       updated_at = NOW(),
+       updated_by = EXCLUDED.updated_by`,
+    [encryptSecret(secret), botUsername, userId]
+  )
+
+  return { botUsername, mode: 'webhook' }
+}
+
+async function teardownRubikaWebhook(userId: string): Promise<void> {
+  const token = await getDecryptedMessengerToken('rubika')
+  if (token) {
+    try {
+      await clearBotEndpoints(token)
+    } catch (error) {
+      console.error('[messenger] clear Rubika endpoints failed', error)
+    }
+  }
+  await clearWebhookMetadata('rubika', userId)
+}
+
 export async function deleteMessengerToken(
   platform: MessengerPlatform,
   userId: string
@@ -532,6 +750,8 @@ export async function deleteMessengerToken(
 }> {
   if (isBotApiPlatform(platform)) {
     await teardownBotWebhook(platform, userId)
+  } else if (platform === 'rubika') {
+    await teardownRubikaWebhook(userId)
   }
 
   await query(`DELETE FROM messenger_bot_tokens WHERE platform = $1`, [platform])
@@ -547,15 +767,25 @@ export async function setMessengerEnabled(
   messenger: MessengerTokenStatus
   notificationDelivery?: NotificationDeliverySettings
 }> {
+  if (platform === 'rubika' && !RUBIKA_CHATBOT_ENABLED) {
+    throw new Error(
+      'چت‌بات روبیکا فعلاً در دمو غیرفعال است و به‌زودی فعال می‌شود.'
+    )
+  }
+
   if (enabled) {
     const configured = await isMessengerTokenConfigured(platform)
     if (!configured) {
       throw new Error('برای فعال‌سازی چت‌بات، ابتدا توکن را ثبت کنید.')
     }
 
-    if (isBotApiPlatform(platform)) {
+    if (isBotApiPlatform(platform) || platform === 'rubika') {
       try {
-        await activateBotWebhook(platform, userId)
+        if (platform === 'rubika') {
+          await activateRubikaWebhook(userId)
+        } else {
+          await activateBotWebhook(platform, userId)
+        }
       } catch (error) {
         await query(
           `INSERT INTO messenger_platform_settings (platform, enabled, updated_by)
@@ -568,21 +798,14 @@ export async function setMessengerEnabled(
         )
         throw error
       }
-    } else {
-      // Rubika runtime comes in a later phase — persist toggle only.
-      await query(
-        `INSERT INTO messenger_platform_settings (platform, enabled, updated_by)
-         VALUES ($1, TRUE, $2)
-         ON CONFLICT (platform) DO UPDATE SET
-           enabled = TRUE,
-           updated_at = NOW(),
-           updated_by = EXCLUDED.updated_by`,
-        [platform, userId]
-      )
     }
   } else {
-    if (isBotApiPlatform(platform) && !options?.skipTeardown) {
-      await teardownBotWebhook(platform, userId)
+    if (!options?.skipTeardown) {
+      if (isBotApiPlatform(platform)) {
+        await teardownBotWebhook(platform, userId)
+      } else if (platform === 'rubika') {
+        await teardownRubikaWebhook(userId)
+      }
     }
 
     await query(
@@ -595,7 +818,7 @@ export async function setMessengerEnabled(
       [platform, userId]
     )
 
-    if (isBotApiPlatform(platform)) {
+    if (isBotApiPlatform(platform) || platform === 'rubika') {
       await clearWebhookMetadata(platform, userId)
       // Keep Telegram V2Ray config stored; SOCKS stays up for next enable / API tests.
     }
@@ -606,10 +829,18 @@ export async function setMessengerEnabled(
     const delivery = await getNotificationDeliverySettings()
     if (
       delivery.clientChannel === 'chatbot' &&
-      delivery.clientChatbotPlatform === platform
+      delivery.clientChatbotPlatforms.includes(platform)
     ) {
+      const remaining = delivery.clientChatbotPlatforms.filter(
+        (p) => p !== platform
+      )
       notificationDelivery = await updateNotificationDeliverySettings(
-        { clientChannel: 'in_app', clientChatbotPlatform: null },
+        remaining.length === 0
+          ? { clientChannel: 'in_app', clientChatbotPlatforms: [] }
+          : {
+              clientChannel: 'chatbot',
+              clientChatbotPlatforms: remaining,
+            },
         userId
       )
     }
@@ -626,7 +857,7 @@ export async function setMessengerEnabled(
 
 export async function getNotificationDeliverySettings(): Promise<NotificationDeliverySettings> {
   const { rows } = await query<DeliveryRow>(
-    `SELECT client_channel, client_chatbot_platform, updated_at
+    `SELECT client_channel, client_chatbot_platforms, updated_at
      FROM notification_delivery_settings
      WHERE id = 1
      LIMIT 1`
@@ -636,14 +867,16 @@ export async function getNotificationDeliverySettings(): Promise<NotificationDel
   if (!row) {
     return {
       clientChannel: 'in_app',
-      clientChatbotPlatform: null,
+      clientChatbotPlatforms: [],
       updatedAt: null,
     }
   }
 
   return {
     clientChannel: row.client_channel,
-    clientChatbotPlatform: row.client_chatbot_platform,
+    clientChatbotPlatforms: coerceMessengerPlatforms(
+      row.client_chatbot_platforms
+    ),
     updatedAt: toIso(row.updated_at),
   }
 }
@@ -651,23 +884,25 @@ export async function getNotificationDeliverySettings(): Promise<NotificationDel
 export async function updateNotificationDeliverySettings(
   input: {
     clientChannel: ClientNotificationChannel
-    clientChatbotPlatform?: MessengerPlatform | null
+    clientChatbotPlatforms?: MessengerPlatform[] | null
   },
   userId: string
 ): Promise<NotificationDeliverySettings> {
-  const chatbotPlatform =
-    input.clientChannel === 'chatbot' ? (input.clientChatbotPlatform ?? null) : null
+  const chatbotPlatforms =
+    input.clientChannel === 'chatbot'
+      ? normalizeMessengerPlatforms(input.clientChatbotPlatforms)
+      : []
 
   await query(
     `INSERT INTO notification_delivery_settings (
-       id, client_channel, client_chatbot_platform, updated_by
-     ) VALUES (1, $1, $2, $3)
+       id, client_channel, client_chatbot_platforms, updated_by
+     ) VALUES (1, $1, $2::messenger_platform[], $3)
      ON CONFLICT (id) DO UPDATE SET
        client_channel = EXCLUDED.client_channel,
-       client_chatbot_platform = EXCLUDED.client_chatbot_platform,
+       client_chatbot_platforms = EXCLUDED.client_chatbot_platforms,
        updated_at = NOW(),
        updated_by = EXCLUDED.updated_by`,
-    [input.clientChannel, chatbotPlatform, userId]
+    [input.clientChannel, chatbotPlatforms, userId]
   )
 
   return getNotificationDeliverySettings()
@@ -686,7 +921,7 @@ export async function getUserNotificationPreferences(
   userId: string
 ): Promise<UserNotificationPreferences> {
   const { rows } = await query<UserPreferencesRow>(
-    `SELECT channel, chatbot_platform, updated_at
+    `SELECT channel, chatbot_platforms, updated_at
      FROM user_notification_preferences
      WHERE user_id = $1
      LIMIT 1`,
@@ -697,14 +932,14 @@ export async function getUserNotificationPreferences(
   if (!row) {
     return {
       channel: 'in_app',
-      chatbotPlatform: null,
+      chatbotPlatforms: [],
       updatedAt: null,
     }
   }
 
   return {
     channel: row.channel,
-    chatbotPlatform: row.chatbot_platform,
+    chatbotPlatforms: coerceMessengerPlatforms(row.chatbot_platforms),
     updatedAt: toIso(row.updated_at),
   }
 }
@@ -713,20 +948,22 @@ export async function updateUserNotificationPreferences(
   userId: string,
   input: {
     channel: ClientNotificationChannel
-    chatbotPlatform?: MessengerPlatform | null
+    chatbotPlatforms?: MessengerPlatform[] | null
   }
 ): Promise<UserNotificationPreferences> {
-  const chatbotPlatform =
-    input.channel === 'chatbot' ? (input.chatbotPlatform ?? null) : null
+  const chatbotPlatforms =
+    input.channel === 'chatbot'
+      ? normalizeMessengerPlatforms(input.chatbotPlatforms)
+      : []
 
   await query(
-    `INSERT INTO user_notification_preferences (user_id, channel, chatbot_platform)
-     VALUES ($1, $2, $3)
+    `INSERT INTO user_notification_preferences (user_id, channel, chatbot_platforms)
+     VALUES ($1, $2, $3::messenger_platform[])
      ON CONFLICT (user_id) DO UPDATE SET
        channel = EXCLUDED.channel,
-       chatbot_platform = EXCLUDED.chatbot_platform,
+       chatbot_platforms = EXCLUDED.chatbot_platforms,
        updated_at = NOW()`,
-    [userId, input.channel, chatbotPlatform]
+    [userId, input.channel, chatbotPlatforms]
   )
 
   return getUserNotificationPreferences(userId)

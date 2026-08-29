@@ -22,7 +22,7 @@ export type MessengerTokenStatus = {
 
 export type NotificationDeliverySettings = {
   clientChannel: ClientNotificationChannel
-  clientChatbotPlatform: MessengerPlatform | null
+  clientChatbotPlatforms: MessengerPlatform[]
   updatedAt: string | null
 }
 
